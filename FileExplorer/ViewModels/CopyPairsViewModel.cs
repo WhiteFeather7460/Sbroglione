@@ -21,6 +21,9 @@ public class CopyPairsViewModel : ViewModelBase
 {
     public ObservableCollection<FolderFilePairViewModel> PathPairs { get; } = new();
 
+    /// <summary>True se c'è almeno una coppia in lista (pilota l'empty state).</summary>
+    public bool HasPairs => PathPairs.Count > 0;
+
     private readonly Dictionary<FolderFilePairViewModel, CancellationTokenSource> _ctsByPair = new();
 
     public ReactiveCommand<Unit, Unit> AddPairCommand { get; }
@@ -31,6 +34,8 @@ public class CopyPairsViewModel : ViewModelBase
 
     public CopyPairsViewModel()
     {
+        PathPairs.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasPairs));
+
         AddPairCommand = ReactiveCommand.Create(() => PathPairs.Add(new FolderFilePairViewModel()));
 
         BrowseSourceCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(BrowseSourceAsync);
@@ -75,6 +80,7 @@ public class CopyPairsViewModel : ViewModelBase
         if (!pair.CanStart)
         {
             pair.Status = "Percorsi non validi";
+            pair.StateKind = CopyStateKind.Error;
             return;
         }
 
@@ -89,6 +95,7 @@ public class CopyPairsViewModel : ViewModelBase
             pair.IsCopying = true;
             pair.Progress = 0;
             pair.Status = "Copia in corso…";
+            pair.StateKind = CopyStateKind.Copying;
 
             if (FileSystemService.GetPathType(pair.SourcePath) == PathType.Directory)
             {
@@ -102,10 +109,12 @@ public class CopyPairsViewModel : ViewModelBase
         catch (OperationCanceledException)
         {
             pair.Status = "Annullato";
+            pair.StateKind = CopyStateKind.Cancelled;
         }
         catch (Exception ex)
         {
             pair.Status = $"Errore: {ex.Message}";
+            pair.StateKind = CopyStateKind.Error;
         }
         finally
         {
@@ -147,6 +156,7 @@ public class CopyPairsViewModel : ViewModelBase
 
         pair.Progress = 1;
         pair.Status = pair.IsVerified == true ? "Completato" : "Completato (checksum non corrisponde)";
+        pair.StateKind = pair.IsVerified == true ? CopyStateKind.Success : CopyStateKind.Warning;
     }
 
     private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, CancellationToken ct)
@@ -175,6 +185,11 @@ public class CopyPairsViewModel : ViewModelBase
         {
             pair.Progress = 1;
             pair.Status = "Completato";
+            pair.StateKind = CopyStateKind.Success;
+        }
+        else if (knownFileCount == 0)
+        {
+            pair.StateKind = CopyStateKind.Ready;
         }
     }
 }
