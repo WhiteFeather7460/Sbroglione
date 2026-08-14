@@ -18,3 +18,7 @@ dotnet run --project GetStartedApp.Desktop
 ```
 
 No test project exists. No CI, no linter/formatter config (`dotnet format` works generically but isn't wired to any script).
+
+## Git
+
+Do not add yourself (Claude) as co-author on commits.
