@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FileExplorer.Views.SelectPathDialog"
+        Title="Seleziona file o cartella"
+        Width="600" Height="400">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Barra del percorso -->
+    <StackPanel Orientation="Horizontal" Margin="5">
+      <TextBox Width="400"
+               x:Name="PathTextBar"
+               Text="{Binding CurrentPath, Mode=TwoWay}"
+               KeyDown="OnPathKeyDown" />
+      <Button Content="Indietro" Click="OnBackClick" Margin="5" />
+      <Button Content="Vai" Click="OnGoClick" Width="50" Margin="5" />
+      <Button Content="Seleziona" Click="OnSelectClick" Margin="5" />
+    </StackPanel>
+
+    <!-- Lista file/cartelle -->
+    <DataGrid ItemsSource="{Binding Items}"
+              SelectedItem="{Binding SelectedItem}"
+              DoubleTapped="OnItemDoubleTapped"
+              Grid.Row="1"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              SelectionMode="Single"
+              HeadersVisibility="Column"
+              GridLinesVisibility="All"
+              HorizontalScrollBarVisibility="Auto"
+              VerticalScrollBarVisibility="Auto">
+
+      <DataGrid.Columns>
+        <DataGridTemplateColumn Header="" Width="60">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Icon}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
+        <DataGridTextColumn Header="Dimensione" Binding="{Binding Size}" Width="100" />
+        <DataGridTextColumn Header="Ultima Modifica" Binding="{Binding LastModified}" Width="*" />
+      </DataGrid.Columns>
+
+    </DataGrid>
+  </Grid>
+</Window>

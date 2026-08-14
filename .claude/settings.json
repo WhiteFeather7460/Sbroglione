@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | { read -r f; case \"$f\" in *.cs|*.axaml) rel=\"${f#/STORAGE_2/Workspace/FileExplorer/}\"; dotnet format whitespace /STORAGE_2/Workspace/FileExplorer/GetStartedApp.sln --include \"$rel\" --no-restore >/dev/null 2>&1 || true;; esac; }"
+            "command": "jq -r '.tool_input.file_path' | { read -r f; case \"$f\" in *.cs|*.axaml) rel=\"${f#/STORAGE_2/Workspace/FileExplorer/}\"; dotnet format whitespace /STORAGE_2/Workspace/FileExplorer/FileExplorer.sln --include \"$rel\" --no-restore >/dev/null 2>&1 || true;; esac; }"
           }
         ]
       }

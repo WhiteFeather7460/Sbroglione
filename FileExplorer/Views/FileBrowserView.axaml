@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="FileExplorer.Views.FileBrowserView">
+  <DockPanel>
+    <!-- Barra di navigazione -->
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+      <TextBox Width="500" Text="{Binding CurrentPath}" />
+      <Button Content="Vai" Command="{Binding NavigateCommand}" />
+    </StackPanel>
+
+    <!-- Pulsanti azione -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
+      <Button Content="Annulla" Command="{Binding CancelCommand}" Margin="5" />
+      <Button Content="Seleziona" Command="{Binding SelectCommand}" Margin="5" />
+    </StackPanel>
+
+    <!-- Lista file/cartelle -->
+    <ListBox ItemsSource="{Binding Items}"
+             SelectedItem="{Binding SelectedItem}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{Binding Icon}" />
+            <TextBlock Text="{Binding Name}" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>

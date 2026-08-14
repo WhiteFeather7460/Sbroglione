@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="FileExplorer.Views.CopyPairsView">
+
+  <StackPanel Margin="10">
+    <Button Content="Aggiungi coppia" Command="{Binding AddPairCommand}" Width="150" />
+
+    <ItemsControl ItemsSource="{Binding PathPairs}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Orientation="Vertical" Margin="0,5">
+            <Separator Margin="0,8,0,8" />
+
+            <!-- Sorgente -->
+            <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+              <Button Grid.Column="0"
+                      Content="Sfoglia..."
+                      Margin="0,0,8,0"
+                      Command="{Binding DataContext.BrowseSourceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      CommandParameter="{Binding}" />
+              <TextBox Grid.Column="1"
+                       Text="{Binding SourcePath}"
+                       IsReadOnly="True"
+                       HorizontalAlignment="Stretch" />
+            </Grid>
+
+            <!-- Destinazione -->
+            <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+              <Button Grid.Column="0"
+                      Content="Sfoglia..."
+                      Margin="0,0,8,0"
+                      Command="{Binding DataContext.BrowseDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      CommandParameter="{Binding}" />
+              <TextBox Grid.Column="1"
+                       Text="{Binding DestinationPath}"
+                       IsReadOnly="True"
+                       HorizontalAlignment="Stretch" />
+            </Grid>
+
+            <Separator Margin="0,5" />
+
+            <!-- Espandibile: elenco dei file da elaborare -->
+            <Expander Header="Mostra file da elaborare">
+              <DataGrid ItemsSource="{Binding FilesToProcess}"
+                        AutoGenerateColumns="True"
+                        IsReadOnly="True"
+                        MaxHeight="200"
+                        Margin="0,5,0,0" />
+            </Expander>
+
+            <!-- Avanzamento e comandi della riga -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                <ProgressBar Width="180" Height="12"
+                             Minimum="0" Maximum="1"
+                             Value="{Binding Progress}" />
+                <TextBlock Text="{Binding Status}" VerticalAlignment="Center" />
+              </StackPanel>
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="Avvia"
+                        Width="100"
+                        Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        CommandParameter="{Binding}"
+                        IsEnabled="{Binding CanStart}" />
+                <Button Content="Annulla"
+                        Width="100"
+                        Command="{Binding DataContext.CancelCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        CommandParameter="{Binding}"
+                        IsEnabled="{Binding IsCopying}" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+
+</UserControl>
