@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:GetStartedApp.Views"
+        x:Class="GetStartedApp.Views.MainWindow"
+        Title="Tab Demo"
+        Width="800" Height="600">
+
+	<DockPanel>
+		<Menu DockPanel.Dock="Top">
+			<MenuItem Header="_File">
+				<MenuItem Header="_Open" />
+				<Separator />
+				<MenuItem Header="_Exit" />
+			</MenuItem>
+		</Menu>
+
+		<TabControl>
+			<TabItem Header="View 1">
+				<views:View1/>
+			</TabItem>
+			<TabItem Header="View 2">
+				<views:View2/>
+			</TabItem>
+		</TabControl>
+	</DockPanel>
+</Window>

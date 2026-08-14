@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		x:Class="GetStartedApp.Views.SelectPathDialog"
+        Title="Seleziona file o cartella"
+        Width="600" Height="400">
+
+	<Grid RowDefinitions="Auto,*">
+		<!-- Breadcrumb / barra percorso -->
+		<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+			<TextBox Width="400"
+					 x:Name="PathTextBar"
+					 Text="{Binding CurrentPath, Mode=TwoWay}"
+					 KeyDown="PathTextBox_KeyDown" />
+			<Button Content="Indietro" Click="GoBack_Click" Margin="5"/>
+			<Button Content="Vai" Click="GoButton_Click" Width="50" Margin="5"/>
+			<Button Content="Seleziona" Click="SelectElement_Click" Margin="5"/>
+		</StackPanel>
+
+		<!-- Lista file/cartelle -->
+		<!--<ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" DoubleTapped="ListBox_DoubleTapped">
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					<StackPanel Orientation="Horizontal" Spacing="8">
+						<TextBlock Text="{Binding Icon}" Width="20"/>
+						<TextBlock Text="{Binding Name}"/>
+					</StackPanel>
+				</DataTemplate>
+			</ListBox.ItemTemplate>
+		</ListBox>-->
+
+		<DataGrid ItemsSource="{Binding Items}"
+			SelectedItem="{Binding SelectedItem}"
+			DoubleTapped="ListBox_DoubleTapped"
+			Grid.Row="1"
+			AutoGenerateColumns="False"
+			IsReadOnly="True"
+			SelectionMode="Single"
+			HeadersVisibility="Column"
+			GridLinesVisibility="All"
+			HorizontalScrollBarVisibility="Auto"
+			VerticalScrollBarVisibility="Auto">
+
+			<DataGrid.Columns>
+				<DataGridTemplateColumn Header="" Width="60">
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate>
+							<TextBlock Text="{Binding Icon}"
+								HorizontalAlignment="Center"
+								VerticalAlignment="Center"/>
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+				</DataGridTemplateColumn>
+				<DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*"/>
+				<DataGridTextColumn Header="Dimensione" Binding="{Binding Size}" Width="100"/>
+				<DataGridTextColumn Header="Ultima Modifica" Binding="{Binding LastModified}" Width="*"/>
+			</DataGrid.Columns>
+
+		</DataGrid>
+		
+	</Grid>
+</Window>
