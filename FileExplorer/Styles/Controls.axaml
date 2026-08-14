@@ -1,0 +1,144 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ===== Bottoni ===== -->
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentGradient}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16,7" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentGradient}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Opacity" Value="0.85" />
+  </Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.NeutralBg}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.NeutralFg}" />
+  </Style>
+
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.CardBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16,7" />
+  </Style>
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Field}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+  </Style>
+
+  <Style Selector="Button.iconbtn">
+    <Setter Property="Background" Value="{DynamicResource Brush.Field}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.iconbtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.NeutralBg}" />
+  </Style>
+
+  <!-- Bottone bianco semi-trasparente per l'header col gradiente -->
+  <Style Selector="Button.onaccent">
+    <Setter Property="Background" Value="#33FFFFFF" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="14,7" />
+  </Style>
+  <Style Selector="Button.onaccent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#55FFFFFF" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- ===== Campi di testo ===== -->
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Field}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="TextBox.error">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.ErrorFg}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <!-- ===== Progress ===== -->
+  <Style Selector="ProgressBar">
+    <Setter Property="MinHeight" Value="6" />
+    <Setter Property="Height" Value="6" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.AccentGradient}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Field}" />
+  </Style>
+
+  <!-- ===== Card ===== -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource Brush.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.CardBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="14" />
+    <Setter Property="Margin" Value="0,6" />
+    <Setter Property="BoxShadow" Value="0 2 8 0 #22FF5E62" />
+  </Style>
+
+  <!-- ===== Badge di stato (base = neutro) ===== -->
+  <Style Selector="Border.badge">
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="Background" Value="{DynamicResource Brush.NeutralBg}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.badge > TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.NeutralFg}" />
+  </Style>
+  <Style Selector="Border.badge.success">
+    <Setter Property="Background" Value="{DynamicResource Brush.SuccessBg}" />
+  </Style>
+  <Style Selector="Border.badge.success > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.SuccessFg}" />
+  </Style>
+  <Style Selector="Border.badge.warning">
+    <Setter Property="Background" Value="{DynamicResource Brush.WarningBg}" />
+  </Style>
+  <Style Selector="Border.badge.warning > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.WarningFg}" />
+  </Style>
+  <Style Selector="Border.badge.error">
+    <Setter Property="Background" Value="{DynamicResource Brush.ErrorBg}" />
+  </Style>
+  <Style Selector="Border.badge.error > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.ErrorFg}" />
+  </Style>
+  <Style Selector="Border.badge.progress">
+    <Setter Property="Background" Value="{DynamicResource Brush.ProgressBg}" />
+  </Style>
+  <Style Selector="Border.badge.progress > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.ProgressFg}" />
+  </Style>
+
+  <!-- ===== DataGrid ===== -->
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="GridLinesVisibility" Value="None" />
+  </Style>
+  <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Field}" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+    <Setter Property="Fill" Value="{DynamicResource Brush.ProgressBg}" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+</Styles>
