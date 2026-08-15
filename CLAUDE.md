@@ -23,6 +23,10 @@ dotnet run --project FileExplorer.Desktop
 
 Tests: `FileExplorer.Tests` (xunit) — run with `dotnet test`. No CI. `.editorconfig` defines code style; `dotnet format whitespace` runs automatically on edited `.cs`/`.axaml` files via a PostToolUse hook.
 
+## Workflow
+
+For any non-trivial feature or change, always write an implementation plan first (superpowers writing-plans; plans live in `docs/superpowers/plans/`) and execute it with subagents (superpowers subagent-driven-development). After each completed task, mark it as done in the plan file before starting the next one.
+
 ## Git
 
 Do not add yourself (Claude) as co-author on commits.
