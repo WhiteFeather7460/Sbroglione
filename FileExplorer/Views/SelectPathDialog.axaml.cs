@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using FileExplorer.Models;
 using FileExplorer.Services;
 using FileExplorer.ViewModels;
 
@@ -16,6 +15,17 @@ public partial class SelectPathDialog : Window
     public SelectPathDialog()
     {
         InitializeComponent();
+
+        // Il caricamento iniziale parte all'apertura: il costruttore del ViewModel
+        // non fa I/O (i percorsi di rete possono essere lenti o irraggiungibili).
+        Opened += async (_, _) =>
+        {
+            if (ViewModel is { } vm)
+            {
+                await vm.RefreshAsync();
+                UpdatePathBarErrorClass();
+            }
+        };
     }
 
     private SelectPathDialogViewModel? ViewModel => DataContext as SelectPathDialogViewModel;
@@ -23,9 +33,20 @@ public partial class SelectPathDialog : Window
     /// <summary>
     /// Doppio click: se l'elemento è una cartella la apre, altrimenti lo seleziona e chiude.
     /// </summary>
-    public void OnItemDoubleTapped(object? sender, TappedEventArgs e)
+    public async void OnItemDoubleTapped(object? sender, TappedEventArgs e)
     {
-        CloseAfterSelectElement(isDoubleTap: true);
+        if (ViewModel is not { } vm)
+            return;
+
+        // Doppio click su una cartella: la apre invece di selezionarla.
+        if (vm.SelectedItem is { IsDirectory: true } selected)
+        {
+            await vm.NavigateToAsync(selected.FullPath);
+            UpdatePathBarErrorClass();
+            return;
+        }
+
+        CloseAfterSelectElement();
     }
 
     public void OnSelectClick(object? sender, RoutedEventArgs e)
@@ -35,19 +56,10 @@ public partial class SelectPathDialog : Window
 
     public void OnCancelClick(object? sender, RoutedEventArgs e) => Close(null);
 
-    private void CloseAfterSelectElement(bool isDoubleTap = false)
+    private void CloseAfterSelectElement()
     {
         if (ViewModel is not { } vm)
             return;
-
-        // Doppio click su una cartella: la apre invece di selezionarla.
-        if (isDoubleTap
-            && vm.SelectedItem is { } selected
-            && FileSystemService.GetPathType(selected.FullPath) == PathType.Directory)
-        {
-            vm.NavigateTo(selected.FullPath);
-            return;
-        }
 
         // Senza un elemento selezionato viene scelta la cartella corrente.
         Close(vm.SelectedItem?.FullPath ?? vm.CurrentPath);
@@ -65,26 +77,35 @@ public partial class SelectPathDialog : Window
         }
     }
 
-    public void OnGoClick(object? sender, RoutedEventArgs e)
+    public async void OnGoClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not { } vm)
             return;
 
-        // Se il percorso non esiste la barra viene evidenziata con la classe "error".
-        if (FileSystemService.GetPathType(vm.CurrentPath) == PathType.Unknown)
-        {
-            PathTextBar.Classes.Add("error");
-            return;
-        }
-
-        PathTextBar.Classes.Remove("error");
-        vm.NavigateTo(vm.SelectedItem?.FullPath ?? vm.CurrentPath);
-        e.Handled = true;
+        await vm.NavigateToAsync(vm.CurrentPath);
+        UpdatePathBarErrorClass();
     }
 
-    public void OnBackClick(object? sender, RoutedEventArgs e)
+    public async void OnBackClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is { } vm && FileSystemService.GetParentPath(vm.CurrentPath) is { } parent)
-            vm.NavigateTo(parent);
+        {
+            await vm.NavigateToAsync(parent);
+            UpdatePathBarErrorClass();
+        }
+    }
+
+    /// <summary>
+    /// Evidenzia la barra del percorso con la classe "error" quando l'ultimo caricamento è fallito.
+    /// </summary>
+    private void UpdatePathBarErrorClass()
+    {
+        if (ViewModel is not { } vm)
+            return;
+
+        if (vm.ErrorMessage is not null)
+            PathTextBar.Classes.Add("error");
+        else
+            PathTextBar.Classes.Remove("error");
     }
 }

@@ -89,15 +89,16 @@ public class CopyPairsViewModel : ViewModelBase
 
         try
         {
-            // La cartella che conterrà la destinazione viene creata in ogni caso.
-            Directory.CreateDirectory(Path.GetDirectoryName(pair.DestinationPath!)!);
+            // La cartella che conterrà la destinazione viene creata in ogni caso
+            // (in background: su percorsi di rete può bloccare).
+            await Task.Run(() => Directory.CreateDirectory(Path.GetDirectoryName(pair.DestinationPath!)!));
 
             pair.IsCopying = true;
             pair.Progress = 0;
             pair.Status = "Copia in corso…";
             pair.StateKind = CopyStateKind.Copying;
 
-            if (FileSystemService.GetPathType(pair.SourcePath) == PathType.Directory)
+            if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
                 // La copia di cartelle non prevede la verifica checksum.
                 await CopyDirectoryAsync(pair, cts.Token);
@@ -134,7 +135,7 @@ public class CopyPairsViewModel : ViewModelBase
     private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, CancellationToken ct)
     {
         // Se la sorgente è un file e la destinazione una cartella, il file viene copiato dentro la cartella.
-        bool isFileCopyToFolder = FileSystemService.GetPathType(pair.DestinationPath) == PathType.Directory;
+        bool isFileCopyToFolder = await FileSystemService.GetPathTypeAsync(pair.DestinationPath) == PathType.Directory;
         string destinationPath = isFileCopyToFolder
             ? Path.Combine(pair.DestinationPath!, Path.GetFileName(pair.SourcePath!))
             : pair.DestinationPath!;

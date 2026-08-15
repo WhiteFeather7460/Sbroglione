@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using FileExplorer.Models;
 
 namespace FileExplorer.Services;
@@ -25,59 +27,6 @@ public static class FileSystemService
     }
 
     /// <summary>
-    /// Elenca le cartelle (ed eventualmente i file) contenuti direttamente in <paramref name="path"/>.
-    /// Gli errori di accesso vengono ignorati: si ottiene un elenco parziale o vuoto.
-    /// </summary>
-    public static List<FileSystemItem> ListDirectory(string path, bool directoriesOnly)
-    {
-        var items = new List<FileSystemItem>();
-
-        if (!Directory.Exists(path))
-            return items;
-
-        try
-        {
-            foreach (var directory in Directory.GetDirectories(path))
-            {
-                items.Add(CreateDirectoryItem(new DirectoryInfo(directory)));
-            }
-
-            if (!directoriesOnly)
-            {
-                foreach (var file in Directory.GetFiles(path))
-                {
-                    items.Add(CreateFileItem(new FileInfo(file)));
-                }
-            }
-        }
-        catch
-        {
-            // Errori di accesso ignorati di proposito.
-        }
-
-        return items;
-    }
-
-    /// <summary>
-    /// Ritorna ricorsivamente tutti i file sotto <paramref name="path"/>, ordinati per percorso completo.
-    /// Gli errori di accesso producono un elenco vuoto.
-    /// </summary>
-    public static List<FileSystemItem> ListFilesRecursive(string path)
-    {
-        try
-        {
-            return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
-                .Select(file => CreateFileItem(new FileInfo(file)))
-                .OrderBy(item => item.FullPath)
-                .ToList();
-        }
-        catch
-        {
-            return new List<FileSystemItem>();
-        }
-    }
-
-    /// <summary>
     /// Ritorna il percorso della cartella superiore, o il percorso stesso se si è già alla radice.
     /// </summary>
     public static string? GetParentPath(string? path)
@@ -95,6 +44,86 @@ public static class FileSystemService
             return path;
         }
     }
+
+    /// <summary>
+    /// Variante asincrona di <see cref="GetPathType"/> (il controllo di esistenza su
+    /// percorsi di rete irraggiungibili può bloccare per diversi secondi).
+    /// </summary>
+    public static Task<PathType> GetPathTypeAsync(string? path) =>
+        Task.Run(() => GetPathType(path));
+
+    /// <summary>
+    /// Elenco asincrono del contenuto diretto di <paramref name="path"/>, con errore esplicito.
+    /// </summary>
+    public static Task<DirectoryListingResult> ListDirectoryAsync(string path, bool directoriesOnly) =>
+        Task.Run(() =>
+        {
+            var items = new List<FileSystemItem>();
+
+            try
+            {
+                foreach (var directory in Directory.GetDirectories(path))
+                {
+                    items.Add(CreateDirectoryItem(new DirectoryInfo(directory)));
+                }
+
+                if (!directoriesOnly)
+                {
+                    foreach (var file in Directory.GetFiles(path))
+                    {
+                        items.Add(CreateFileItem(new FileInfo(file)));
+                    }
+                }
+
+                return new DirectoryListingResult(items, null);
+            }
+            catch (Exception ex)
+            {
+                return new DirectoryListingResult(new List<FileSystemItem>(), CreateListingError(ex));
+            }
+        });
+
+    /// <summary>
+    /// Elenco asincrono ricorsivo dei file sotto <paramref name="path"/>, con errore esplicito.
+    /// </summary>
+    public static Task<DirectoryListingResult> ListFilesRecursiveAsync(string path) =>
+        Task.Run(() =>
+        {
+            try
+            {
+                var items = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                    .Select(file => CreateFileItem(new FileInfo(file)))
+                    .OrderBy(item => item.FullPath)
+                    .ToList();
+
+                return new DirectoryListingResult(items, null);
+            }
+            catch (Exception ex)
+            {
+                return new DirectoryListingResult(new List<FileSystemItem>(), CreateListingError(ex));
+            }
+        });
+
+    /// <summary>
+    /// True se il percorso è in forma UNC (<c>\\server\condivisione</c>).
+    /// </summary>
+    public static bool IsUncPath(string? path) =>
+        path is not null && path.StartsWith(@"\\", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Traduce un'eccezione di I/O in un <see cref="ListingError"/> presentabile.
+    /// </summary>
+    public static ListingError CreateListingError(Exception exception) => exception switch
+    {
+        DirectoryNotFoundException or FileNotFoundException =>
+            new ListingError(ListingErrorKind.NotFound, "Percorso inesistente."),
+        UnauthorizedAccessException =>
+            new ListingError(ListingErrorKind.AccessDenied,
+                "Accesso negato. Per una condivisione di rete, autenticarsi dal sistema operativo."),
+        IOException =>
+            new ListingError(ListingErrorKind.Unavailable, $"Percorso non raggiungibile: {exception.Message}"),
+        _ => new ListingError(ListingErrorKind.Unavailable, exception.Message)
+    };
 
     private static FileSystemItem CreateDirectoryItem(DirectoryInfo info) => new()
     {
