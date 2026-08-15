@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using FileExplorer.Models;
 using FileExplorer.Services;
 using FileExplorer.ViewModels;
@@ -33,6 +32,8 @@ public partial class SelectPathDialog : Window
     {
         CloseAfterSelectElement();
     }
+
+    public void OnCancelClick(object? sender, RoutedEventArgs e) => Close(null);
 
     private void CloseAfterSelectElement(bool isDoubleTap = false)
     {
@@ -69,14 +70,14 @@ public partial class SelectPathDialog : Window
         if (ViewModel is not { } vm)
             return;
 
-        // Se il percorso non esiste la barra viene evidenziata in rosso.
+        // Se il percorso non esiste la barra viene evidenziata con la classe "error".
         if (FileSystemService.GetPathType(vm.CurrentPath) == PathType.Unknown)
         {
-            PathTextBar.Background = Brushes.Red;
+            PathTextBar.Classes.Add("error");
             return;
         }
 
-        PathTextBar.Background = Brushes.White;
+        PathTextBar.Classes.Remove("error");
         vm.NavigateTo(vm.SelectedItem?.FullPath ?? vm.CurrentPath);
         e.Handled = true;
     }
