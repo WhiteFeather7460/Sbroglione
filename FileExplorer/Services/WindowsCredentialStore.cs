@@ -30,7 +30,15 @@ public sealed class WindowsCredentialStore : ICredentialStore
 
             byte[] bytes = new byte[credential.CredentialBlobSize];
             Marshal.Copy(credential.CredentialBlob, bytes, 0, bytes.Length);
-            return Encoding.UTF8.GetString(bytes);
+            try
+            {
+                return Encoding.UTF8.GetString(bytes);
+            }
+            finally
+            {
+                // Azzera la copia gestita: la password non deve restare nell'heap.
+                Array.Clear(bytes);
+            }
         }
         finally
         {
@@ -59,7 +67,12 @@ public sealed class WindowsCredentialStore : ICredentialStore
         }
         finally
         {
+            // Azzera il buffer non gestito prima di liberarlo e la copia gestita subito dopo:
+            // la password non deve sopravvivere in memoria oltre la scrittura.
+            for (int i = 0; i < blob.Length; i++)
+                Marshal.WriteByte(blobPtr, i, 0);
             Marshal.FreeHGlobal(blobPtr);
+            Array.Clear(blob);
         }
     });
 
