@@ -14,8 +14,8 @@
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.AccentGradient}" Padding="20,14">
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="White" />
-          <TextBlock Text="File Explorer" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+          <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="{DynamicResource Brush.OnAccent}" />
+          <TextBlock Text="File Explorer" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.OnAccent}" VerticalAlignment="Center" />
         </StackPanel>
         <Button Grid.Column="1" Classes="onaccent" Command="{Binding AddPairCommand}">
           <StackPanel Orientation="Horizontal" Spacing="8">

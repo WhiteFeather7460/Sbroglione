@@ -7,6 +7,7 @@
     <GradientStop Color="#FF5E62" Offset="0" />
     <GradientStop Color="#FF9446" Offset="1" />
   </LinearGradientBrush>
+  <SolidColorBrush x:Key="Brush.OnAccent" Color="White" />
 
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
