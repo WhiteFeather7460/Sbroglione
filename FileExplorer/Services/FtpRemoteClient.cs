@@ -33,11 +33,23 @@ public sealed class FtpRemoteClient : IRemoteFileClient
             await _client.Connect(ct);
             return null;
         }
+        catch (OperationCanceledException)
+        {
+            DisposeClientBestEffort();
+            throw;
+        }
         catch (Exception ex)
         {
-            _client = null;
+            DisposeClientBestEffort();
             return TranslateError(ex);
         }
+    }
+
+    /// <summary>Rilascia un client parzialmente connesso (fallito/annullato) evitando leak di socket.</summary>
+    private void DisposeClientBestEffort()
+    {
+        try { _client?.Dispose(); } catch (Exception) { /* best effort */ }
+        _client = null;
     }
 
     public async Task<RemoteListingResult> ListDirectoryAsync(string path, CancellationToken ct)
