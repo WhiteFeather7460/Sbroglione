@@ -272,6 +272,20 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
         Assert.True(File.Exists(Path.Combine(_dest, "a.txt")));
     }
 
+    [Fact]
+    public async Task Disconnect_ClearsVisibleItems()
+    {
+        _client.AddFile("/a.txt", "AAA");
+        _client.AddDirectory("/docs");
+        var vm = await CreateConnectedAsync();
+        Assert.Equal(2, vm.VisibleItems.Count);
+
+        await vm.DisconnectAsync();
+
+        Assert.Empty(vm.VisibleItems);   // è la collezione mostrata dalla lista
+        Assert.Empty(vm.Items);
+    }
+
     /// <summary>Client che sospende i download finché non vengono rilasciati o annullati.</summary>
     private sealed class GatedDownloadClient : IRemoteFileClient
     {

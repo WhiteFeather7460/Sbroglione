@@ -302,6 +302,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         await DisposeClientAsync();
         IsConnected = false;
         Items.Clear();
+        VisibleItems.Clear();   // è la collezione mostrata dalla lista: senza questo resterebbe a video
         StatusMessage = "Disconnesso.";
     }
 
