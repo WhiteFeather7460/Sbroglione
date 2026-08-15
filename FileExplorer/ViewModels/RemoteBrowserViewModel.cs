@@ -128,25 +128,28 @@ public class RemoteBrowserViewModel : ViewModelBase
         if (SelectedProfile is null || IsBusy)
             return;
 
-        ErrorMessage = null;
-        PendingFingerprint = null;
-
-        string? password = PasswordInput;
-        if (string.IsNullOrEmpty(password))
-            password = await _credentialStore.GetPasswordAsync(SelectedProfile.Id);
-
-        if (string.IsNullOrEmpty(password))
-        {
-            IsPasswordPromptVisible = true;
-            StatusMessage = _credentialStore.IsAvailable
-                ? "Inserire la password."
-                : "Keyring di sistema non disponibile: la password va inserita a ogni connessione.";
-            return;
-        }
-
+        // IsBusy va alzata prima di qualsiasi await: la lettura dal keyring può essere lenta e
+        // senza questo una seconda chiamata (doppio clic su "Connetti") supererebbe la guardia
+        // creando un secondo client che resterebbe orfano.
         IsBusy = true;
         try
         {
+            ErrorMessage = null;
+            PendingFingerprint = null;
+
+            string? password = PasswordInput;
+            if (string.IsNullOrEmpty(password))
+                password = await _credentialStore.GetPasswordAsync(SelectedProfile.Id);
+
+            if (string.IsNullOrEmpty(password))
+            {
+                IsPasswordPromptVisible = true;
+                StatusMessage = _credentialStore.IsAvailable
+                    ? "Inserire la password."
+                    : "Keyring di sistema non disponibile: la password va inserita a ogni connessione.";
+                return;
+            }
+
             await DisposeClientAsync();
             var client = _clientFactory(SelectedProfile);
             var error = await client.ConnectAsync(SelectedProfile, password, CancellationToken.None);
@@ -169,7 +172,8 @@ public class RemoteBrowserViewModel : ViewModelBase
             PasswordInput = null;
 
             CurrentPath = "/";
-            await LoadListingAsync();
+            // Chiamata interna: IsBusy è già alzata da questo metodo.
+            await LoadListingCoreAsync();
         }
         finally
         {
@@ -187,7 +191,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     public async Task OpenDirectoryAsync(RemoteEntryViewModel entry)
     {
-        if (!entry.IsDirectory || _client is null)
+        if (!entry.IsDirectory || _client is null || IsBusy)
             return;
 
         CurrentPath = entry.Item.FullPath;
@@ -196,7 +200,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     public async Task NavigateUpAsync()
     {
-        if (_client is null || CurrentPath == "/")
+        if (_client is null || IsBusy || CurrentPath == "/")
             return;
 
         int lastSlash = CurrentPath.TrimEnd('/').LastIndexOf('/');
@@ -223,38 +227,51 @@ public class RemoteBrowserViewModel : ViewModelBase
         StatusMessage = "Connessione rifiutata: host key non accettata.";
     }
 
+    /// <summary>
+    /// Elenco richiesto dai comandi di navigazione: ignora la richiesta se un'operazione è già
+    /// in corso, così due comandi ravvicinati non si sovrappongono sullo stesso client.
+    /// </summary>
     private async Task LoadListingAsync()
     {
-        if (_client is null)
+        if (_client is null || IsBusy)
             return;
 
         IsBusy = true;
         try
         {
-            ErrorMessage = null;
-            var result = await _client.ListDirectoryAsync(CurrentPath, CancellationToken.None);
-            Items.Clear();
-
-            if (result.Error is not null)
-            {
-                ErrorMessage = result.Error.Message;
-                return;
-            }
-
-            foreach (var item in result.Items
-                         .OrderByDescending(i => i.IsDirectory)
-                         .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase))
-            {
-                Items.Add(new RemoteEntryViewModel(item));
-            }
-
-            RefreshLocalStatuses();
-            StatusMessage = $"{Items.Count} elementi in {CurrentPath}";
+            await LoadListingCoreAsync();
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>Elenco vero e proprio: presuppone che <see cref="IsBusy"/> sia già gestita dal chiamante.</summary>
+    private async Task LoadListingCoreAsync()
+    {
+        if (_client is null)
+            return;
+
+        ErrorMessage = null;
+        var result = await _client.ListDirectoryAsync(CurrentPath, CancellationToken.None);
+        Items.Clear();
+
+        if (result.Error is not null)
+        {
+            ErrorMessage = result.Error.Message;
+            return;
+        }
+
+        foreach (var item in result.Items
+                     .OrderByDescending(i => i.IsDirectory)
+                     .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            Items.Add(new RemoteEntryViewModel(item));
+        }
+
+        RefreshLocalStatuses();
+        StatusMessage = $"{Items.Count} elementi in {CurrentPath}";
     }
 
     /// <summary>Ricalcola la colonna "Su disco". Ridefinita/estesa nel task download.</summary>

@@ -20,11 +20,15 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
-    private RemoteBrowserViewModel CreateViewModel(ICredentialStore? store = null)
+    private RemoteBrowserViewModel CreateViewModel(ICredentialStore? store = null, IRemoteFileClient? client = null)
+        => CreateViewModel(_ => client ?? _client, store ?? new NullCredentialStore());
+
+    private RemoteBrowserViewModel CreateViewModel(
+        Func<ConnectionProfile, IRemoteFileClient> clientFactory, ICredentialStore store)
     {
         var vm = new RemoteBrowserViewModel(
-            _ => _client,
-            store ?? new NullCredentialStore(),
+            clientFactory,
+            store,
             Path.Combine(_root, "profiles.json"));
         vm.Profiles.Add(new ConnectionProfile { Name = "test", Host = "h", Username = "u" });
         vm.SelectedProfile = vm.Profiles[0];
@@ -166,5 +170,103 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
 
         Assert.False(vm.IsConnected);
         Assert.Empty(vm.Items);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_CalledTwiceDuringKeyringLookup_CreatesOnlyOneClient()
+    {
+        _client.AddFile("/a.txt", "AAA");
+        var store = new BlockingCredentialStore();
+        int createdClients = 0;
+        var vm = CreateViewModel(
+            _ => { createdClients++; return _client; },
+            store);
+
+        var first = vm.ConnectAsync();          // resta in attesa della lettura dal keyring
+        var second = vm.ConnectAsync();         // deve essere ignorata: operazione già in corso
+        store.ReleasePassword("pw");
+        await Task.WhenAll(first, second);
+
+        Assert.Equal(1, createdClients);
+        Assert.True(vm.IsConnected);
+        Assert.False(vm.IsBusy);
+        Assert.Single(vm.Items);
+    }
+
+    [Fact]
+    public async Task NavigateUp_WhileListingInCorso_IsIgnored()
+    {
+        _client.AddDirectory("/docs");
+        _client.AddFile("/docs/b.txt", "BBB");
+        var gated = new GatedListingClient(_client);
+        var vm = CreateViewModel(client: gated);
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+
+        gated.BlockListings();
+        var open = vm.OpenDirectoryAsync(vm.Items.First(i => i.IsDirectory));
+        var up = vm.NavigateUpAsync();          // deve essere ignorata: elenco già in corso
+        gated.ReleaseListings();
+        await Task.WhenAll(open, up);
+
+        Assert.Equal("/docs", vm.CurrentPath);
+        Assert.Equal("b.txt", Assert.Single(vm.Items).Name);
+        Assert.False(vm.IsBusy);
+    }
+
+    /// <summary>Keyring simulato la cui lettura si sblocca solo su richiesta esplicita.</summary>
+    private sealed class BlockingCredentialStore : ICredentialStore
+    {
+        private readonly TaskCompletionSource<string?> _password = new();
+
+        public bool IsAvailable => true;
+
+        public Task<string?> GetPasswordAsync(Guid profileId) => _password.Task;
+
+        public Task SetPasswordAsync(Guid profileId, string password) => Task.CompletedTask;
+
+        public Task DeletePasswordAsync(Guid profileId) => Task.CompletedTask;
+
+        public void ReleasePassword(string? password) => _password.SetResult(password);
+    }
+
+    /// <summary>Client che sospende gli elenchi finché non vengono rilasciati esplicitamente.</summary>
+    private sealed class GatedListingClient : IRemoteFileClient
+    {
+        private readonly FakeRemoteClient _inner;
+        private TaskCompletionSource? _gate;
+
+        public GatedListingClient(FakeRemoteClient inner) => _inner = inner;
+
+        public bool IsConnected => _inner.IsConnected;
+
+        public void BlockListings() => _gate = new TaskCompletionSource();
+
+        public void ReleaseListings()
+        {
+            var gate = _gate;
+            _gate = null;
+            gate?.SetResult();
+        }
+
+        public Task<RemoteError?> ConnectAsync(ConnectionProfile profile, string password, CancellationToken ct)
+            => _inner.ConnectAsync(profile, password, ct);
+
+        public async Task<RemoteListingResult> ListDirectoryAsync(string path, CancellationToken ct)
+        {
+            var gate = _gate;
+            if (gate is not null)
+                await gate.Task;
+            return await _inner.ListDirectoryAsync(path, ct);
+        }
+
+        public Task<RemoteListingResult> ListRecursiveAsync(string path, CancellationToken ct)
+            => _inner.ListRecursiveAsync(path, ct);
+
+        public Task<RemoteError?> DownloadFileAsync(
+            RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct)
+            => _inner.DownloadFileAsync(item, localPath, progress, ct);
+
+        public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }
 }
