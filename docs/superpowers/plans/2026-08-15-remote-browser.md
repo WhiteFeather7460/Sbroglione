@@ -1672,12 +1672,12 @@ git commit -m "feat(remote): unified remote client interface and download orches
 
 Nessun test automatico (serve un server FTP reale): verifica = build pulita + smoke test manuale nel Task 12.
 
-- [ ] **Step 1: Aggiungi FluentFTP**
+- [x] **Step 1: Aggiungi FluentFTP**
 
 Run: `dotnet add FileExplorer/FileExplorer.csproj package FluentFTP`
 Expected: PackageReference aggiunta, restore ok.
 
-- [ ] **Step 2: Implementa FtpRemoteClient**
+- [x] **Step 2: Implementa FtpRemoteClient**
 
 `FileExplorer/Services/FtpRemoteClient.cs`:
 
@@ -1848,7 +1848,7 @@ Nota per l'implementatore: i nomi delle API FluentFTP sopra sono per la serie 52
 installata differisce, adegua i nomi consultando il pacchetto installato — l'interfaccia
 `IRemoteFileClient` e la mappatura errori NON cambiano.
 
-- [ ] **Step 3: Implementa RemoteClientFactory**
+- [x] **Step 3: Implementa RemoteClientFactory**
 
 `FileExplorer/Services/RemoteClientFactory.cs`:
 
@@ -1870,12 +1870,12 @@ public static class RemoteClientFactory
 }
 ```
 
-- [ ] **Step 4: Build e test completi**
+- [x] **Step 4: Build e test completi**
 
 Run: `dotnet build FileExplorer.sln && dotnet test FileExplorer.sln`
 Expected: build pulita, tutti i test PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/FileExplorer.csproj FileExplorer/Services/FtpRemoteClient.cs FileExplorer/Services/RemoteClientFactory.cs
