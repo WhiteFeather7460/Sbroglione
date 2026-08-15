@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using System.IO;
+using System.Threading.Tasks;
 using FileExplorer.Models;
 using FileExplorer.Services;
 using ReactiveUI;
@@ -15,26 +15,32 @@ public class FolderFilePairViewModel : ReactiveObject
     private readonly ObservableCollection<FileSystemItem> _filesToProcess = new();
 
     /// <summary>
-    /// Elenco dei file che verranno elaborati, ricalcolato a ogni lettura
-    /// (viene rinotificato quando cambia <see cref="SourcePath"/>).
+    /// Elenco dei file che verranno elaborati; ricaricato in background
+    /// quando cambia <see cref="SourcePath"/>.
     /// </summary>
-    public ObservableCollection<FileSystemItem> FilesToProcess
+    public ObservableCollection<FileSystemItem> FilesToProcess => _filesToProcess;
+
+    private bool _sourceExists;
+
+    /// <summary>
+    /// True se la sorgente esiste sul disco; aggiornato in background al cambio di
+    /// <see cref="SourcePath"/> (il controllo su percorsi di rete può essere lento).
+    /// </summary>
+    public bool SourceExists
     {
-        get
+        get => _sourceExists;
+        private set
         {
-            _filesToProcess.Clear();
-
-            if (FileSystemService.GetPathType(_sourcePath) == PathType.Directory)
-            {
-                foreach (var item in FileSystemService.ListFilesRecursive(_sourcePath!))
-                {
-                    _filesToProcess.Add(item);
-                }
-            }
-
-            return _filesToProcess;
+            this.RaiseAndSetIfChanged(ref _sourceExists, value);
+            this.RaisePropertyChanged(nameof(CanStart));
         }
     }
+
+    /// <summary>
+    /// Task dell'ultima verifica della sorgente; attendibile per sapere quando
+    /// <see cref="SourceExists"/> e <see cref="FilesToProcess"/> sono aggiornati.
+    /// </summary>
+    public Task SourceStateRefresh { get; private set; } = Task.CompletedTask;
 
     private string? _sourcePath;
     public string? SourcePath
@@ -44,7 +50,35 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _sourcePath, value);
             this.RaisePropertyChanged(nameof(CanStart));
-            this.RaisePropertyChanged(nameof(FilesToProcess));
+            SourceStateRefresh = RefreshSourceStateAsync();
+        }
+    }
+
+    /// <summary>
+    /// Verifica l'esistenza della sorgente e ricarica <see cref="FilesToProcess"/>.
+    /// Se nel frattempo <see cref="SourcePath"/> cambia di nuovo, l'esito viene scartato.
+    /// </summary>
+    private async Task RefreshSourceStateAsync()
+    {
+        string? path = _sourcePath;
+
+        var type = await FileSystemService.GetPathTypeAsync(path);
+        if (path != _sourcePath)
+            return;
+
+        SourceExists = type != PathType.Unknown;
+        _filesToProcess.Clear();
+
+        if (type != PathType.Directory)
+            return;
+
+        var listing = await FileSystemService.ListFilesRecursiveAsync(path!);
+        if (path != _sourcePath)
+            return;
+
+        foreach (var item in listing.Items)
+        {
+            _filesToProcess.Add(item);
         }
     }
 
@@ -98,11 +132,13 @@ public class FolderFilePairViewModel : ReactiveObject
 
     /// <summary>
     /// True quando la coppia è pronta per avviare una copia.
+    /// L'esistenza della sorgente è verificata in background (<see cref="SourceExists"/>):
+    /// nessun I/O sincrono durante la valutazione del binding.
     /// </summary>
     public bool CanStart =>
         !IsCopying
         && !string.IsNullOrWhiteSpace(SourcePath)
-        && (File.Exists(SourcePath) || Directory.Exists(SourcePath))
+        && SourceExists
         && SourcePath != DestinationPath
         && !string.IsNullOrWhiteSpace(DestinationPath);
 

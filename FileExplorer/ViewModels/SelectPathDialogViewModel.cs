@@ -1,4 +1,6 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using FileExplorer.Models;
 using FileExplorer.Services;
 using ReactiveUI;
@@ -29,28 +31,69 @@ public class SelectPathDialogViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _selectedItem, value);
     }
 
+    private bool _isLoading;
+
+    /// <summary>True mentre l'elenco è in caricamento (percorsi di rete possono essere lenti).</summary>
+    public bool IsLoading
+    {
+        get => _isLoading;
+        private set => this.RaiseAndSetIfChanged(ref _isLoading, value);
+    }
+
+    private string? _errorMessage;
+
+    /// <summary>Messaggio d'errore dell'ultimo caricamento, o null se riuscito.</summary>
+    public string? ErrorMessage
+    {
+        get => _errorMessage;
+        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+    }
+
     public SelectPathDialogViewModel(bool directoriesOnly, string startPath)
     {
         _directoriesOnly = directoriesOnly;
         _currentPath = startPath;
-        LoadItems();
     }
 
     /// <summary>
     /// Naviga al percorso indicato e ricarica l'elenco.
     /// </summary>
-    public void NavigateTo(string path)
+    public Task NavigateToAsync(string path)
     {
         CurrentPath = path;
-        LoadItems();
+        return RefreshAsync();
     }
 
-    private void LoadItems()
+    /// <summary>
+    /// Ricarica l'elenco del percorso corrente, esponendo eventuali errori in <see cref="ErrorMessage"/>.
+    /// </summary>
+    public async Task RefreshAsync()
     {
-        Items.Clear();
-        foreach (var item in FileSystemService.ListDirectory(CurrentPath, _directoriesOnly))
+        IsLoading = true;
+
+        try
         {
-            Items.Add(item);
+            Items.Clear();
+
+            // Un percorso UNC fuori da Windows non è accessibile direttamente:
+            // la condivisione va montata dal sistema operativo.
+            if (!OperatingSystem.IsWindows() && FileSystemService.IsUncPath(CurrentPath))
+            {
+                ErrorMessage = "Percorso UNC non supportato su questo sistema: montare la condivisione di rete e usare il punto di mount.";
+                return;
+            }
+
+            var result = await FileSystemService.ListDirectoryAsync(CurrentPath, _directoriesOnly);
+            ErrorMessage = result.Error?.Message;
+
+            foreach (var item in result.Items)
+            {
+                Items.Add(item);
+            }
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 }
