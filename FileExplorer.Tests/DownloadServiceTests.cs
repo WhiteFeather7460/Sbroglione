@@ -58,6 +58,7 @@ public sealed class DownloadServiceTests : IDisposable
         Assert.Empty(report.Skipped);
         Assert.Empty(report.Failed);
         Assert.Equal("AAA", await File.ReadAllTextAsync(Path.Combine(_dest, "a.txt")));
+        Assert.Empty(Directory.GetFiles(_dest, "*.part", SearchOption.AllDirectories));
     }
 
     [Fact]
@@ -152,6 +153,23 @@ public sealed class DownloadServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DownloadAsync_FailedDownload_KeepsExistingLocalFile()
+    {
+        _client.AddFile("/srv/a.txt", "NUOVO CONTENUTO REMOTO");
+        _client.FailingDownloads.Add("/srv/a.txt");
+        string localPath = Path.Combine(_dest, "a.txt");
+        await File.WriteAllTextAsync(localPath, "contenuto locale da preservare");
+
+        var report = await RunAsync(AllRemoteFiles());
+
+        Assert.Single(report.Failed);
+        Assert.Empty(report.Downloaded);
+        Assert.True(File.Exists(localPath));
+        Assert.Equal("contenuto locale da preservare", await File.ReadAllTextAsync(localPath));
+        Assert.Empty(Directory.GetFiles(_dest, "*.part", SearchOption.AllDirectories));
+    }
+
+    [Fact]
     public async Task DownloadAsync_IgnoresDirectoriesInList()
     {
         _client.AddDirectory("/srv/sub");
@@ -175,19 +193,21 @@ public sealed class DownloadServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DownloadAsync_CancellationDuringTransfer_DeletesPartialFile()
+    public async Task DownloadAsync_CancellationDuringTransfer_DeletesPartialFileAndKeepsLocal()
     {
         var item = new RemoteItem("a.txt", "/srv/a.txt", IsDirectory: false, 100, new DateTime(2026, 6, 1, 12, 0, 0));
         using var cts = new CancellationTokenSource();
         var client = new CancellingRemoteClient(cts);
         string localPath = Path.Combine(_dest, "a.txt");
+        await File.WriteAllTextAsync(localPath, "contenuto locale da preservare");
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => DownloadService.DownloadAsync(
                 client, new[] { item }, "/srv", _dest, new DownloadFilter(),
                 overwriteAlways: false, progress: null, cts.Token));
 
-        Assert.False(File.Exists(localPath));
+        Assert.Empty(Directory.GetFiles(_dest, "*.part", SearchOption.AllDirectories));
+        Assert.Equal("contenuto locale da preservare", await File.ReadAllTextAsync(localPath));
     }
 
     /// <summary>Client che scrive un file parziale e poi annulla, per verificare la pulizia.</summary>

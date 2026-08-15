@@ -15,6 +15,9 @@ public static class DownloadService
     /// <summary>Tolleranza sul confronto delle date di modifica (timestamp FTP poco precisi).</summary>
     private static readonly TimeSpan DateTolerance = TimeSpan.FromSeconds(2);
 
+    /// <summary>Suffisso del file temporaneo usato durante il trasferimento.</summary>
+    private const string PartialSuffix = ".part";
+
     /// <summary>
     /// Stato del file remoto rispetto a <paramref name="localPath"/>:
     /// Present se dimensione uguale e data entro la tolleranza, Different altrimenti.
@@ -108,22 +111,29 @@ public static class DownloadService
                 : new Progress<long>(bytes =>
                     progress.Report(new DownloadProgress(index + 1, candidates.Count, item.Name, bytes)));
 
+            // Il trasferimento scrive su un file temporaneo nella stessa cartella (stesso volume:
+            // la move finale non attraversa filesystem). Un eventuale file locale già presente
+            // viene sostituito solo a trasferimento riuscito: un errore remoto non lo distrugge.
+            string tempPath = localPath + PartialSuffix;
+            DeletePartialFile(tempPath);
+
             try
             {
-                var error = await client.DownloadFileAsync(item, localPath, byteProgress, ct);
+                var error = await client.DownloadFileAsync(item, tempPath, byteProgress, ct);
                 if (error is null)
                 {
+                    File.Move(tempPath, localPath, overwrite: true);
                     downloaded.Add(item);
                 }
                 else
                 {
-                    DeletePartialFile(localPath);
+                    DeletePartialFile(tempPath);
                     failed.Add(new DownloadFailure(item, error.Message));
                 }
             }
             catch (OperationCanceledException)
             {
-                DeletePartialFile(localPath);
+                DeletePartialFile(tempPath);
                 throw;
             }
         }
@@ -131,12 +141,13 @@ public static class DownloadService
         return new DownloadReport(downloaded, skipped, failed);
     }
 
-    private static void DeletePartialFile(string localPath)
+    /// <summary>Rimuove il file temporaneo di un trasferimento non completato.</summary>
+    private static void DeletePartialFile(string tempPath)
     {
         try
         {
-            if (File.Exists(localPath))
-                File.Delete(localPath);
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
         }
         catch (IOException)
         {
