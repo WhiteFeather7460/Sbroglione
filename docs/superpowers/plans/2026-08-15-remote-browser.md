@@ -46,7 +46,7 @@ I percorsi remoti usano sempre `/` come separatore. `RemoteItem.FullPath` è il 
 - Consumes: niente.
 - Produces: tutti i tipi sotto, usati da ogni task successivo. Copiarli ESATTAMENTE.
 
-- [ ] **Step 1: Crea i file dei modelli**
+- [x] **Step 1: Crea i file dei modelli**
 
 `FileExplorer/Models/RemoteProtocol.cs`:
 
@@ -177,12 +177,12 @@ public sealed record DownloadReport(
     IReadOnlyList<DownloadFailure> Failed);
 ```
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 Run: `dotnet build FileExplorer.sln`
 Expected: 0 errori, 0 warning.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add FileExplorer/Models/
@@ -203,7 +203,7 @@ git commit -m "feat(remote): add remote browser data models"
 - Consumes: `RemoteItem` (Task 1).
 - Produces: `DownloadFilter` con proprietà `NamePattern`, `MinSize`, `MaxSize`, `ModifiedAfter`, `ModifiedBefore`, `OnlyMissing`, `Recursive` e metodo `bool Matches(RemoteItem item)`. `OnlyMissing`/`Recursive` NON sono valutati da `Matches` (servono a `DownloadService`/ViewModel).
 
-- [ ] **Step 1: Scrivi i test (falliranno: tipo inesistente)**
+- [x] **Step 1: Scrivi i test (falliranno: tipo inesistente)**
 
 `FileExplorer.Tests/DownloadFilterTests.cs`:
 
@@ -283,12 +283,12 @@ public sealed class DownloadFilterTests
 }
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [x] **Step 2: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter DownloadFilterTests`
 Expected: errore di compilazione "DownloadFilter non trovato".
 
-- [ ] **Step 3: Implementa**
+- [x] **Step 3: Implementa**
 
 `FileExplorer/Models/DownloadFilter.cs`:
 
@@ -362,12 +362,12 @@ public sealed class DownloadFilter
 }
 ```
 
-- [ ] **Step 4: Verifica che passino**
+- [x] **Step 4: Verifica che passino**
 
 Run: `dotnet test FileExplorer.sln --filter DownloadFilterTests`
 Expected: tutti PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Models/DownloadFilter.cs FileExplorer.Tests/DownloadFilterTests.cs
@@ -388,7 +388,7 @@ git commit -m "feat(remote): download filter with wildcard, size and date matchi
 - Consumes: `RemoteItem`, `LocalFileStatus` (Task 1).
 - Produces: `DownloadService.GetLocalStatus(RemoteItem item, string localPath)` → `LocalFileStatus` (statico). Tolleranza data: 2 secondi.
 
-- [ ] **Step 1: Scrivi i test**
+- [x] **Step 1: Scrivi i test**
 
 `FileExplorer.Tests/DownloadServiceStatusTests.cs`:
 
@@ -474,12 +474,12 @@ public sealed class DownloadServiceStatusTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [x] **Step 2: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter DownloadServiceStatusTests`
 Expected: errore di compilazione "DownloadService non trovato".
 
-- [ ] **Step 3: Implementa**
+- [x] **Step 3: Implementa**
 
 `FileExplorer/Services/DownloadService.cs`:
 
@@ -516,12 +516,12 @@ public static class DownloadService
 }
 ```
 
-- [ ] **Step 4: Verifica che passino**
+- [x] **Step 4: Verifica che passino**
 
 Run: `dotnet test FileExplorer.sln --filter DownloadServiceStatusTests`
 Expected: tutti PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/DownloadService.cs FileExplorer.Tests/DownloadServiceStatusTests.cs
@@ -545,7 +545,7 @@ git commit -m "feat(remote): local file status check (missing/present/different)
   - `Task<List<ConnectionProfile>> ProfileStore.LoadAsync(string path)` (lista vuota se file assente o corrotto)
   - `Task ProfileStore.SaveAsync(string path, IReadOnlyList<ConnectionProfile> profiles)`
 
-- [ ] **Step 1: Scrivi i test**
+- [x] **Step 1: Scrivi i test**
 
 `FileExplorer.Tests/ProfileStoreTests.cs`:
 
@@ -627,12 +627,12 @@ public sealed class ProfileStoreTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [x] **Step 2: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter ProfileStoreTests`
 Expected: errore di compilazione "ProfileStore non trovato".
 
-- [ ] **Step 3: Implementa**
+- [x] **Step 3: Implementa**
 
 `FileExplorer/Services/ProfileStore.cs`:
 
@@ -693,12 +693,12 @@ public static class ProfileStore
 }
 ```
 
-- [ ] **Step 4: Verifica che passino**
+- [x] **Step 4: Verifica che passino**
 
 Run: `dotnet test FileExplorer.sln --filter ProfileStoreTests`
 Expected: tutti PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/ProfileStore.cs FileExplorer.Tests/ProfileStoreTests.cs
@@ -738,7 +738,7 @@ public interface ICredentialStore
 
 **Nota security (leggere con attenzione):** la password non deve MAI finire su disco, nei log, o come argomento visibile di riga di comando dove evitabile. Su Linux la password passa a `secret-tool` via stdin. Su macOS `security add-generic-password -w <pw>` espone brevemente la password nella process list: limite noto e documentato nel codice; macOS è best-effort in questo progetto.
 
-- [ ] **Step 1: Scrivi i test (solo componenti testabili senza keyring reale)**
+- [x] **Step 1: Scrivi i test (solo componenti testabili senza keyring reale)**
 
 `FileExplorer.Tests/CredentialStoreFactoryTests.cs`:
 
@@ -769,12 +769,12 @@ public sealed class CredentialStoreFactoryTests
 }
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [x] **Step 2: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter CredentialStoreFactoryTests`
 Expected: errore di compilazione.
 
-- [ ] **Step 3: Implementa interfaccia, null store e factory**
+- [x] **Step 3: Implementa interfaccia, null store e factory**
 
 `FileExplorer/Services/ICredentialStore.cs`:
 
@@ -858,7 +858,7 @@ public static class CredentialStoreFactory
 }
 ```
 
-- [ ] **Step 4: Implementa il backend Linux (secret-tool / libsecret)**
+- [x] **Step 4: Implementa il backend Linux (secret-tool / libsecret)**
 
 `FileExplorer/Services/SecretToolCredentialStore.cs`:
 
@@ -949,7 +949,7 @@ public sealed class SecretToolCredentialStore : ICredentialStore
 }
 ```
 
-- [ ] **Step 5: Implementa il backend Windows (Credential Manager, P/Invoke)**
+- [x] **Step 5: Implementa il backend Windows (Credential Manager, P/Invoke)**
 
 `FileExplorer/Services/WindowsCredentialStore.cs`:
 
@@ -1055,7 +1055,7 @@ public sealed class WindowsCredentialStore : ICredentialStore
 }
 ```
 
-- [ ] **Step 6: Implementa il backend macOS (security CLI)**
+- [x] **Step 6: Implementa il backend macOS (security CLI)**
 
 `FileExplorer/Services/MacKeychainCredentialStore.cs`:
 
@@ -1146,12 +1146,12 @@ public sealed class MacKeychainCredentialStore : ICredentialStore
 }
 ```
 
-- [ ] **Step 7: Build e test**
+- [x] **Step 7: Build e test**
 
 Run: `dotnet build FileExplorer.sln && dotnet test FileExplorer.sln --filter CredentialStoreFactoryTests`
 Expected: build pulita, test PASS. (I backend reali si verificano manualmente nel Task 12.)
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add FileExplorer/Services/ICredentialStore.cs FileExplorer/Services/WindowsCredentialStore.cs FileExplorer/Services/SecretToolCredentialStore.cs FileExplorer/Services/MacKeychainCredentialStore.cs FileExplorer/Services/NullCredentialStore.cs FileExplorer/Services/CredentialStoreFactory.cs FileExplorer.Tests/CredentialStoreFactoryTests.cs
