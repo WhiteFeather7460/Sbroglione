@@ -21,8 +21,9 @@ dotnet build FileExplorer.sln
 dotnet run --project FileExplorer.Desktop
 ```
 
-No test project exists. No CI. `.editorconfig` defines code style; `dotnet format whitespace` runs automatically on edited `.cs`/`.axaml` files via a PostToolUse hook.
+Tests: `FileExplorer.Tests` (xunit) — run with `dotnet test`. No CI. `.editorconfig` defines code style; `dotnet format whitespace` runs automatically on edited `.cs`/`.axaml` files via a PostToolUse hook.
 
 ## Git
 
 Do not add yourself (Claude) as co-author on commits.
+Never commit directly to `main`: always work on a feature branch and open a pull request.
