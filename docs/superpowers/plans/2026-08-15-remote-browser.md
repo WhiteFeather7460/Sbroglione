@@ -3275,7 +3275,7 @@ public class ProfileEditorViewModel : ViewModelBase
 
   Regole di validazione: `Name` e `Host` non vuoti; porta intera 1-65535. Default porte: Ftp/Ftps 21, Sftp 22.
 
-- [ ] **Step 1: Scrivi i test**
+- [x] **Step 1: Scrivi i test**
 
 `FileExplorer.Tests/ProfileEditorViewModelTests.cs`:
 
@@ -3386,12 +3386,12 @@ public sealed class ProfileEditorViewModelTests
 }
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [x] **Step 2: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter ProfileEditorViewModelTests`
 Expected: errore di compilazione.
 
-- [ ] **Step 3: Implementa il ViewModel**
+- [x] **Step 3: Implementa il ViewModel**
 
 `FileExplorer/ViewModels/ProfileEditorViewModel.cs`:
 
@@ -3524,12 +3524,12 @@ public class ProfileEditorViewModel : ViewModelBase
 }
 ```
 
-- [ ] **Step 4: Verifica che passino**
+- [x] **Step 4: Verifica che passino**
 
 Run: `dotnet test FileExplorer.sln --filter ProfileEditorViewModelTests`
 Expected: tutti PASS.
 
-- [ ] **Step 5: Crea la finestra**
+- [x] **Step 5: Crea la finestra**
 
 `FileExplorer/Views/ProfileEditorWindow.axaml`:
 
@@ -3642,7 +3642,7 @@ public partial class ProfileEditorWindow : Window
 }
 ```
 
-- [ ] **Step 6: Build e commit**
+- [x] **Step 6: Build e commit**
 
 Run: `dotnet build FileExplorer.sln && dotnet test FileExplorer.sln`
 Expected: build pulita, tutti PASS.
