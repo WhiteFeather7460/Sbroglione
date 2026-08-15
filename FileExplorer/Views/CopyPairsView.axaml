@@ -1,79 +1,139 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:conv="clr-namespace:FileExplorer.Converters"
              x:Class="FileExplorer.Views.CopyPairsView">
 
-  <StackPanel Margin="10">
-    <Button Content="Aggiungi coppia" Command="{Binding AddPairCommand}" Width="150" />
+  <UserControl.Resources>
+    <conv:EnumEqualsConverter x:Key="EnumEquals" />
+  </UserControl.Resources>
 
-    <ItemsControl ItemsSource="{Binding PathPairs}">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate>
-          <StackPanel Orientation="Vertical" Margin="0,5">
-            <Separator Margin="0,8,0,8" />
+  <DockPanel>
 
-            <!-- Sorgente -->
-            <Grid ColumnDefinitions="Auto,*" Margin="0,2">
-              <Button Grid.Column="0"
-                      Content="Sfoglia..."
-                      Margin="0,0,8,0"
-                      Command="{Binding DataContext.BrowseSourceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                      CommandParameter="{Binding}" />
-              <TextBox Grid.Column="1"
-                       Text="{Binding SourcePath}"
-                       IsReadOnly="True"
-                       HorizontalAlignment="Stretch" />
-            </Grid>
-
-            <!-- Destinazione -->
-            <Grid ColumnDefinitions="Auto,*" Margin="0,2">
-              <Button Grid.Column="0"
-                      Content="Sfoglia..."
-                      Margin="0,0,8,0"
-                      Command="{Binding DataContext.BrowseDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                      CommandParameter="{Binding}" />
-              <TextBox Grid.Column="1"
-                       Text="{Binding DestinationPath}"
-                       IsReadOnly="True"
-                       HorizontalAlignment="Stretch" />
-            </Grid>
-
-            <Separator Margin="0,5" />
-
-            <!-- Espandibile: elenco dei file da elaborare -->
-            <Expander Header="Mostra file da elaborare">
-              <DataGrid ItemsSource="{Binding FilesToProcess}"
-                        AutoGenerateColumns="True"
-                        IsReadOnly="True"
-                        MaxHeight="200"
-                        Margin="0,5,0,0" />
-            </Expander>
-
-            <!-- Avanzamento e comandi della riga -->
-            <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                <ProgressBar Width="180" Height="12"
-                             Minimum="0" Maximum="1"
-                             Value="{Binding Progress}" />
-                <TextBlock Text="{Binding Status}" VerticalAlignment="Center" />
-              </StackPanel>
-
-              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                <Button Content="Avvia"
-                        Width="100"
-                        Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                        CommandParameter="{Binding}"
-                        IsEnabled="{Binding CanStart}" />
-                <Button Content="Annulla"
-                        Width="100"
-                        Command="{Binding DataContext.CancelCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                        CommandParameter="{Binding}"
-                        IsEnabled="{Binding IsCopying}" />
-              </StackPanel>
-            </Grid>
+    <!-- Header con gradiente -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.AccentGradient}" Padding="20,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="White" />
+          <TextBlock Text="File Explorer" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="onaccent" Command="{Binding AddPairCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-plus" />
+            <TextBlock Text="Aggiungi coppia" />
           </StackPanel>
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
-  </StackPanel>
+        </Button>
+      </Grid>
+    </Border>
+
+    <Panel Background="{DynamicResource Brush.Surface}">
+
+      <!-- Empty state -->
+      <StackPanel IsVisible="{Binding !HasPairs}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+        <i:Icon Value="fa-regular fa-clone" FontSize="52" Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
+        <TextBlock Text="Nessuna coppia di copia"
+                   FontSize="16"
+                   Foreground="{DynamicResource Brush.TextMuted}"
+                   HorizontalAlignment="Center" />
+        <Button Classes="primary" Command="{Binding AddPairCommand}" HorizontalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-plus" />
+            <TextBlock Text="Aggiungi la prima coppia" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <!-- Lista card -->
+      <ScrollViewer IsVisible="{Binding HasPairs}">
+        <ItemsControl ItemsSource="{Binding PathPairs}" Margin="20,12">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+
+                  <!-- Sorgente -->
+                  <Grid ColumnDefinitions="Auto,*,Auto" >
+                    <i:Icon Grid.Column="0" Value="fa-regular fa-folder-open" Width="26"
+                            Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="1" Text="{Binding SourcePath}" IsReadOnly="True"
+                             Watermark="Sorgente…" Margin="8,0" />
+                    <Button Grid.Column="2" Classes="iconbtn"
+                            i:Attached.Icon="fa-solid fa-magnifying-glass"
+                            Command="{Binding DataContext.BrowseSourceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+
+                  <!-- Destinazione -->
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <i:Icon Grid.Column="0" Value="fa-solid fa-folder" Width="26"
+                            Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="1" Text="{Binding DestinationPath}" IsReadOnly="True"
+                             Watermark="Destinazione…" Margin="8,0" />
+                    <Button Grid.Column="2" Classes="iconbtn"
+                            i:Attached.Icon="fa-solid fa-magnifying-glass"
+                            Command="{Binding DataContext.BrowseDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+
+                  <!-- Stato + comandi -->
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                      <ProgressBar Width="200" Minimum="0" Maximum="1" Value="{Binding Progress}" VerticalAlignment="Center" />
+                      <Border Classes="badge"
+                              Classes.success="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Success}"
+                              Classes.warning="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Warning}"
+                              Classes.error="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Error}"
+                              Classes.progress="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Copying}">
+                        <TextBlock Text="{Binding Status}" />
+                      </Border>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                      <Button Classes="primary" Content="Avvia"
+                              Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding CanStart}" />
+                      <Button Classes="secondary" Content="Annulla"
+                              Command="{Binding DataContext.CancelCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding IsCopying}" />
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- File da elaborare -->
+                  <Expander Header="Mostra file da elaborare">
+                    <DataGrid ItemsSource="{Binding FilesToProcess}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              MaxHeight="220"
+                              Margin="0,5,0,0">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="44">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <i:Icon Value="fa-solid fa-folder" IsVisible="{Binding IsDirectory}"
+                                        Foreground="{DynamicResource Brush.WarningFg}" />
+                                <i:Icon Value="fa-regular fa-file" IsVisible="{Binding !IsDirectory}"
+                                        Foreground="{DynamicResource Brush.TextMuted}" />
+                              </Panel>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
+                        <DataGridTextColumn Header="Dimensione" Binding="{Binding Size}" Width="110" />
+                        <DataGridTextColumn Header="Ultima modifica" Binding="{Binding LastModified}" Width="170" />
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </Expander>
+
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+    </Panel>
+  </DockPanel>
 
 </UserControl>
