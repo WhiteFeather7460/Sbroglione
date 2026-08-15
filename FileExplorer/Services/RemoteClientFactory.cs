@@ -9,7 +9,7 @@ public static class RemoteClientFactory
     public static IRemoteFileClient Create(ConnectionProfile profile) => profile.Protocol switch
     {
         RemoteProtocol.Ftp or RemoteProtocol.Ftps => new FtpRemoteClient(),
-        RemoteProtocol.Sftp => throw new NotSupportedException("SFTP arriva nel task successivo."),
+        RemoteProtocol.Sftp => new SftpRemoteClient(),
         _ => throw new ArgumentOutOfRangeException(nameof(profile))
     };
 }

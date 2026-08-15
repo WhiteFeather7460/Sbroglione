@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="FileExplorer.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
@@ -19,5 +23,6 @@
     <PackageReference Include="FluentFTP" Version="54.2.0" />
     <PackageReference Include="Projektanker.Icons.Avalonia" Version="9.6.2" />
     <PackageReference Include="Projektanker.Icons.Avalonia.FontAwesome" Version="9.6.2" />
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
   </ItemGroup>
 </Project>
