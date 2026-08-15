@@ -1207,7 +1207,7 @@ Regole di `DownloadAsync` (contratto, da coprire nei test):
 7. Errore su un file → `Failed` con motivo, il batch continua.
 8. Cancellazione → `OperationCanceledException` propagata e file parziale eliminato.
 
-- [ ] **Step 1: Scrivi interfaccia e fake**
+- [x] **Step 1: Scrivi interfaccia e fake**
 
 `FileExplorer/Services/IRemoteFileClient.cs`:
 
@@ -1337,7 +1337,7 @@ public sealed class FakeRemoteClient : IRemoteFileClient
 }
 ```
 
-- [ ] **Step 2: Scrivi i test di DownloadAsync**
+- [x] **Step 2: Scrivi i test di DownloadAsync**
 
 `FileExplorer.Tests/DownloadServiceTests.cs`:
 
@@ -1520,12 +1520,12 @@ public sealed class DownloadServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 3: Verifica che falliscano**
+- [x] **Step 3: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter DownloadServiceTests`
 Expected: errore di compilazione (`DownloadAsync` inesistente).
 
-- [ ] **Step 4: Implementa DownloadAsync**
+- [x] **Step 4: Implementa DownloadAsync**
 
 Aggiungi a `FileExplorer/Services/DownloadService.cs` (dentro la classe esistente; aggiorna gli using: servono anche `System.Collections.Generic`, `System.Threading`, `System.Threading.Tasks`):
 
@@ -1643,12 +1643,12 @@ Aggiungi a `FileExplorer/Services/DownloadService.cs` (dentro la classe esistent
     }
 ```
 
-- [ ] **Step 5: Verifica che passino**
+- [x] **Step 5: Verifica che passino**
 
 Run: `dotnet test FileExplorer.sln --filter "DownloadServiceTests|DownloadServiceStatusTests"`
 Expected: tutti PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/Services/IRemoteFileClient.cs FileExplorer/Services/DownloadService.cs FileExplorer.Tests/FakeRemoteClient.cs FileExplorer.Tests/DownloadServiceTests.cs
