@@ -3668,7 +3668,7 @@ git commit -m "feat(remote): connection profile editor dialog"
 - Consumes: `RemoteBrowserViewModel` completo (Task 9-10), `ProfileEditorWindow` (Task 11), `SelectPathDialog` esistente (costruita con `SelectPathDialogViewModel(directoriesOnly: true, startPath)` e chiusa con il percorso scelto — leggi `FileExplorer/Views/SelectPathDialog.axaml.cs` per il contratto esatto del risultato prima di usarla).
 - Produces: UI finale. Nessun nuovo contratto per altri task.
 
-- [ ] **Step 1: Crea RemoteBrowserView.axaml**
+- [x] **Step 1: Crea RemoteBrowserView.axaml**
 
 ```xml
 <UserControl xmlns="https://github.com/avaloniaui"
@@ -3909,7 +3909,7 @@ Nota: per la colonna "Su disco" valuta un piccolo converter enum→testo italian
 (Missing→"Mancante", Present→"Presente", Different→"Diverso") in `Converters/`
 se il nome enum inglese in UI stona; scelta lasciata all'implementatore, coerenza col resto dell'app.
 
-- [ ] **Step 2: Crea il code-behind**
+- [x] **Step 2: Crea il code-behind**
 
 `FileExplorer/Views/RemoteBrowserView.axaml.cs`:
 
@@ -4022,7 +4022,7 @@ Nota per l'implementatore:
 Aggiungi anche un pulsante "Nuovo profilo" se `OnManageProfilesClick` con profilo esistente
 non basta: minimo indispensabile = creare il primo profilo e modificarne uno esistente.
 
-- [ ] **Step 3: Shell a tab in MainWindow**
+- [x] **Step 3: Shell a tab in MainWindow**
 
 Sostituisci il contenuto di `FileExplorer/Views/MainWindow.axaml`:
 
@@ -4061,7 +4061,7 @@ Sostituisci il contenuto di `FileExplorer/Views/MainWindow.axaml`:
 </Window>
 ```
 
-- [ ] **Step 4: Build, test e avvio manuale**
+- [x] **Step 4: Build, test e avvio manuale**
 
 Run: `dotnet build FileExplorer.sln && dotnet test FileExplorer.sln`
 Expected: build pulita, tutti PASS.
@@ -4073,7 +4073,7 @@ Verifica visiva minima:
 - "Gestisci profili" apre l'editor, la validazione mostra errori, un profilo salvato appare nella ComboBox e sopravvive al riavvio dell'app.
 - I colori seguono il tema (nessun colore hardcoded).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Views/RemoteBrowserView.axaml FileExplorer/Views/RemoteBrowserView.axaml.cs FileExplorer/Views/MainWindow.axaml FileExplorer/Styles/Controls.axaml
