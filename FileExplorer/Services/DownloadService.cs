@@ -122,8 +122,19 @@ public static class DownloadService
                 var error = await client.DownloadFileAsync(item, tempPath, byteProgress, ct);
                 if (error is null)
                 {
-                    File.Move(tempPath, localPath, overwrite: true);
-                    downloaded.Add(item);
+                    // La sostituzione del file locale è I/O locale: se fallisce (destinazione
+                    // bloccata o non scrivibile) è un errore del singolo file, non del batch.
+                    try
+                    {
+                        File.Move(tempPath, localPath, overwrite: true);
+                        downloaded.Add(item);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        DeletePartialFile(tempPath);
+                        failed.Add(new DownloadFailure(
+                            item, "Impossibile sostituire il file locale: " + ex.Message));
+                    }
                 }
                 else
                 {

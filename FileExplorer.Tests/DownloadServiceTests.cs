@@ -170,6 +170,24 @@ public sealed class DownloadServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DownloadAsync_LocalReplaceFails_RecordsFailedAndContinues()
+    {
+        _client.AddFile("/srv/a.txt", "AAA");
+        _client.AddFile("/srv/b.txt", "BBB");
+        // Una directory al posto del file di destinazione fa fallire la move finale.
+        Directory.CreateDirectory(Path.Combine(_dest, "a.txt"));
+
+        var report = await RunAsync(AllRemoteFiles());
+
+        Assert.Single(report.Failed);
+        Assert.Equal("a.txt", report.Failed[0].Item.Name);
+        Assert.False(string.IsNullOrWhiteSpace(report.Failed[0].Reason));
+        Assert.Single(report.Downloaded);
+        Assert.Equal("b.txt", report.Downloaded[0].Name);
+        Assert.Empty(Directory.GetFiles(_dest, "*.part", SearchOption.AllDirectories));
+    }
+
+    [Fact]
     public async Task DownloadAsync_IgnoresDirectoriesInList()
     {
         _client.AddDirectory("/srv/sub");
