@@ -2180,7 +2180,7 @@ Comportamento richiesto (contratto per i test):
 - `IsBusy` true durante le operazioni, false alla fine (anche su errore).
 - Directory prima dei file in `Items`, ordinati per nome.
 
-- [ ] **Step 1: Scrivi i test**
+- [x] **Step 1: Scrivi i test**
 
 `FileExplorer.Tests/RemoteBrowserViewModelTests.cs`:
 
@@ -2357,12 +2357,12 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [x] **Step 2: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter RemoteBrowserViewModelTests`
 Expected: errore di compilazione.
 
-- [ ] **Step 3: Implementa RemoteEntryViewModel**
+- [x] **Step 3: Implementa RemoteEntryViewModel**
 
 `FileExplorer/ViewModels/RemoteEntryViewModel.cs`:
 
@@ -2398,7 +2398,7 @@ public class RemoteEntryViewModel : ViewModelBase
 }
 ```
 
-- [ ] **Step 4: Implementa RemoteBrowserViewModel (parte connessione/navigazione)**
+- [x] **Step 4: Implementa RemoteBrowserViewModel (parte connessione/navigazione)**
 
 `FileExplorer/ViewModels/RemoteBrowserViewModel.cs`:
 
@@ -2684,12 +2684,12 @@ public class RemoteBrowserViewModel : ViewModelBase
 }
 ```
 
-- [ ] **Step 5: Verifica che passino**
+- [x] **Step 5: Verifica che passino**
 
 Run: `dotnet test FileExplorer.sln --filter RemoteBrowserViewModelTests`
 Expected: tutti PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/RemoteEntryViewModel.cs FileExplorer/ViewModels/RemoteBrowserViewModel.cs FileExplorer.Tests/RemoteBrowserViewModelTests.cs
