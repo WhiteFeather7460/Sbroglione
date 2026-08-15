@@ -2744,7 +2744,7 @@ Comportamento richiesto:
 - `CancelDownload` annulla il `CancellationTokenSource` del batch; il download termina con `StatusMessage` "Download annullato."
 - Errori di listing durante il download → `ErrorMessage`, download non parte.
 
-- [ ] **Step 1: Scrivi i test**
+- [x] **Step 1: Scrivi i test**
 
 `FileExplorer.Tests/RemoteBrowserDownloadTests.cs`:
 
@@ -2968,12 +2968,12 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [x] **Step 2: Verifica che falliscano**
 
 Run: `dotnet test FileExplorer.sln --filter RemoteBrowserDownloadTests`
 Expected: errore di compilazione.
 
-- [ ] **Step 3: Implementa**
+- [x] **Step 3: Implementa**
 
 Aggiungi a `RemoteBrowserViewModel` (stessa classe; aggiungi `using System.Collections.Generic;` e `using System.IO;` se mancanti):
 
@@ -3227,12 +3227,12 @@ della destinazione salvata sul profilo:
             DestinationFolder = SelectedProfile.LastDestinationFolder;
 ```
 
-- [ ] **Step 4: Verifica che passino (tutti, anche i precedenti)**
+- [x] **Step 4: Verifica che passino (tutti, anche i precedenti)**
 
 Run: `dotnet test FileExplorer.sln`
 Expected: tutti PASS (nessuna regressione sui test del Task 9).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/RemoteBrowserViewModel.cs FileExplorer.Tests/RemoteBrowserDownloadTests.cs
