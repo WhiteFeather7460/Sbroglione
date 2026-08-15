@@ -1,0 +1,50 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Accent identico nelle due varianti -->
+  <SolidColorBrush x:Key="Brush.Accent" Color="#FF5E62" />
+  <LinearGradientBrush x:Key="Brush.AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+    <GradientStop Color="#FF5E62" Offset="0" />
+    <GradientStop Color="#FF9446" Offset="1" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="Brush.OnAccent" Color="White" />
+
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="Brush.Surface" Color="#FAF9F7" />
+      <SolidColorBrush x:Key="Brush.Card" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.CardBorder" Color="#EEE2DA" />
+      <SolidColorBrush x:Key="Brush.Field" Color="#F4EFE9" />
+      <SolidColorBrush x:Key="Brush.TextPrimary" Color="#2B2420" />
+      <SolidColorBrush x:Key="Brush.TextMuted" Color="#8A7F78" />
+      <SolidColorBrush x:Key="Brush.SuccessBg" Color="#E6F6EC" />
+      <SolidColorBrush x:Key="Brush.SuccessFg" Color="#1F8A4C" />
+      <SolidColorBrush x:Key="Brush.WarningBg" Color="#FBF0D9" />
+      <SolidColorBrush x:Key="Brush.WarningFg" Color="#9A6B00" />
+      <SolidColorBrush x:Key="Brush.ErrorBg" Color="#FBE5E2" />
+      <SolidColorBrush x:Key="Brush.ErrorFg" Color="#C43025" />
+      <SolidColorBrush x:Key="Brush.ProgressBg" Color="#FFE9DF" />
+      <SolidColorBrush x:Key="Brush.ProgressFg" Color="#D8481F" />
+      <SolidColorBrush x:Key="Brush.NeutralBg" Color="#EFEAE5" />
+      <SolidColorBrush x:Key="Brush.NeutralFg" Color="#6E635C" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="Brush.Surface" Color="#1E1B1A" />
+      <SolidColorBrush x:Key="Brush.Card" Color="#2A2624" />
+      <SolidColorBrush x:Key="Brush.CardBorder" Color="#3A3430" />
+      <SolidColorBrush x:Key="Brush.Field" Color="#35302D" />
+      <SolidColorBrush x:Key="Brush.TextPrimary" Color="#F2ECE7" />
+      <SolidColorBrush x:Key="Brush.TextMuted" Color="#A79A91" />
+      <SolidColorBrush x:Key="Brush.SuccessBg" Color="#22402E" />
+      <SolidColorBrush x:Key="Brush.SuccessFg" Color="#7FD8A2" />
+      <SolidColorBrush x:Key="Brush.WarningBg" Color="#453A1C" />
+      <SolidColorBrush x:Key="Brush.WarningFg" Color="#E8C36A" />
+      <SolidColorBrush x:Key="Brush.ErrorBg" Color="#46231F" />
+      <SolidColorBrush x:Key="Brush.ErrorFg" Color="#FF9C8F" />
+      <SolidColorBrush x:Key="Brush.ProgressBg" Color="#44261C" />
+      <SolidColorBrush x:Key="Brush.ProgressFg" Color="#FFA07C" />
+      <SolidColorBrush x:Key="Brush.NeutralBg" Color="#35302D" />
+      <SolidColorBrush x:Key="Brush.NeutralFg" Color="#B5A89F" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

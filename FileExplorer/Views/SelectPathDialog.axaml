@@ -1,49 +1,61 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
         x:Class="FileExplorer.Views.SelectPathDialog"
         Title="Seleziona file o cartella"
-        Width="600" Height="400">
+        Width="640" Height="440"
+        Background="{DynamicResource Brush.Surface}">
 
-  <Grid RowDefinitions="Auto,*">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+
     <!-- Barra del percorso -->
-    <StackPanel Orientation="Horizontal" Margin="5">
-      <TextBox Width="400"
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+      <Button Grid.Column="0" Classes="iconbtn"
+              i:Attached.Icon="fa-solid fa-arrow-left"
+              Click="OnBackClick" Margin="0,0,8,0" />
+      <TextBox Grid.Column="1"
                x:Name="PathTextBar"
                Text="{Binding CurrentPath, Mode=TwoWay}"
                KeyDown="OnPathKeyDown" />
-      <Button Content="Indietro" Click="OnBackClick" Margin="5" />
-      <Button Content="Vai" Click="OnGoClick" Width="50" Margin="5" />
-      <Button Content="Seleziona" Click="OnSelectClick" Margin="5" />
-    </StackPanel>
+      <Button Grid.Column="2" Classes="primary" Content="Vai" Click="OnGoClick" Margin="8,0,0,0" />
+    </Grid>
 
     <!-- Lista file/cartelle -->
-    <DataGrid ItemsSource="{Binding Items}"
-              SelectedItem="{Binding SelectedItem}"
-              DoubleTapped="OnItemDoubleTapped"
-              Grid.Row="1"
-              AutoGenerateColumns="False"
-              IsReadOnly="True"
-              SelectionMode="Single"
-              HeadersVisibility="Column"
-              GridLinesVisibility="All"
-              HorizontalScrollBarVisibility="Auto"
-              VerticalScrollBarVisibility="Auto">
+    <Border Grid.Row="1" Classes="card" Padding="4" Margin="0">
+      <DataGrid ItemsSource="{Binding Items}"
+                SelectedItem="{Binding SelectedItem}"
+                DoubleTapped="OnItemDoubleTapped"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                SelectionMode="Single"
+                HeadersVisibility="Column"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Auto">
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Width="44">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <i:Icon Value="fa-solid fa-folder" IsVisible="{Binding IsDirectory}"
+                          Foreground="{DynamicResource Brush.WarningFg}" />
+                  <i:Icon Value="fa-regular fa-file" IsVisible="{Binding !IsDirectory}"
+                          Foreground="{DynamicResource Brush.TextMuted}" />
+                </Panel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
+          <DataGridTextColumn Header="Dimensione" Binding="{Binding Size}" Width="110" />
+          <DataGridTextColumn Header="Ultima modifica" Binding="{Binding LastModified}" Width="170" />
+        </DataGrid.Columns>
+      </DataGrid>
+    </Border>
 
-      <DataGrid.Columns>
-        <DataGridTemplateColumn Header="" Width="60">
-          <DataGridTemplateColumn.CellTemplate>
-            <DataTemplate>
-              <TextBlock Text="{Binding Icon}"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center" />
-            </DataTemplate>
-          </DataGridTemplateColumn.CellTemplate>
-        </DataGridTemplateColumn>
-        <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
-        <DataGridTextColumn Header="Dimensione" Binding="{Binding Size}" Width="100" />
-        <DataGridTextColumn Header="Ultima Modifica" Binding="{Binding LastModified}" Width="*" />
-      </DataGrid.Columns>
+    <!-- Footer -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+      <Button Classes="secondary" Content="Annulla" Click="OnCancelClick" />
+      <Button Classes="primary" Content="Seleziona" Click="OnSelectClick" />
+    </StackPanel>
 
-    </DataGrid>
   </Grid>
 </Window>

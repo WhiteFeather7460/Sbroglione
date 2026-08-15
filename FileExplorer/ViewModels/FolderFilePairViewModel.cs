@@ -84,6 +84,18 @@ public class FolderFilePairViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _status, value);
     }
 
+    private CopyStateKind _stateKind = CopyStateKind.Ready;
+
+    /// <summary>
+    /// Stato di presentazione del badge; impostato da <see cref="CopyPairsViewModel"/>
+    /// negli stessi punti in cui viene impostato <see cref="Status"/>.
+    /// </summary>
+    public CopyStateKind StateKind
+    {
+        get => _stateKind;
+        set => this.RaiseAndSetIfChanged(ref _stateKind, value);
+    }
+
     /// <summary>
     /// True quando la coppia è pronta per avviare una copia.
     /// </summary>
