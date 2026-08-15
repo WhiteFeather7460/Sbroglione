@@ -214,6 +214,26 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         Assert.False(vm.IsBusy);
     }
 
+    [Fact]
+    public async Task DisconnectAsync_WhileListingInCorso_IsIgnored()
+    {
+        _client.AddDirectory("/docs");
+        _client.AddFile("/docs/b.txt", "BBB");
+        var gated = new GatedListingClient(_client);
+        var vm = CreateViewModel(client: gated);
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+
+        gated.BlockListings();
+        var open = vm.OpenDirectoryAsync(vm.Items.First(i => i.IsDirectory));
+        await vm.DisconnectAsync();             // deve essere ignorata: il client è in uso
+        gated.ReleaseListings();
+        await open;
+
+        Assert.True(vm.IsConnected);
+        Assert.Equal("b.txt", Assert.Single(vm.Items).Name);
+    }
+
     /// <summary>Keyring simulato la cui lettura si sblocca solo su richiesta esplicita.</summary>
     private sealed class BlockingCredentialStore : ICredentialStore
     {
