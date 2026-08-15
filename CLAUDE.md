@@ -27,6 +27,8 @@ Tests: `FileExplorer.Tests` (xunit) — run with `dotnet test`. No CI. `.editorc
 
 For any non-trivial feature or change, always write an implementation plan first (superpowers writing-plans; plans live in `docs/superpowers/plans/`) and execute it with subagents (superpowers subagent-driven-development). After each completed task, mark it as done in the plan file before starting the next one.
 
+Each plan task must declare the most suitable model for its executing subagent (`haiku` for mechanical/boilerplate work, `sonnet` for standard implementation, `opus` for complex logic or security-sensitive code), and the dispatcher must pass that model to the Agent tool to save tokens.
+
 ## Git
 
 Do not add yourself (Claude) as co-author on commits.
