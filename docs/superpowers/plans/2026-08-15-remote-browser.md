@@ -1902,12 +1902,12 @@ git commit -m "feat(remote): FTP/FTPS client via FluentFTP"
 
 Nessun test automatico (serve server SSH reale): build + smoke test manuale nel Task 12.
 
-- [ ] **Step 1: Aggiungi SSH.NET**
+- [x] **Step 1: Aggiungi SSH.NET**
 
 Run: `dotnet add FileExplorer/FileExplorer.csproj package SSH.NET`
 Expected: PackageReference aggiunta, restore ok.
 
-- [ ] **Step 2: Implementa SftpRemoteClient**
+- [x] **Step 2: Implementa SftpRemoteClient**
 
 `FileExplorer/Services/SftpRemoteClient.cs`:
 
@@ -2087,7 +2087,7 @@ purché il formato salvato resti identico tra le connessioni. Se `SshConnectionE
 non è il tipo effettivamente lanciato quando `CanTrust=false`, verifica il tipo reale
 e adatta il `catch`, mantenendo il contratto: fingerprint non accettata → `RemoteError(HostKeyMismatch, …, fingerprint)`.
 
-- [ ] **Step 3: Aggiorna la factory**
+- [x] **Step 3: Aggiorna la factory**
 
 In `FileExplorer/Services/RemoteClientFactory.cs` sostituisci il ramo Sftp:
 
@@ -2097,12 +2097,12 @@ In `FileExplorer/Services/RemoteClientFactory.cs` sostituisci il ramo Sftp:
 
 (rimuovendo la `NotSupportedException`).
 
-- [ ] **Step 4: Build e test completi**
+- [x] **Step 4: Build e test completi**
 
 Run: `dotnet build FileExplorer.sln && dotnet test FileExplorer.sln`
 Expected: build pulita, tutti PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/FileExplorer.csproj FileExplorer/Services/SftpRemoteClient.cs FileExplorer/Services/RemoteClientFactory.cs
