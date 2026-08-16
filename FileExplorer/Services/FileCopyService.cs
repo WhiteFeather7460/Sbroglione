@@ -24,7 +24,7 @@ public readonly record struct CopyProgress(long CopiedBytes, long TotalBytes, in
 /// </summary>
 public static class FileCopyService
 {
-    private const int BufferSize = 1024 * 1024; // 1 MB
+    private const int DefaultBufferSize = 1024 * 1024; // 1 MB
 
     /// <summary>
     /// Copia un singolo file a blocchi, segnalando i byte copiati a ogni blocco.
@@ -33,14 +33,15 @@ public static class FileCopyService
         string sourcePath,
         string destinationPath,
         Action<long>? onBytesCopied,
-        CancellationToken ct)
+        CancellationToken ct,
+        int bufferSize = DefaultBufferSize)
     {
         await using var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         await using var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
 
-        var buffer = new byte[BufferSize];
+        var buffer = new byte[bufferSize];
         int read;
-        while ((read = await input.ReadAsync(buffer.AsMemory(0, BufferSize), ct)) > 0)
+        while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
         {
             await output.WriteAsync(buffer.AsMemory(0, read), ct);
             onBytesCopied?.Invoke(read);
@@ -59,7 +60,8 @@ public static class FileCopyService
         string destinationRoot,
         int maxDegreeOfParallelism,
         Action<CopyProgress>? onProgress,
-        CancellationToken ct)
+        CancellationToken ct,
+        int bufferSize = DefaultBufferSize)
     {
         List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
         long totalBytes = files.Sum(file => new FileInfo(file).Length);
@@ -86,7 +88,7 @@ public static class FileCopyService
                 {
                     long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
                     onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
-                }, ct);
+                }, ct, bufferSize);
             }
             finally
             {
