@@ -177,6 +177,61 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         }
     }
 
+    public async Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(localPath);
+        ArgumentNullException.ThrowIfNull(remoteFullPath);
+
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso.");
+
+        try
+        {
+            int lastSlash = remoteFullPath.LastIndexOf('/');
+            string remoteDir = lastSlash <= 0 ? "/" : remoteFullPath[..lastSlash];
+            await EnsureRemoteDirectoryAsync(remoteDir, ct);
+
+            var sftpProgress = progress is null
+                ? null
+                : new Progress<UploadFileProgressReport>(p => progress.Report((long)p.TotalBytesUploaded));
+
+            // Lo stream va aperto in read e chiuso dopo l'upload: SSH.NET legge da qui, non serve
+            // riscrivere alcuna data locale (a differenza del download, che scrive su disco).
+            await using (var stream = File.OpenRead(localPath))
+            {
+                await _client.UploadFileAsync(stream, remoteFullPath, canOverride: true, sftpProgress, ct);
+            }
+
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Crea <paramref name="remoteDir"/> se manca, risalendo ricorsivamente i genitori mancanti:
+    /// SSH.NET non offre una CreateDirectory ricorsiva ("mkdir -p") nativa.
+    /// </summary>
+    private async Task EnsureRemoteDirectoryAsync(string remoteDir, CancellationToken ct)
+    {
+        if (_client is null || remoteDir is "/" || remoteDir.Length == 0)
+            return;
+
+        if (await _client.ExistsAsync(remoteDir, ct))
+            return;
+
+        int lastSlash = remoteDir.LastIndexOf('/');
+        string parent = lastSlash <= 0 ? "/" : remoteDir[..lastSlash];
+        await EnsureRemoteDirectoryAsync(parent, ct);
+        await _client.CreateDirectoryAsync(remoteDir, ct);
+    }
+
     public ValueTask DisposeAsync()
     {
         if (_client is not null)

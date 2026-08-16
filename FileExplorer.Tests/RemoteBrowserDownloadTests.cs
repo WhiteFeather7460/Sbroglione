@@ -322,6 +322,9 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
             return await _inner.DownloadFileAsync(item, localPath, progress, ct);
         }
 
+        public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
+            => _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
+
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }
 }

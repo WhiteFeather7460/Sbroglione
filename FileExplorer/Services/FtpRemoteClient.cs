@@ -144,6 +144,35 @@ public sealed class FtpRemoteClient : IRemoteFileClient
         }
     }
 
+    public async Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso.");
+
+        try
+        {
+            var ftpProgress = progress is null
+                ? null
+                : new Progress<FtpProgress>(p => progress.Report(p.TransferredBytes));
+
+            var status = await _client.UploadFile(localPath, remoteFullPath, FtpRemoteExists.Overwrite,
+                createRemoteDir: true, progress: ftpProgress, token: ct);
+
+            if (status != FtpStatus.Success)
+                return new RemoteError(RemoteErrorKind.TransferFailed, $"Caricamento di {Path.GetFileName(localPath)} non riuscito.");
+
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_client is not null)
