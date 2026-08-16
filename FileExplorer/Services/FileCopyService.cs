@@ -36,6 +36,9 @@ public static class FileCopyService
         CancellationToken ct,
         int bufferSize = DefaultBufferSize)
     {
+        if (bufferSize <= 0)
+            bufferSize = DefaultBufferSize;
+
         await using var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         await using var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
 
@@ -63,6 +66,9 @@ public static class FileCopyService
         CancellationToken ct,
         int bufferSize = DefaultBufferSize)
     {
+        if (bufferSize <= 0)
+            bufferSize = DefaultBufferSize;
+
         List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
         long totalBytes = files.Sum(file => new FileInfo(file).Length);
 

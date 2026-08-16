@@ -20,7 +20,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            AppSettingsStore.LoadCurrentAsync().GetAwaiter().GetResult();
+            AppSettingsStore.LoadCurrent();
             RequestedThemeVariant = ParseThemeVariant(AppSettingsStore.Current.ThemeVariant);
 
             desktop.MainWindow = new MainWindow

@@ -51,4 +51,32 @@ public sealed class FileCopyServiceTests : IDisposable
 
         Assert.Equal(content, await File.ReadAllBytesAsync(destination));
     }
+
+    [Fact]
+    public async Task CopyFileAsync_ZeroBufferSize_FallsBackToDefaultAndCopiesCorrectly()
+    {
+        string source = Path.Combine(_root, "source3.bin");
+        string destination = Path.Combine(_root, "dest3.bin");
+        byte[] content = Enumerable.Range(0, 100).Select(i => (byte)i).ToArray();
+        await File.WriteAllBytesAsync(source, content);
+
+        await FileCopyService.CopyFileAsync(source, destination, null, CancellationToken.None, bufferSize: 0);
+
+        var destinationInfo = new FileInfo(destination);
+        Assert.Equal(content.Length, destinationInfo.Length);
+        Assert.Equal(content, await File.ReadAllBytesAsync(destination));
+    }
+
+    [Fact]
+    public async Task CopyFileAsync_NegativeBufferSize_FallsBackToDefaultAndCopiesCorrectly()
+    {
+        string source = Path.Combine(_root, "source4.bin");
+        string destination = Path.Combine(_root, "dest4.bin");
+        byte[] content = Enumerable.Range(0, 100).Select(i => (byte)i).ToArray();
+        await File.WriteAllBytesAsync(source, content);
+
+        await FileCopyService.CopyFileAsync(source, destination, null, CancellationToken.None, bufferSize: -1);
+
+        Assert.Equal(content, await File.ReadAllBytesAsync(destination));
+    }
 }

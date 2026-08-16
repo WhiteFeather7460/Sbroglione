@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Management;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -105,7 +106,7 @@ public static class DiskTypeService
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             return DetectLinuxAsync(path, linuxMountsContent, ct);
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (OperatingSystem.IsWindows() && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return Task.FromResult(DetectWindows(path));
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             return DetectMacAsync(path, ct);
@@ -230,6 +231,7 @@ public static class DiskTypeService
 
     // ===== Windows =====
 
+    [SupportedOSPlatform("windows")]
     private static DiskType DetectWindows(string path)
     {
         string? driveLetter = Path.GetPathRoot(Path.GetFullPath(path))?.TrimEnd('\\', '/');
