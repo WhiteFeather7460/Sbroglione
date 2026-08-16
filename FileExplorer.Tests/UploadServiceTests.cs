@@ -42,9 +42,9 @@ public sealed class UploadServiceTests : IDisposable
     }
 
     [Fact]
-    public void CombineRemotePath_TrimsSlashesAndConvertsBackslashes()
+    public void CombineRemotePath_TrimsSlashesButPreservesBackslashes()
     {
-        Assert.Equal("/srv/sub/c.txt", UploadService.CombineRemotePath("/srv/", @"sub\c.txt"));
+        Assert.Equal(@"/srv/sub\c.txt", UploadService.CombineRemotePath("/srv/", @"sub\c.txt"));
     }
 
     [Fact]

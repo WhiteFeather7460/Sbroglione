@@ -161,6 +161,17 @@ public sealed class FtpRemoteClient : IRemoteFileClient
             if (status != FtpStatus.Success)
                 return new RemoteError(RemoteErrorKind.TransferFailed, $"Caricamento di {Path.GetFileName(localPath)} non riuscito.");
 
+            // Speculare a DownloadFileAsync: il server stampa l'orario di upload, mentre lo skip
+            // "già presente e identico" (UploadService) confronta la data di modifica locale.
+            try
+            {
+                await _client.SetModifiedTime(remoteFullPath, File.GetLastWriteTime(localPath), ct);
+            }
+            catch (Exception)
+            {
+                // Best effort: molti server FTP non supportano MFMT. Non deve far fallire l'upload.
+            }
+
             return null;
         }
         catch (OperationCanceledException)

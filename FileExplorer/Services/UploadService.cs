@@ -16,9 +16,13 @@ public static class UploadService
     /// <summary>Tolleranza sul confronto delle date di modifica (timestamp FTP poco precisi).</summary>
     private static readonly TimeSpan DateTolerance = TimeSpan.FromSeconds(2);
 
-    /// <summary>Combina la cartella remota di destinazione con un percorso relativo (sempre con '/').</summary>
+    /// <summary>
+    /// Combina la cartella remota di destinazione con un percorso relativo già normalizzato con '/'
+    /// dal chiamante. I backslash restano tali: su Linux sono caratteri legittimi di un nome file
+    /// e convertirli creerebbe sottocartelle remote inesistenti.
+    /// </summary>
     public static string CombineRemotePath(string remoteBasePath, string relativePath) =>
-        remoteBasePath.TrimEnd('/') + "/" + relativePath.Replace('\\', '/').TrimStart('/');
+        remoteBasePath.TrimEnd('/') + "/" + relativePath.TrimStart('/');
 
     /// <summary>
     /// Carica in sequenza le voci indicate. Una voce già presente sul server con stessa
@@ -37,7 +41,10 @@ public static class UploadService
         var skipped = new List<UploadEntry>();
         var failed = new List<UploadFailure>();
 
-        var existing = await BuildExistingRemoteMapAsync(client, remoteBasePath, ct);
+        // Con overwriteAlways la mappa non viene mai consultata: evitiamo l'elenco ricorsivo.
+        var existing = overwriteAlways
+            ? new Dictionary<string, RemoteItem>()
+            : await BuildExistingRemoteMapAsync(client, remoteBasePath, ct);
 
         for (int i = 0; i < entries.Count; i++)
         {

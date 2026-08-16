@@ -165,7 +165,7 @@
     </Border>
 
     <!-- Pannello filtri -->
-    <Expander DockPanel.Dock="Top" Header="Filtri download" Margin="20,0"
+    <Expander DockPanel.Dock="Top" Header="Filtri" Margin="20,0"
               IsVisible="{Binding IsConnected}">
       <StackPanel Spacing="8" Margin="0,8">
         <Grid ColumnDefinitions="*,110,110">
@@ -209,8 +209,14 @@
             <TextBlock Text="{Binding DownloadStatusText}" VerticalAlignment="Center"
                        Foreground="{DynamicResource Brush.TextMuted}" />
             <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"
-                       Foreground="{DynamicResource Brush.TextMuted}"
-                       IsVisible="{Binding !IsDownloading}" />
+                       Foreground="{DynamicResource Brush.TextMuted}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{StaticResource NotAny}">
+                  <Binding Path="IsDownloading" />
+                  <Binding Path="IsUploading" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
           <Button Grid.Column="1" Classes="primary" Click="OnDownloadSelectedClick" Margin="8,0,0,0">
             <Button.IsEnabled>
@@ -246,7 +252,7 @@
             <TextBlock Text="{Binding UploadStatusText}" VerticalAlignment="Center"
                        Foreground="{DynamicResource Brush.TextMuted}" />
           </StackPanel>
-          <CheckBox Grid.Column="1" Content="Sovrascrivi se già presente" IsChecked="{Binding UploadOverwriteAlways}"
+          <CheckBox Grid.Column="1" Content="Sovrascrivi sempre" IsChecked="{Binding UploadOverwriteAlways}"
                      VerticalAlignment="Center" Margin="8,0,0,0" />
           <Button Grid.Column="2" Classes="primary" Click="OnUploadFilesClick" Margin="8,0,0,0">
             <Button.IsEnabled>

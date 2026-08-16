@@ -620,10 +620,16 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// <summary>Carica i file locali indicati (percorsi assoluti) nella cartella corrente, senza struttura.</summary>
     public Task UploadFilesAsync(IReadOnlyList<string> localPaths)
     {
+        // La destinazione remota è catturata qui, prima di qualsiasi await: se l'utente naviga
+        // altrove mentre l'upload si prepara, i file devono comunque finire dove erano stati chiesti.
+        string remoteBasePath = CurrentPath;
+        // Filtro difensivo: questo metodo è pubblico e una cartella passata per errore
+        // produrrebbe una voce remota fasulla.
         var entries = localPaths
+            .Where(path => !Directory.Exists(path))
             .Select(path => new UploadEntry(path, Path.GetFileName(path)))
             .ToList();
-        return RunUploadAsync(entries);
+        return RunUploadAsync(entries, remoteBasePath);
     }
 
     /// <summary>
@@ -632,6 +638,9 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// </summary>
     public async Task UploadFolderAsync(string localFolderPath)
     {
+        // Catturata prima dell'enumerazione (potenzialmente lenta): una navigazione remota nel
+        // frattempo non deve dirottare l'upload su un'altra cartella.
+        string remoteBasePath = CurrentPath;
         var searchOption = IncludeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         // L'enumerazione ricorsiva della cartella è I/O sincrono: fuori dal thread UI, che
         // altrimenti si bloccherebbe su cartelle grandi mentre IncludeSubfolders è attiva.
@@ -639,17 +648,25 @@ public class RemoteBrowserViewModel : ViewModelBase
             .Select(path => new UploadEntry(
                 path, Path.GetRelativePath(localFolderPath, path).Replace(Path.DirectorySeparatorChar, '/')))
             .ToList());
-        await RunUploadAsync(entries);
+        await RunUploadAsync(entries, remoteBasePath);
     }
 
     /// <summary>Annulla il batch di upload in corso: termina con "Caricamento annullato."</summary>
     public void CancelUpload() => _uploadCts?.Cancel();
 
     /// <summary>Guardia unica degli upload: mai in corso insieme a un download o un'altra operazione sul client.</summary>
-    private async Task RunUploadAsync(IReadOnlyList<UploadEntry> entries)
+    private async Task RunUploadAsync(IReadOnlyList<UploadEntry> entries, string remoteBasePath)
     {
-        if (_client is null || IsBusy || IsDownloading || IsUploading || entries.Count == 0)
+        if (_client is null || IsBusy || IsDownloading || IsUploading)
             return;
+
+        // Caso a sé rispetto alle guardie di rientranza qui sopra: è un esito che riguarda
+        // l'utente (cartella vuota, o senza file al primo livello) e va comunicato.
+        if (entries.Count == 0)
+        {
+            StatusMessage = "Nessun file da caricare.";
+            return;
+        }
 
         IsUploading = true;
         ErrorMessage = null;
@@ -664,7 +681,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         try
         {
             var report = await UploadService.UploadAsync(
-                _client, entries, CurrentPath, UploadOverwriteAlways, progress, _uploadCts.Token);
+                _client, entries, remoteBasePath, UploadOverwriteAlways, progress, _uploadCts.Token);
 
             StatusMessage =
                 $"Caricati {report.Uploaded.Count}, saltati {report.Skipped.Count}, falliti {report.Failed.Count}.";

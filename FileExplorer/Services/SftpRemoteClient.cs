@@ -202,6 +202,19 @@ public sealed class SftpRemoteClient : IRemoteFileClient
                 await _client.UploadFileAsync(stream, remoteFullPath, canOverride: true, sftpProgress, ct);
             }
 
+            // Speculare a DownloadFileAsync: il server stampa l'orario di upload, mentre lo skip
+            // "già presente e identico" (UploadService) confronta la data di modifica locale.
+            // SSH.NET non offre una variante async di questa chiamata: è un singolo round-trip
+            // di metadati, non un trasferimento.
+            try
+            {
+                _client.SetLastWriteTime(remoteFullPath, File.GetLastWriteTime(localPath));
+            }
+            catch (Exception)
+            {
+                // Best effort: alcuni server SFTP rifiutano SETSTAT sull'mtime. Non deve far fallire l'upload.
+            }
+
             return null;
         }
         catch (OperationCanceledException)

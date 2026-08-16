@@ -154,6 +154,28 @@ public sealed class RemoteBrowserUploadTests : IDisposable
     }
 
     [Fact]
+    public async Task NavigateDuranteUpload_IsIgnored()
+    {
+        string a = CreateSourceFile("a.txt", "AAA");
+        _client.AddDirectory("/docs");
+        var gated = new GatedUploadClient(_client);
+        var vm = await CreateConnectedAsync(gated);
+
+        var upload = vm.UploadFilesAsync(new[] { a });
+        await gated.FirstUploadStarted;
+        await vm.OpenDirectoryAsync(vm.Items.First(i => i.IsDirectory));   // ignorata: upload in corso
+        Assert.Equal("/", vm.CurrentPath);
+
+        await vm.DisconnectAsync();                                        // ignorata per lo stesso motivo
+        Assert.True(vm.IsConnected);
+
+        gated.ReleaseUploads();
+        await upload;
+
+        Assert.True(_client.Entries.ContainsKey("/a.txt"));
+    }
+
+    [Fact]
     public async Task Upload_WithFailures_FreshListingErrorTakesPrecedenceOverStaleUploadError()
     {
         string a = CreateSourceFile("a.txt", "AAA");
@@ -226,7 +248,10 @@ public sealed class RemoteBrowserUploadTests : IDisposable
 
         public GatedUploadClient(FakeRemoteClient inner) => _inner = inner;
 
+        /// <summary>Completa quando il primo upload è entrato nel client.</summary>
         public Task FirstUploadStarted => _started.Task;
+
+        public void ReleaseUploads() => _gate.TrySetResult();
 
         public bool IsConnected => _inner.IsConnected;
 
