@@ -17,9 +17,9 @@ namespace FileExplorer.ViewModels;
 /// </summary>
 [SuppressMessage(
     "Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable",
-    Justification = "Il CancellationTokenSource del download è creato e distrutto dentro " +
-                    "RunDownloadAsync: il campo è solo l'appiglio per CancelDownload e resta null " +
-                    "fuori dal batch, quindi la viewmodel non ha uno stato disposable da liberare.")]
+    Justification = "I CancellationTokenSource di download e upload sono creati e distrutti dentro " +
+                    "RunDownloadAsync/RunUploadAsync: i campi sono solo l'appiglio per Cancel* e restano " +
+                    "null fuori dal batch, quindi la viewmodel non ha uno stato disposable da liberare.")]
 public class RemoteBrowserViewModel : ViewModelBase
 {
     private readonly Func<ConnectionProfile, IRemoteFileClient> _clientFactory;
@@ -220,6 +220,38 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     private CancellationTokenSource? _downloadCts;
 
+    // ----- Upload -----
+
+    private bool _uploadOverwriteAlways;
+    public bool UploadOverwriteAlways
+    {
+        get => _uploadOverwriteAlways;
+        set => this.RaiseAndSetIfChanged(ref _uploadOverwriteAlways, value);
+    }
+
+    private bool _isUploading;
+    public bool IsUploading
+    {
+        get => _isUploading;
+        private set => this.RaiseAndSetIfChanged(ref _isUploading, value);
+    }
+
+    private double _uploadProgressValue;
+    public double UploadProgressValue
+    {
+        get => _uploadProgressValue;
+        private set => this.RaiseAndSetIfChanged(ref _uploadProgressValue, value);
+    }
+
+    private string? _uploadStatusText;
+    public string? UploadStatusText
+    {
+        get => _uploadStatusText;
+        private set => this.RaiseAndSetIfChanged(ref _uploadStatusText, value);
+    }
+
+    private CancellationTokenSource? _uploadCts;
+
     /// <summary>Costruttore per la view: dipendenze reali.</summary>
     public RemoteBrowserViewModel()
         : this(RemoteClientFactory.Create, CredentialStoreFactory.Create(), ProfileStore.DefaultPath)
@@ -264,7 +296,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         // IsBusy, quindi un cambio di selezione a connessione avviata sposterebbe fingerprint
         // in sospeso e password salvata sul profilo sbagliato.
         var profile = SelectedProfile;
-        if (profile is null || IsBusy || IsDownloading)
+        if (profile is null || IsBusy || IsDownloading || IsUploading)
             return;
 
         // IsBusy va alzata prima di qualsiasi await: la lettura dal keyring può essere lenta e
@@ -363,7 +395,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     {
         // Senza questa guardia la disconnessione libererebbe il client mentre un elenco o un
         // download lo stanno ancora usando, lasciando l'operazione in corso senza connessione.
-        if (IsBusy || IsDownloading)
+        if (IsBusy || IsDownloading || IsUploading)
             return;
 
         await DisposeClientAsync();
@@ -375,7 +407,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     public async Task OpenDirectoryAsync(RemoteEntryViewModel entry)
     {
-        if (!entry.IsDirectory || _client is null || IsBusy || IsDownloading)
+        if (!entry.IsDirectory || _client is null || IsBusy || IsDownloading || IsUploading)
             return;
 
         CurrentPath = entry.Item.FullPath;
@@ -384,7 +416,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     public async Task NavigateUpAsync()
     {
-        if (_client is null || IsBusy || IsDownloading || CurrentPath == "/")
+        if (_client is null || IsBusy || IsDownloading || IsUploading || CurrentPath == "/")
             return;
 
         int lastSlash = CurrentPath.TrimEnd('/').LastIndexOf('/');
@@ -429,7 +461,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     public async Task DeleteProfileAsync()
     {
         var profile = SelectedProfile;
-        if (profile is null || IsBusy || IsDownloading)
+        if (profile is null || IsBusy || IsDownloading || IsUploading)
             return;
 
         // Selezione e rimozione vanno fatte prima di qualsiasi await: altrimenti un doppio clic
@@ -476,7 +508,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// </summary>
     private async Task StartDownloadAsync(Func<Task<IReadOnlyList<RemoteItem>?>> collectFiles)
     {
-        if (_client is null || IsBusy || IsDownloading)
+        if (_client is null || IsBusy || IsDownloading || IsUploading)
             return;
 
         IsDownloading = true;
@@ -585,6 +617,83 @@ public class RemoteBrowserViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Carica i file locali indicati (percorsi assoluti) nella cartella corrente, senza struttura.</summary>
+    public Task UploadFilesAsync(IReadOnlyList<string> localPaths)
+    {
+        var entries = localPaths
+            .Select(path => new UploadEntry(path, Path.GetFileName(path)))
+            .ToList();
+        return RunUploadAsync(entries);
+    }
+
+    /// <summary>
+    /// Carica il contenuto di una cartella locale nella cartella corrente, ricorsivamente se
+    /// <see cref="IncludeSubfolders"/> è attiva, preservando la struttura relativa.
+    /// </summary>
+    public Task UploadFolderAsync(string localFolderPath)
+    {
+        var searchOption = IncludeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        var entries = Directory.EnumerateFiles(localFolderPath, "*", searchOption)
+            .Select(path => new UploadEntry(
+                path, Path.GetRelativePath(localFolderPath, path).Replace(Path.DirectorySeparatorChar, '/')))
+            .ToList();
+        return RunUploadAsync(entries);
+    }
+
+    /// <summary>Annulla il batch di upload in corso: termina con "Caricamento annullato."</summary>
+    public void CancelUpload() => _uploadCts?.Cancel();
+
+    /// <summary>Guardia unica degli upload: mai in corso insieme a un download o un'altra operazione sul client.</summary>
+    private async Task RunUploadAsync(IReadOnlyList<UploadEntry> entries)
+    {
+        if (_client is null || IsBusy || IsDownloading || IsUploading || entries.Count == 0)
+            return;
+
+        IsUploading = true;
+        ErrorMessage = null;
+        _uploadCts = new CancellationTokenSource();
+
+        var progress = new Progress<UploadProgress>(p =>
+        {
+            UploadProgressValue = p.TotalFiles == 0 ? 0 : (double)p.FileIndex / p.TotalFiles;
+            UploadStatusText = $"{p.FileIndex}/{p.TotalFiles} — {p.CurrentFile}";
+        });
+
+        try
+        {
+            var report = await UploadService.UploadAsync(
+                _client, entries, CurrentPath, UploadOverwriteAlways, progress, _uploadCts.Token);
+
+            StatusMessage =
+                $"Caricati {report.Uploaded.Count}, saltati {report.Skipped.Count}, falliti {report.Failed.Count}.";
+            if (report.Failed.Count > 0)
+                ErrorMessage = $"{report.Failed.Count} file falliti. Primo errore: {report.Failed[0].Reason}";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Caricamento annullato.";
+        }
+        finally
+        {
+            UploadStatusText = null;
+            UploadProgressValue = 0;
+            _uploadCts.Dispose();
+            _uploadCts = null;
+            IsUploading = false;
+        }
+
+        // Rientra nella cartella corrente per mostrare i file appena caricati: fuori dal blocco
+        // IsUploading, così LoadListingAsync (che guarda anche IsUploading) non si blocca da solo.
+        // LoadListingCoreAsync sovrascrive StatusMessage/ErrorMessage con l'esito dell'elenco: li
+        // catturiamo prima e li ripristiniamo dopo, così il riepilogo dell'upload resta visibile.
+        string? finalStatusMessage = StatusMessage;
+        string? finalErrorMessage = ErrorMessage;
+        await RefreshAsync();
+        StatusMessage = finalStatusMessage;
+        if (finalErrorMessage is not null)
+            ErrorMessage = finalErrorMessage;
+    }
+
     /// <summary>Traduce i campi della UI in criteri di filtro (i KB diventano byte).</summary>
     private DownloadFilter BuildFilter() => new()
     {
@@ -622,7 +731,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// </summary>
     private async Task LoadListingAsync()
     {
-        if (_client is null || IsBusy || IsDownloading)
+        if (_client is null || IsBusy || IsDownloading || IsUploading)
             return;
 
         IsBusy = true;
