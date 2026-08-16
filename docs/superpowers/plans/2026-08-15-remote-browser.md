@@ -4093,12 +4093,12 @@ git commit -m "feat(remote): remote browser tab UI and tabbed main window shell"
 - Consumes: tutto.
 - Produces: PR aperta.
 
-- [ ] **Step 1: Suite completa e build**
+- [x] **Step 1: Suite completa e build**
 
 Run: `dotnet build FileExplorer.sln && dotnet test FileExplorer.sln`
 Expected: 0 warning, 0 errori, tutti i test PASS.
 
-- [ ] **Step 2: Smoke test manuale contro un server reale (locale)**
+- [x] **Step 2: Smoke test manuale contro un server reale (locale)**
 
 Avvia un server SFTP di test in container (una porta libera qualsiasi):
 
@@ -4117,7 +4117,7 @@ Poi `dotnet run --project FileExplorer.Desktop` e verifica:
 
 Se un passo fallisce: correggi (bug fix con test dove possibile) prima di procedere.
 
-- [ ] **Step 3: Spunta il piano e committa**
+- [x] **Step 3: Spunta il piano e committa**
 
 Tutte le checkbox di questo file spuntate; commit:
 
@@ -4126,7 +4126,7 @@ git add docs/superpowers/plans/2026-08-15-remote-browser.md
 git commit -m "docs: mark remote browser plan complete"
 ```
 
-- [ ] **Step 4: Push e PR**
+- [x] **Step 4: Push e PR**
 
 ```bash
 git push -u origin feature/remote-browser
