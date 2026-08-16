@@ -18,6 +18,9 @@ public sealed class FakeRemoteClient : IRemoteFileClient
     /// <summary>Percorsi remoti il cui download deve fallire.</summary>
     public HashSet<string> FailingDownloads { get; } = new();
 
+    /// <summary>Percorsi remoti (target) il cui upload simulato deve fallire.</summary>
+    public HashSet<string> FailingUploads { get; } = new();
+
     public bool IsConnected { get; private set; }
 
     public void AddFile(string fullPath, string content, DateTime? modified = null)
@@ -79,6 +82,21 @@ public sealed class FakeRemoteClient : IRemoteFileClient
         await File.WriteAllBytesAsync(localPath, entry.Content, ct);
         File.SetLastWriteTime(localPath, entry.Item.Modified);
         progress?.Report(entry.Content.Length);
+        return null;
+    }
+
+    public async Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (FailingUploads.Contains(remoteFullPath))
+            return new RemoteError(RemoteErrorKind.TransferFailed, "Trasferimento fallito (simulato).");
+
+        byte[] bytes = await File.ReadAllBytesAsync(localPath, ct);
+        string name = remoteFullPath[(remoteFullPath.LastIndexOf('/') + 1)..];
+        var modified = File.GetLastWriteTime(localPath);
+        Entries[remoteFullPath] = (new RemoteItem(name, remoteFullPath, false, bytes.Length, modified), bytes);
+        progress?.Report(bytes.Length);
         return null;
     }
 

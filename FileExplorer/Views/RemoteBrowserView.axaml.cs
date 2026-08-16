@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -90,6 +91,48 @@ public partial class RemoteBrowserView : UserControl
         if (!string.IsNullOrWhiteSpace(result))
             _viewModel.DestinationFolder = result;
     }
+
+    private async void OnUploadFilesClick(object? sender, RoutedEventArgs e)
+    {
+        var owner = this.FindAncestorOfType<Window>();
+        if (owner is null)
+            return;
+
+        // Un file alla volta: stesso contratto di SelectPathDialog usato per la destinazione dei
+        // download (nessun file picker nativo multi-selezione nell'app). Ripetibile per più file.
+        var dialog = new SelectPathDialog
+        {
+            DataContext = new SelectPathDialogViewModel(
+                directoriesOnly: false,
+                startPath: System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile))
+        };
+        var result = await dialog.ShowDialog<string?>(owner);
+
+        // Senza elemento selezionato SelectPathDialog ritorna la cartella corrente: non è un file
+        // valido da caricare, va ignorato invece di far fallire l'upload.
+        if (!string.IsNullOrWhiteSpace(result) && !Directory.Exists(result))
+            await _viewModel.UploadFilesAsync(new[] { result });
+    }
+
+    private async void OnUploadFolderClick(object? sender, RoutedEventArgs e)
+    {
+        var owner = this.FindAncestorOfType<Window>();
+        if (owner is null)
+            return;
+
+        var dialog = new SelectPathDialog
+        {
+            DataContext = new SelectPathDialogViewModel(
+                directoriesOnly: true,
+                startPath: System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile))
+        };
+        var result = await dialog.ShowDialog<string?>(owner);
+        if (!string.IsNullOrWhiteSpace(result))
+            await _viewModel.UploadFolderAsync(result);
+    }
+
+    private void OnCancelUploadClick(object? sender, RoutedEventArgs e) =>
+        _viewModel.CancelUpload();
 
     private async void OnNewProfileClick(object? sender, RoutedEventArgs e) =>
         await ManageProfileAsync(new ConnectionProfile(), isNew: true);

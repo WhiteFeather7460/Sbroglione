@@ -250,6 +250,9 @@ public sealed class DownloadServiceTests : IDisposable
             return null;
         }
 
+        public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct) =>
+            Task.FromResult<RemoteError?>(null);
+
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

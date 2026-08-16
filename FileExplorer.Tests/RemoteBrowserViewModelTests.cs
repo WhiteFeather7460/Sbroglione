@@ -493,6 +493,9 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
             RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct)
             => _inner.DownloadFileAsync(item, localPath, progress, ct);
 
+        public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
+            => _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
+
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }
 
@@ -532,6 +535,9 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
             RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct)
             => _inner.DownloadFileAsync(item, localPath, progress, ct);
 
+        public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
+            => _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
+
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }
 
@@ -568,6 +574,9 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         public Task<RemoteError?> DownloadFileAsync(
             RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct)
             => _inner.DownloadFileAsync(item, localPath, progress, ct);
+
+        public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
+            => _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
 
         public async ValueTask DisposeAsync()
         {

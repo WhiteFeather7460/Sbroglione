@@ -25,4 +25,7 @@ public interface IRemoteFileClient : IAsyncDisposable
 
     /// <summary>Scarica un file remoto su <paramref name="localPath"/>. Null = successo.</summary>
     Task<RemoteError?> DownloadFileAsync(RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct);
+
+    /// <summary>Carica un file locale su <paramref name="remoteFullPath"/>, creando le cartelle remote mancanti. Null = successo.</summary>
+    Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct);
 }
