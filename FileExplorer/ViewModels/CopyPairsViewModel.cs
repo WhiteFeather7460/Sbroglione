@@ -75,7 +75,7 @@ public class CopyPairsViewModel : ViewModelBase
         return await dialog.ShowDialog<string?>(owner);
     }
 
-    private async Task StartCopyAsync(FolderFilePairViewModel pair)
+    public async Task StartCopyAsync(FolderFilePairViewModel pair)
     {
         if (!pair.CanStart)
         {
@@ -147,7 +147,15 @@ public class CopyPairsViewModel : ViewModelBase
         {
             copiedBytes += deltaBytes;
             pair.Progress = totalBytes > 0 ? (double)copiedBytes / totalBytes : 1;
-        }, ct);
+        }, ct, AppSettingsStore.Current.BufferSizeBytes);
+
+        if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
+        {
+            pair.Progress = 1;
+            pair.Status = "Completato";
+            pair.StateKind = CopyStateKind.Success;
+            return;
+        }
 
         // Verifica checksum dopo la copia.
         pair.Status = "Verifica checksum…";
@@ -164,10 +172,14 @@ public class CopyPairsViewModel : ViewModelBase
     {
         int knownFileCount = -1;
 
+        var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
+        var destinationType = await DiskTypeService.GetDiskTypeAsync(pair.DestinationPath, ct);
+        int parallelism = CopyParallelismResolver.Resolve(AppSettingsStore.Current, sourceType, destinationType);
+
         await FileCopyService.CopyDirectoryAsync(
             pair.SourcePath!,
             pair.DestinationPath!,
-            maxDegreeOfParallelism: Math.Max(2, Environment.ProcessorCount - 1),
+            maxDegreeOfParallelism: parallelism,
             onProgress: progress =>
             {
                 if (knownFileCount != progress.TotalFiles)
@@ -180,7 +192,8 @@ public class CopyPairsViewModel : ViewModelBase
 
                 pair.Progress = progress.Fraction;
             },
-            ct);
+            ct,
+            bufferSize: AppSettingsStore.Current.BufferSizeBytes);
 
         if (!ct.IsCancellationRequested && knownFileCount != 0)
         {

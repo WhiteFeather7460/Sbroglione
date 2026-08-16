@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 
+using FileExplorer.Services;
 using FileExplorer.ViewModels;
 using FileExplorer.Views;
 
@@ -18,6 +20,9 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            AppSettingsStore.LoadCurrent();
+            RequestedThemeVariant = ParseThemeVariant(AppSettingsStore.Current.ThemeVariant);
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = new MainWindowViewModel()
@@ -26,4 +31,11 @@ public partial class App : Application
 
         base.OnFrameworkInitializationCompleted();
     }
+
+    private static ThemeVariant ParseThemeVariant(string value) => value switch
+    {
+        "Light" => ThemeVariant.Light,
+        "Dark" => ThemeVariant.Dark,
+        _ => ThemeVariant.Default
+    };
 }
