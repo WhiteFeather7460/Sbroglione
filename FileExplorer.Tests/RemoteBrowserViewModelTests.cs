@@ -366,6 +366,80 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         Assert.Empty(vm.Profiles);
     }
 
+    [Fact]
+    public async Task ConnectAsync_ProfiloCambiatoDuranteLaConnessione_SalvaLaPasswordSulProfiloOriginale()
+    {
+        _client.AddFile("/a.txt", "AAA");
+        var store = new FakeCredentialStore();
+        var gated = new GatedConnectClient(_client);
+        var vm = CreateViewModel(_ => gated, store);
+        var original = vm.SelectedProfile!;
+        var other = new ConnectionProfile { Name = "altro", Host = "h2", Username = "u" };
+        vm.Profiles.Add(other);
+        vm.PasswordInput = "s3gr3t0";
+        vm.SavePassword = true;
+
+        var connect = vm.ConnectAsync();   // sospesa dentro ConnectAsync del client
+        vm.SelectedProfile = other;        // cambio combo a connessione già avviata
+        gated.ReleaseConnect();
+        await connect;
+
+        Assert.Same(original, gated.ConnectedProfile);              // connesso al profilo A
+        Assert.Equal("s3gr3t0", await store.GetPasswordAsync(original.Id));
+        Assert.Null(await store.GetPasswordAsync(other.Id));        // niente password sul profilo B
+    }
+
+    [Fact]
+    public async Task ConnectAsync_ProfiloCambiatoDuranteLaConnessione_NonAccettaLaFingerprintSulNuovoProfilo()
+    {
+        _client.ConnectError = new RemoteError(
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+        var gated = new GatedConnectClient(_client);
+        var vm = CreateViewModel(_ => gated, new NullCredentialStore());
+        var original = vm.SelectedProfile!;
+        var other = new ConnectionProfile { Name = "altro", Host = "h2", Username = "u" };
+        vm.Profiles.Add(other);
+        vm.PasswordInput = "pw";
+
+        var connect = vm.ConnectAsync();
+        vm.SelectedProfile = other;        // cambio combo a connessione già avviata
+        gated.ReleaseConnect();
+        await connect;
+
+        Assert.Equal("SHA256:xyz", vm.PendingFingerprint);
+        _client.ConnectError = null;
+        await vm.AcceptFingerprintAsync();  // la fingerprint è del profilo A, selezionato è B: no-op
+
+        Assert.Null(other.AcceptedHostKeyFingerprint);
+        Assert.Null(original.AcceptedHostKeyFingerprint);
+        Assert.Empty(await ProfileStore.LoadAsync(ProfilesPath));
+    }
+
+    [Fact]
+    public async Task DeleteProfileAsync_DoppioClic_EliminaUnaVoltaSolaSenzaDoppioDispose()
+    {
+        _client.AddFile("/a.txt", "AAA");
+        var gated = new GatedDisposeClient(_client);
+        var store = new FakeCredentialStore();
+        var vm = CreateViewModel(_ => gated, store);
+        var profile = vm.SelectedProfile!;
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        Assert.True(vm.IsConnected);
+
+        gated.BlockDispose();
+        var first = vm.DeleteProfileAsync();
+        var second = vm.DeleteProfileAsync();   // secondo clic: deve cadere sulla guardia
+        gated.ReleaseDispose();
+        await Task.WhenAll(first, second);
+
+        Assert.Empty(vm.Profiles);
+        Assert.Null(vm.SelectedProfile);
+        Assert.Equal(1, gated.DisposeCount);                        // niente doppia dispose
+        Assert.Equal(profile.Id, Assert.Single(store.DeletedProfiles));
+        Assert.Empty(await ProfileStore.LoadAsync(ProfilesPath));
+    }
+
     /// <summary>Keyring simulato la cui lettura si sblocca solo su richiesta esplicita.</summary>
     private sealed class BlockingCredentialStore : ICredentialStore
     {
@@ -420,5 +494,88 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
             => _inner.DownloadFileAsync(item, localPath, progress, ct);
 
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Client la cui connessione resta sospesa finché non viene rilasciata: serve a cambiare
+    /// profilo mentre la connessione è ancora in volo. Registra il profilo ricevuto.
+    /// </summary>
+    private sealed class GatedConnectClient : IRemoteFileClient
+    {
+        private readonly FakeRemoteClient _inner;
+        private readonly TaskCompletionSource _gate = new();
+
+        public GatedConnectClient(FakeRemoteClient inner) => _inner = inner;
+
+        public bool IsConnected => _inner.IsConnected;
+
+        /// <summary>Profilo passato a <see cref="ConnectAsync"/>.</summary>
+        public ConnectionProfile? ConnectedProfile { get; private set; }
+
+        public void ReleaseConnect() => _gate.SetResult();
+
+        public async Task<RemoteError?> ConnectAsync(
+            ConnectionProfile profile, string password, CancellationToken ct)
+        {
+            await _gate.Task;
+            ConnectedProfile = profile;
+            return await _inner.ConnectAsync(profile, password, ct);
+        }
+
+        public Task<RemoteListingResult> ListDirectoryAsync(string path, CancellationToken ct)
+            => _inner.ListDirectoryAsync(path, ct);
+
+        public Task<RemoteListingResult> ListRecursiveAsync(string path, CancellationToken ct)
+            => _inner.ListRecursiveAsync(path, ct);
+
+        public Task<RemoteError?> DownloadFileAsync(
+            RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct)
+            => _inner.DownloadFileAsync(item, localPath, progress, ct);
+
+        public ValueTask DisposeAsync() => _inner.DisposeAsync();
+    }
+
+    /// <summary>Client che sospende la dispose su richiesta e conta quante volte è stata chiamata.</summary>
+    private sealed class GatedDisposeClient : IRemoteFileClient
+    {
+        private readonly FakeRemoteClient _inner;
+        private TaskCompletionSource? _gate;
+
+        public GatedDisposeClient(FakeRemoteClient inner) => _inner = inner;
+
+        public bool IsConnected => _inner.IsConnected;
+
+        public int DisposeCount { get; private set; }
+
+        public void BlockDispose() => _gate = new TaskCompletionSource();
+
+        public void ReleaseDispose()
+        {
+            var gate = _gate;
+            _gate = null;
+            gate?.SetResult();
+        }
+
+        public Task<RemoteError?> ConnectAsync(ConnectionProfile profile, string password, CancellationToken ct)
+            => _inner.ConnectAsync(profile, password, ct);
+
+        public Task<RemoteListingResult> ListDirectoryAsync(string path, CancellationToken ct)
+            => _inner.ListDirectoryAsync(path, ct);
+
+        public Task<RemoteListingResult> ListRecursiveAsync(string path, CancellationToken ct)
+            => _inner.ListRecursiveAsync(path, ct);
+
+        public Task<RemoteError?> DownloadFileAsync(
+            RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct)
+            => _inner.DownloadFileAsync(item, localPath, progress, ct);
+
+        public async ValueTask DisposeAsync()
+        {
+            DisposeCount++;
+            var gate = _gate;
+            if (gate is not null)
+                await gate.Task;
+            await _inner.DisposeAsync();
+        }
     }
 }

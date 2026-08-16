@@ -260,7 +260,11 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     public async Task ConnectAsync()
     {
-        if (SelectedProfile is null || IsBusy || IsDownloading)
+        // Il profilo è catturato qui e non più riletto: la combo non è disabilitata durante
+        // IsBusy, quindi un cambio di selezione a connessione avviata sposterebbe fingerprint
+        // in sospeso e password salvata sul profilo sbagliato.
+        var profile = SelectedProfile;
+        if (profile is null || IsBusy || IsDownloading)
             return;
 
         // IsBusy va alzata prima di qualsiasi await: la lettura dal keyring può essere lenta e
@@ -274,7 +278,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
             string? password = PasswordInput;
             if (string.IsNullOrEmpty(password))
-                password = await _credentialStore.GetPasswordAsync(SelectedProfile.Id);
+                password = await _credentialStore.GetPasswordAsync(profile.Id);
 
             if (string.IsNullOrEmpty(password))
             {
@@ -286,8 +290,8 @@ public class RemoteBrowserViewModel : ViewModelBase
             }
 
             await DisposeClientAsync();
-            var client = _clientFactory(SelectedProfile);
-            var error = await client.ConnectAsync(SelectedProfile, password, CancellationToken.None);
+            var client = _clientFactory(profile);
+            var error = await client.ConnectAsync(profile, password, CancellationToken.None);
 
             if (error is not null)
             {
@@ -296,7 +300,7 @@ public class RemoteBrowserViewModel : ViewModelBase
                 if (error.Kind == RemoteErrorKind.HostKeyMismatch)
                 {
                     PendingFingerprint = error.Fingerprint;
-                    _pendingFingerprintProfile = SelectedProfile;
+                    _pendingFingerprintProfile = profile;
                 }
                 else if (error.Kind == RemoteErrorKind.AuthFailed)
                 {
@@ -314,13 +318,13 @@ public class RemoteBrowserViewModel : ViewModelBase
             IsPasswordPromptVisible = false;
 
             CurrentPath = "/";
-            DestinationFolder = SelectedProfile.LastDestinationFolder;
+            DestinationFolder = profile.LastDestinationFolder;
             // Chiamata interna: IsBusy è già alzata da questo metodo.
             await LoadListingCoreAsync();
 
             // Dopo l'elenco: LoadListingCoreAsync azzera ErrorMessage e cancellerebbe
             // l'eventuale avviso di keyring non scrivibile.
-            await TrySavePasswordAsync();
+            await TrySavePasswordAsync(profile);
         }
         finally
         {
@@ -332,20 +336,21 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// Salva la password nel keyring senza poter far cadere il chiamante: gli handler della view
     /// sono async void, quindi un'eccezione del backend (API Windows, CLI keyring) terminerebbe
     /// il processo. Il messaggio d'errore è fisso: non riporta mai né la password né dettagli
-    /// del backend che potrebbero contenerla.
+    /// del backend che potrebbero contenerla. Il profilo arriva dal chiamante (quello con cui la
+    /// connessione è stata davvero fatta): rileggere la selezione qui salverebbe la password sotto
+    /// il profilo sbagliato se l'utente cambia combo a connessione avviata.
     /// </summary>
-    private async Task TrySavePasswordAsync()
+    private async Task TrySavePasswordAsync(ConnectionProfile profile)
     {
         string? password = PasswordInput;
         PasswordInput = null;
 
-        if (string.IsNullOrEmpty(password) || !SavePassword
-            || !_credentialStore.IsAvailable || SelectedProfile is null)
+        if (string.IsNullOrEmpty(password) || !SavePassword || !_credentialStore.IsAvailable)
             return;
 
         try
         {
-            await _credentialStore.SetPasswordAsync(SelectedProfile.Id, password);
+            await _credentialStore.SetPasswordAsync(profile.Id, password);
         }
         catch (Exception)
         {
@@ -427,11 +432,15 @@ public class RemoteBrowserViewModel : ViewModelBase
         if (profile is null || IsBusy || IsDownloading)
             return;
 
+        // Selezione e rimozione vanno fatte prima di qualsiasi await: altrimenti un doppio clic
+        // su "Elimina" supererebbe la guardia una seconda volta, disconnettendo due volte lo
+        // stesso client e lanciando due SaveAsync concorrenti sullo stesso file.
+        SelectedProfile = null;   // il setter azzera anche l'eventuale stato host key in sospeso
+        Profiles.Remove(profile);
+
         if (IsConnected)
             await DisconnectAsync();
 
-        SelectedProfile = null;   // il setter azzera anche l'eventuale stato host key in sospeso
-        Profiles.Remove(profile);
         await ProfileStore.SaveAsync(_profilesFilePath, Profiles.ToList());
 
         try
