@@ -80,8 +80,7 @@ public sealed class SettingsViewModelTests : IDisposable
         var vm = new SettingsViewModel();
         vm.ManualParallelism = 8;
 
-        for (int i = 0; i < 50 && !File.Exists(AppSettingsStore.CurrentPath); i++)
-            await Task.Delay(20);
+        await vm.LastSaveTask!;
 
         var saved = await AppSettingsStore.LoadAsync(AppSettingsStore.CurrentPath);
         Assert.Equal(8, saved.ManualParallelism);

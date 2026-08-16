@@ -129,9 +129,17 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
-    private static void SaveCurrent()
+    /// <summary>
+    /// Task dell'ultimo salvataggio fire-and-forget avviato da <see cref="SaveCurrent"/>.
+    /// Esposta solo per consentire ai test di attendere deterministicamente il
+    /// completamento del salvataggio in background, senza alterare il comportamento
+    /// fire-and-forget per i chiamanti UI reali.
+    /// </summary>
+    internal Task? LastSaveTask { get; private set; }
+
+    private void SaveCurrent()
     {
-        _ = SaveCurrentAsync();
+        LastSaveTask = SaveCurrentAsync();
     }
 
     private static async Task SaveCurrentAsync()
