@@ -14,7 +14,7 @@
 
     <!-- Barra connessione -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.AccentGradient}" Padding="20,14">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
         <i:Icon Grid.Column="0" Value="fa-solid fa-server" FontSize="20"
                 Foreground="{DynamicResource Brush.OnAccent}" VerticalAlignment="Center" />
         <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}"
@@ -31,7 +31,17 @@
                 i:Attached.Icon="fa-solid fa-plus" ToolTip.Tip="Nuovo profilo" />
         <Button Grid.Column="3" Classes="onaccent" Click="OnManageProfilesClick" Margin="10,0,0,0"
                 i:Attached.Icon="fa-solid fa-gear" ToolTip.Tip="Gestisci profili" />
-        <Button Grid.Column="4" Classes="onaccent" Click="OnConnectClick" Margin="10,0,0,0"
+        <Button Grid.Column="4" Classes="onaccent" Click="OnDeleteProfileClick" Margin="10,0,0,0"
+                i:Attached.Icon="fa-solid fa-trash" ToolTip.Tip="Elimina profilo">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="SelectedProfile" Converter="{x:Static ObjectConverters.IsNull}" />
+            </MultiBinding>
+          </Button.IsEnabled>
+        </Button>
+        <Button Grid.Column="5" Classes="onaccent" Click="OnConnectClick" Margin="10,0,0,0"
                 IsVisible="{Binding !IsConnected}">
           <Button.IsEnabled>
             <MultiBinding Converter="{StaticResource NotAny}">
@@ -44,7 +54,7 @@
             <TextBlock Text="Connetti" />
           </StackPanel>
         </Button>
-        <Button Grid.Column="5" Classes="onaccent" Click="OnDisconnectClick" Margin="10,0,0,0"
+        <Button Grid.Column="6" Classes="onaccent" Click="OnDisconnectClick" Margin="10,0,0,0"
                 IsVisible="{Binding IsConnected}">
           <Button.IsEnabled>
             <MultiBinding Converter="{StaticResource NotAny}">
@@ -57,7 +67,7 @@
             <TextBlock Text="Disconnetti" />
           </StackPanel>
         </Button>
-        <Border Grid.Column="6" Classes="badge" Margin="10,0,0,0"
+        <Border Grid.Column="7" Classes="badge" Margin="10,0,0,0"
                 Classes.success="{Binding IsConnected}"
                 VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal">

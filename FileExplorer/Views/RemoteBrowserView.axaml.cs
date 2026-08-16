@@ -25,6 +25,9 @@ public partial class RemoteBrowserView : UserControl
         _viewModel = new RemoteBrowserViewModel(
             RemoteClientFactory.Create, _credentialStore, ProfileStore.DefaultPath);
         DataContext = _viewModel;
+        // Loaded riscatta a ogni rientro della view nel visual tree (cambio scheda):
+        // LoadProfilesAsync è idempotente, quindi solo la prima esecuzione carica davvero
+        // e una connessione attiva non viene mai azzerata da un cambio scheda.
         Loaded += async (_, _) => await _viewModel.LoadProfilesAsync();
     }
 
@@ -33,6 +36,9 @@ public partial class RemoteBrowserView : UserControl
 
     private async void OnDisconnectClick(object? sender, RoutedEventArgs e) =>
         await _viewModel.DisconnectAsync();
+
+    private async void OnDeleteProfileClick(object? sender, RoutedEventArgs e) =>
+        await _viewModel.DeleteProfileAsync();
 
     private async void OnNavigateUpClick(object? sender, RoutedEventArgs e) =>
         await _viewModel.NavigateUpAsync();
@@ -111,7 +117,8 @@ public partial class RemoteBrowserView : UserControl
         {
             if (isNew)
                 _viewModel.Profiles.Add(profile);
-            await ProfileStore.SaveAsync(ProfileStore.DefaultPath, _viewModel.Profiles.ToList());
+            // Il percorso arriva dalla viewmodel: view ed editor devono scrivere sullo stesso file.
+            await ProfileStore.SaveAsync(_viewModel.ProfilesFilePath, _viewModel.Profiles.ToList());
             if (isNew)
                 _viewModel.SelectedProfile = profile;
         }
