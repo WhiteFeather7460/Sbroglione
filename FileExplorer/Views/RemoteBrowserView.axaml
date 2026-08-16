@@ -38,6 +38,7 @@
               <Binding Path="IsBusy" />
               <Binding Path="IsDownloading" />
               <Binding Path="SelectedProfile" Converter="{x:Static ObjectConverters.IsNull}" />
+              <Binding Path="IsUploading" />
             </MultiBinding>
           </Button.IsEnabled>
         </Button>
@@ -47,6 +48,7 @@
             <MultiBinding Converter="{StaticResource NotAny}">
               <Binding Path="IsBusy" />
               <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
             </MultiBinding>
           </Button.IsEnabled>
           <StackPanel Orientation="Horizontal" Spacing="8">
@@ -60,6 +62,7 @@
             <MultiBinding Converter="{StaticResource NotAny}">
               <Binding Path="IsBusy" />
               <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
             </MultiBinding>
           </Button.IsEnabled>
           <StackPanel Orientation="Horizontal" Spacing="8">
@@ -93,6 +96,7 @@
             <MultiBinding Converter="{StaticResource NotAny}">
               <Binding Path="IsBusy" />
               <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
             </MultiBinding>
           </Button.IsEnabled>
         </Button>
@@ -112,6 +116,7 @@
               <MultiBinding Converter="{StaticResource NotAny}">
                 <Binding Path="IsBusy" />
                 <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
               </MultiBinding>
             </Button.IsEnabled>
           </Button>
@@ -141,6 +146,7 @@
             <MultiBinding Converter="{StaticResource NotAny}">
               <Binding Path="IsBusy" />
               <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
             </MultiBinding>
           </Button.IsEnabled>
         </Button>
@@ -150,6 +156,7 @@
             <MultiBinding Converter="{StaticResource NotAny}">
               <Binding Path="IsBusy" />
               <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
             </MultiBinding>
           </Button.IsEnabled>
         </Button>
@@ -205,15 +212,25 @@
                        Foreground="{DynamicResource Brush.TextMuted}"
                        IsVisible="{Binding !IsDownloading}" />
           </StackPanel>
-          <Button Grid.Column="1" Classes="primary" Click="OnDownloadSelectedClick" Margin="8,0,0,0"
-                  IsEnabled="{Binding !IsDownloading}">
+          <Button Grid.Column="1" Classes="primary" Click="OnDownloadSelectedClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
             <StackPanel Orientation="Horizontal" Spacing="8">
               <i:Icon Value="fa-solid fa-download" />
               <TextBlock Text="Scarica selezionati" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="2" Classes="primary" Click="OnDownloadDirectoryClick" Margin="8,0,0,0"
-                  IsEnabled="{Binding !IsDownloading}">
+          <Button Grid.Column="2" Classes="primary" Click="OnDownloadDirectoryClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
             <StackPanel Orientation="Horizontal" Spacing="8">
               <i:Icon Value="fa-solid fa-folder-tree" />
               <TextBlock Text="Scarica directory" />
@@ -221,6 +238,44 @@
           </Button>
           <Button Grid.Column="3" Classes="secondary" Content="Annulla" Margin="8,0,0,0"
                   Click="OnCancelDownloadClick" IsEnabled="{Binding IsDownloading}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <ProgressBar Width="220" Minimum="0" Maximum="1" Value="{Binding UploadProgressValue}"
+                         IsVisible="{Binding IsUploading}" />
+            <TextBlock Text="{Binding UploadStatusText}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextMuted}" />
+          </StackPanel>
+          <CheckBox Grid.Column="1" Content="Sovrascrivi se già presente" IsChecked="{Binding UploadOverwriteAlways}"
+                     VerticalAlignment="Center" Margin="8,0,0,0" />
+          <Button Grid.Column="2" Classes="primary" Click="OnUploadFilesClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsBusy" />
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-upload" />
+              <TextBlock Text="Carica file" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="3" Classes="primary" Click="OnUploadFolderClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsBusy" />
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-folder-plus" />
+              <TextBlock Text="Carica cartella" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="4" Classes="secondary" Content="Annulla" Margin="8,0,0,0"
+                  Click="OnCancelUploadClick" IsEnabled="{Binding IsUploading}" />
         </Grid>
       </StackPanel>
     </Border>
