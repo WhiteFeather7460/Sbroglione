@@ -160,9 +160,10 @@ public static class DownloadService
             if (File.Exists(tempPath))
                 File.Delete(tempPath);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Pulizia best effort: un parziale non eliminabile non deve mascherare l'errore originale.
+            // Pulizia best effort: un parziale non eliminabile (file in uso o permessi negati)
+            // non deve mascherare l'errore originale né interrompere il batch.
         }
     }
 }
