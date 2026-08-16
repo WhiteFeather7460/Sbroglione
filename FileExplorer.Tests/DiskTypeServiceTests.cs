@@ -48,6 +48,35 @@ public sealed class DiskTypeServiceTests
         Assert.Null(DiskTypeService.ExtractLinuxDiskName("/dev/mapper/vg-root"));
     }
 
+    [Fact]
+    public void ResolveLinuxCacheKey_PathsOnDifferentPhysicalDisks_ReturnDifferentKeys()
+    {
+        // Bug reprodotto: prima della fix, la chiave di cache era sempre Path.GetPathRoot("/xxx") == "/",
+        // quindi "/" e "/mnt/data" (dischi fisici diversi: sda e sdb) collassavano sulla stessa voce.
+        string rootKey = DiskTypeService.ResolveLinuxCacheKey(SampleMounts, "/home/user/file.txt");
+        string dataKey = DiskTypeService.ResolveLinuxCacheKey(SampleMounts, "/mnt/data/subfolder/file.txt");
+
+        Assert.Equal("sda", rootKey);
+        Assert.Equal("sdb", dataKey);
+        Assert.NotEqual(rootKey, dataKey);
+    }
+
+    [Fact]
+    public void ResolveLinuxCacheKey_UnrecognizedDeviceName_FallsBackToRawDevice()
+    {
+        const string mounts = "/dev/mapper/vg-root / ext4 rw,relatime 0 0\n";
+        string key = DiskTypeService.ResolveLinuxCacheKey(mounts, "/home/user/file.txt");
+        Assert.Equal("/dev/mapper/vg-root", key);
+    }
+
+    [Fact]
+    public void ResolveLinuxCacheKey_NoDeviceMatch_FallsBackToPathRoot()
+    {
+        const string mounts = "server:/export /mnt/nfs nfs rw 0 0\n";
+        string key = DiskTypeService.ResolveLinuxCacheKey(mounts, "/mnt/nfs/file.txt");
+        Assert.Equal("/", key);
+    }
+
     [Theory]
     [InlineData("0", DiskType.Ssd)]
     [InlineData("0\n", DiskType.Ssd)]

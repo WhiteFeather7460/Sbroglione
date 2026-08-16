@@ -25,7 +25,17 @@ public static class DiskTypeService
         if (string.IsNullOrWhiteSpace(path))
             return DiskType.Unknown;
 
-        string cacheKey = Path.GetPathRoot(path) is { Length: > 0 } root ? root : path;
+        string cacheKey;
+        string? linuxMountsContent;
+        try
+        {
+            (cacheKey, linuxMountsContent) = await ResolveCacheKeyAsync(path, ct);
+        }
+        catch
+        {
+            cacheKey = FallbackCacheKey(path);
+            linuxMountsContent = null;
+        }
 
         if (Cache.TryGetValue(cacheKey, out var cached) && DateTime.UtcNow - cached.CachedAt < CacheTtl)
             return cached.Type;
@@ -33,7 +43,7 @@ public static class DiskTypeService
         DiskType type;
         try
         {
-            type = await DetectAsync(path, ct);
+            type = await DetectAsync(path, linuxMountsContent, ct);
         }
         catch
         {
@@ -44,10 +54,57 @@ public static class DiskTypeService
         return type;
     }
 
-    private static Task<DiskType> DetectAsync(string path, CancellationToken ct)
+    /// <summary>
+    /// Risolve la chiave di cache per un percorso in base al sistema operativo. Su Windows la
+    /// chiave resta la drive letter (già distinta per disco fisico). Su Linux viene risolto il
+    /// device montato via /proc/mounts, cosicché percorsi su dischi fisici diversi non collassino
+    /// sulla stessa voce di cache (a differenza di Path.GetPathRoot, che ritorna sempre "/").
+    /// Ritorna anche il contenuto di /proc/mounts già letto, per evitare una seconda lettura in
+    /// caso di cache miss su Linux.
+    /// </summary>
+    private static async Task<(string CacheKey, string? LinuxMountsContent)> ResolveCacheKeyAsync(string path, CancellationToken ct)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return (FallbackCacheKey(path), null);
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            if (!File.Exists("/proc/mounts"))
+                return (FallbackCacheKey(path), null);
+
+            string mountsContent = await File.ReadAllTextAsync("/proc/mounts", ct);
+            string fullPath = Path.GetFullPath(path);
+            return (ResolveLinuxCacheKey(mountsContent, fullPath), mountsContent);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            // Nessun modo economico di risalire al device fisico senza shellare di nuovo
+            // (come già fa DetectMacAsync). Usiamo il percorso completo come chiave: sacrifica
+            // il riuso della cache tra percorsi diversi sullo stesso disco, ma evita che percorsi
+            // su dischi fisici diversi collassino sulla stessa voce.
+            return (Path.GetFullPath(path), null);
+        }
+
+        return (FallbackCacheKey(path), null);
+    }
+
+    private static string FallbackCacheKey(string path)
+    {
+        try
+        {
+            return Path.GetPathRoot(path) is { Length: > 0 } root ? root : path;
+        }
+        catch
+        {
+            return path;
+        }
+    }
+
+    private static Task<DiskType> DetectAsync(string path, string? linuxMountsContent, CancellationToken ct)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            return DetectLinuxAsync(path, ct);
+            return DetectLinuxAsync(path, linuxMountsContent, ct);
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return Task.FromResult(DetectWindows(path));
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -58,14 +115,18 @@ public static class DiskTypeService
 
     // ===== Linux =====
 
-    private static async Task<DiskType> DetectLinuxAsync(string path, CancellationToken ct)
+    private static async Task<DiskType> DetectLinuxAsync(string path, string? mountsContent, CancellationToken ct)
     {
         string fullPath = Path.GetFullPath(path);
 
-        if (!File.Exists("/proc/mounts"))
-            return DiskType.Unknown;
+        if (mountsContent is null)
+        {
+            if (!File.Exists("/proc/mounts"))
+                return DiskType.Unknown;
 
-        string mountsContent = await File.ReadAllTextAsync("/proc/mounts", ct);
+            mountsContent = await File.ReadAllTextAsync("/proc/mounts", ct);
+        }
+
         string? device = ResolveLinuxBlockDevice(mountsContent, fullPath);
         if (device is null)
             return DiskType.Unknown;
@@ -80,6 +141,22 @@ public static class DiskTypeService
 
         string content = await File.ReadAllTextAsync(rotationalPath, ct);
         return ParseRotationalFlag(content);
+    }
+
+    /// <summary>
+    /// Risolve la chiave di cache per un percorso Linux dato il contenuto di /proc/mounts già letto:
+    /// usa il nome disco (es. "sda") quando riconosciuto da <see cref="ExtractLinuxDiskName"/>,
+    /// altrimenti il device grezzo (es. per device mapper/LVM), altrimenti (nessun device
+    /// corrispondente, es. mount di rete) ricade su Path.GetPathRoot del percorso.
+    /// </summary>
+    internal static string ResolveLinuxCacheKey(string mountsContent, string fullPath)
+    {
+        string? device = ResolveLinuxBlockDevice(mountsContent, fullPath);
+        if (device is null)
+            return Path.GetPathRoot(fullPath) is { Length: > 0 } root ? root : fullPath;
+
+        string? diskName = ExtractLinuxDiskName(device);
+        return diskName ?? device;
     }
 
     /// <summary>
