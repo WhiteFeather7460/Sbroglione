@@ -26,14 +26,13 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
     private RemoteBrowserViewModel CreateViewModel(
         Func<ConnectionProfile, IRemoteFileClient> clientFactory, ICredentialStore store)
     {
-        var vm = new RemoteBrowserViewModel(
-            clientFactory,
-            store,
-            Path.Combine(_root, "profiles.json"));
+        var vm = new RemoteBrowserViewModel(clientFactory, store, ProfilesPath);
         vm.Profiles.Add(new ConnectionProfile { Name = "test", Host = "h", Username = "u" });
         vm.SelectedProfile = vm.Profiles[0];
         return vm;
     }
+
+    private string ProfilesPath => Path.Combine(_root, "profiles.json");
 
     [Fact]
     public async Task ConnectAsync_NoStoredPassword_ShowsPasswordPrompt()
@@ -232,6 +231,139 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
 
         Assert.True(vm.IsConnected);
         Assert.Equal("b.txt", Assert.Single(vm.Items).Name);
+    }
+
+    [Fact]
+    public async Task AcceptFingerprint_PersistsFingerprintOnDisk()
+    {
+        _client.ConnectError = new RemoteError(
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+
+        _client.ConnectError = null;
+        await vm.AcceptFingerprintAsync();
+
+        var persisted = await ProfileStore.LoadAsync(ProfilesPath);
+        Assert.Equal("SHA256:xyz", Assert.Single(persisted).AcceptedHostKeyFingerprint);
+    }
+
+    [Fact]
+    public async Task AcceptFingerprint_AfterProfileSwitch_DoesNotWriteOnAnyProfile()
+    {
+        _client.ConnectError = new RemoteError(
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+        var vm = CreateViewModel();
+        var other = new ConnectionProfile { Name = "altro", Host = "h2", Username = "u" };
+        vm.Profiles.Add(other);
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        Assert.Equal("SHA256:xyz", vm.PendingFingerprint);
+
+        vm.SelectedProfile = other;   // cambio profilo con il banner host key ancora aperto
+        _client.ConnectError = null;
+        await vm.AcceptFingerprintAsync();
+
+        Assert.Null(vm.PendingFingerprint);                          // stato pending azzerato
+        Assert.Null(other.AcceptedHostKeyFingerprint);               // niente TOFU sul profilo B
+        Assert.Null(vm.Profiles[0].AcceptedHostKeyFingerprint);      // né sul profilo A senza conferma
+        Assert.Empty(await ProfileStore.LoadAsync(ProfilesPath));
+    }
+
+    [Fact]
+    public async Task LoadProfilesAsync_CalledTwice_DoesNotReloadNorResetSelection()
+    {
+        await ProfileStore.SaveAsync(ProfilesPath, new List<ConnectionProfile>
+        {
+            new() { Name = "uno", Host = "h1", Username = "u" },
+            new() { Name = "due", Host = "h2", Username = "u" }
+        });
+        var vm = new RemoteBrowserViewModel(_ => _client, new NullCredentialStore(), ProfilesPath);
+
+        await vm.LoadProfilesAsync();
+        vm.SelectedProfile = vm.Profiles[1];
+
+        await vm.LoadProfilesAsync();   // secondo Loaded: cambio scheda, non deve ricaricare
+
+        Assert.Equal(2, vm.Profiles.Count);
+        Assert.Equal("due", vm.SelectedProfile!.Name);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_AuthFailedWithStoredPassword_ShowsPasswordPrompt()
+    {
+        var store = new FakeCredentialStore();
+        var vm = CreateViewModel(store);
+        store.Store(vm.SelectedProfile!.Id, "pw-obsoleta");
+        _client.ConnectError = new RemoteError(RemoteErrorKind.AuthFailed, "Autenticazione fallita.");
+
+        await vm.ConnectAsync();
+
+        Assert.True(vm.IsPasswordPromptVisible);   // niente vicolo cieco: si può reinserire
+        Assert.False(vm.IsConnected);
+        Assert.Null(vm.PasswordInput);
+        Assert.Contains("reinserisci", vm.StatusMessage);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_KeyringWriteThrows_DoesNotPropagateAndWarnsWithoutLeakingPassword()
+    {
+        _client.AddFile("/a.txt", "AAA");
+        var vm = CreateViewModel(new FakeCredentialStore { ThrowOnSet = true });
+        vm.PasswordInput = "s3gr3t0";
+        vm.SavePassword = true;
+
+        await vm.ConnectAsync();   // l'handler della view è async void: non deve propagare
+
+        Assert.True(vm.IsConnected);
+        Assert.NotNull(vm.ErrorMessage);
+        Assert.Contains("keyring", vm.ErrorMessage);
+        Assert.DoesNotContain("s3gr3t0", vm.ErrorMessage);
+        Assert.Null(vm.PasswordInput);
+    }
+
+    [Fact]
+    public async Task DeleteProfileAsync_RemovesProfilePersistsAndClearsKeyring()
+    {
+        var store = new FakeCredentialStore();
+        var vm = CreateViewModel(store);
+        var profile = vm.SelectedProfile!;
+        await ProfileStore.SaveAsync(ProfilesPath, vm.Profiles.ToList());
+
+        await vm.DeleteProfileAsync();
+
+        Assert.Empty(vm.Profiles);
+        Assert.Null(vm.SelectedProfile);
+        Assert.Equal(profile.Id, Assert.Single(store.DeletedProfiles));
+        Assert.Empty(await ProfileStore.LoadAsync(ProfilesPath));
+    }
+
+    [Fact]
+    public async Task DeleteProfileAsync_KeyringFailure_StillRemovesProfile()
+    {
+        var vm = CreateViewModel(new FakeCredentialStore { ThrowOnDelete = true });
+
+        await vm.DeleteProfileAsync();
+
+        Assert.Empty(vm.Profiles);
+        Assert.Empty(await ProfileStore.LoadAsync(ProfilesPath));
+    }
+
+    [Fact]
+    public async Task DeleteProfileAsync_ConnectedProfile_DisconnectsFirst()
+    {
+        _client.AddFile("/a.txt", "AAA");
+        var vm = CreateViewModel(new FakeCredentialStore());
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        Assert.True(vm.IsConnected);
+
+        await vm.DeleteProfileAsync();
+
+        Assert.False(vm.IsConnected);
+        Assert.Empty(vm.Items);
+        Assert.Empty(vm.Profiles);
     }
 
     /// <summary>Keyring simulato la cui lettura si sblocca solo su richiesta esplicita.</summary>

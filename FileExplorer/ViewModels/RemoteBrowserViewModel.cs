@@ -27,6 +27,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     private readonly string _profilesFilePath;
 
     private IRemoteFileClient? _client;
+    private bool _profilesLoaded;
 
     public ObservableCollection<ConnectionProfile> Profiles { get; } = new();
     public ObservableCollection<RemoteEntryViewModel> Items { get; } = new();
@@ -35,7 +36,15 @@ public class RemoteBrowserViewModel : ViewModelBase
     public ConnectionProfile? SelectedProfile
     {
         get => _selectedProfile;
-        set => this.RaiseAndSetIfChanged(ref _selectedProfile, value);
+        set
+        {
+            // Cambiare profilo con il banner host key aperto significa che la fingerprint in
+            // sospeso appartiene a un altro server: va buttata, altrimenti un "Accetta" successivo
+            // la fisserebbe sul profilo sbagliato (TOFU aggirato).
+            if (!ReferenceEquals(_selectedProfile, value))
+                ClearPendingFingerprint();
+            this.RaiseAndSetIfChanged(ref _selectedProfile, value);
+        }
     }
 
     private bool _isConnected;
@@ -102,6 +111,12 @@ public class RemoteBrowserViewModel : ViewModelBase
         get => _pendingFingerprint;
         private set => this.RaiseAndSetIfChanged(ref _pendingFingerprint, value);
     }
+
+    /// <summary>
+    /// Profilo a cui appartiene <see cref="PendingFingerprint"/>: catturato quando la fingerprint
+    /// viene proposta, così l'accettazione non può finire su un profilo diverso.
+    /// </summary>
+    private ConnectionProfile? _pendingFingerprintProfile;
 
     // ----- Filtri (bound alla UI) -----
 
@@ -223,9 +238,19 @@ public class RemoteBrowserViewModel : ViewModelBase
         _savePassword = credentialStore.IsAvailable;
     }
 
-    /// <summary>Carica i profili salvati (chiamata dalla view all'avvio).</summary>
+    /// <summary>
+    /// Carica i profili salvati (chiamata dalla view all'avvio). È idempotente: l'evento Loaded
+    /// riscatta a ogni rientro della view nel visual tree (cambio scheda) e una ricarica
+    /// azzererebbe selezione e stato mentre una connessione è attiva.
+    /// </summary>
     public async Task LoadProfilesAsync()
     {
+        if (_profilesLoaded)
+            return;
+
+        // Alzata prima dell'await: due Loaded ravvicinati non devono caricare due volte.
+        _profilesLoaded = true;
+
         var profiles = await ProfileStore.LoadAsync(_profilesFilePath);
         Profiles.Clear();
         foreach (var profile in profiles)
@@ -245,7 +270,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         try
         {
             ErrorMessage = null;
-            PendingFingerprint = null;
+            ClearPendingFingerprint();
 
             string? password = PasswordInput;
             if (string.IsNullOrEmpty(password))
@@ -269,7 +294,18 @@ public class RemoteBrowserViewModel : ViewModelBase
                 await client.DisposeAsync();
                 ErrorMessage = error.Message;
                 if (error.Kind == RemoteErrorKind.HostKeyMismatch)
+                {
                     PendingFingerprint = error.Fingerprint;
+                    _pendingFingerprintProfile = SelectedProfile;
+                }
+                else if (error.Kind == RemoteErrorKind.AuthFailed)
+                {
+                    // Senza il prompt la password sbagliata resterebbe quella del keyring e
+                    // l'utente non avrebbe alcun modo di reinserirla: vicolo cieco.
+                    PasswordInput = null;
+                    IsPasswordPromptVisible = true;
+                    StatusMessage = "Autenticazione fallita: reinserisci la password.";
+                }
                 return;
             }
 
@@ -277,18 +313,44 @@ public class RemoteBrowserViewModel : ViewModelBase
             IsConnected = true;
             IsPasswordPromptVisible = false;
 
-            if (!string.IsNullOrEmpty(PasswordInput) && SavePassword && _credentialStore.IsAvailable)
-                await _credentialStore.SetPasswordAsync(SelectedProfile.Id, PasswordInput);
-            PasswordInput = null;
-
             CurrentPath = "/";
             DestinationFolder = SelectedProfile.LastDestinationFolder;
             // Chiamata interna: IsBusy è già alzata da questo metodo.
             await LoadListingCoreAsync();
+
+            // Dopo l'elenco: LoadListingCoreAsync azzera ErrorMessage e cancellerebbe
+            // l'eventuale avviso di keyring non scrivibile.
+            await TrySavePasswordAsync();
         }
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Salva la password nel keyring senza poter far cadere il chiamante: gli handler della view
+    /// sono async void, quindi un'eccezione del backend (API Windows, CLI keyring) terminerebbe
+    /// il processo. Il messaggio d'errore è fisso: non riporta mai né la password né dettagli
+    /// del backend che potrebbero contenerla.
+    /// </summary>
+    private async Task TrySavePasswordAsync()
+    {
+        string? password = PasswordInput;
+        PasswordInput = null;
+
+        if (string.IsNullOrEmpty(password) || !SavePassword
+            || !_credentialStore.IsAvailable || SelectedProfile is null)
+            return;
+
+        try
+        {
+            await _credentialStore.SetPasswordAsync(SelectedProfile.Id, password);
+        }
+        catch (Exception)
+        {
+            ErrorMessage = "Connessione riuscita, ma il salvataggio della password nel keyring "
+                           + "è fallito: andrà reinserita alla prossima connessione.";
         }
     }
 
@@ -327,21 +389,62 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     public Task RefreshAsync() => _client is null ? Task.CompletedTask : LoadListingAsync();
 
+    /// <summary>Azzera la fingerprint in sospeso e il profilo a cui era stata associata.</summary>
+    private void ClearPendingFingerprint()
+    {
+        PendingFingerprint = null;
+        _pendingFingerprintProfile = null;
+    }
+
     public async Task AcceptFingerprintAsync()
     {
-        if (SelectedProfile is null || PendingFingerprint is null)
+        // La fingerprint va scritta sul profilo che l'ha proposta: se nel frattempo la selezione
+        // è cambiata lo stato pending è già stato azzerato e qui non si scrive nulla.
+        var profile = _pendingFingerprintProfile;
+        if (profile is null || PendingFingerprint is null || !ReferenceEquals(profile, SelectedProfile))
             return;
 
-        SelectedProfile.AcceptedHostKeyFingerprint = PendingFingerprint;
-        PendingFingerprint = null;
+        profile.AcceptedHostKeyFingerprint = PendingFingerprint;
+        ClearPendingFingerprint();
         await ProfileStore.SaveAsync(_profilesFilePath, Profiles.ToList());
         await ConnectAsync();
     }
 
     public void RejectFingerprint()
     {
-        PendingFingerprint = null;
+        ClearPendingFingerprint();
         StatusMessage = "Connessione rifiutata: host key non accettata.";
+    }
+
+    /// <summary>
+    /// Elimina il profilo selezionato: se è quello connesso disconnette prima, poi lo rimuove
+    /// dalla lista, persiste i profili rimasti e cancella la password dal keyring. La cancellazione
+    /// dal keyring è best effort: un keyring che rifiuta l'operazione non deve impedire la rimozione.
+    /// </summary>
+    public async Task DeleteProfileAsync()
+    {
+        var profile = SelectedProfile;
+        if (profile is null || IsBusy || IsDownloading)
+            return;
+
+        if (IsConnected)
+            await DisconnectAsync();
+
+        SelectedProfile = null;   // il setter azzera anche l'eventuale stato host key in sospeso
+        Profiles.Remove(profile);
+        await ProfileStore.SaveAsync(_profilesFilePath, Profiles.ToList());
+
+        try
+        {
+            await _credentialStore.DeletePasswordAsync(profile.Id);
+        }
+        catch (Exception)
+        {
+            // Profilo già rimosso e persistito: la password orfana nel keyring non è un motivo
+            // per fallire l'operazione (e l'handler chiamante è async void).
+        }
+
+        StatusMessage = $"Profilo \"{profile.Name}\" eliminato.";
     }
 
     /// <summary>
@@ -554,7 +657,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     }
 
     /// <summary>Ricalcola la colonna "Su disco" per i file di primo livello.</summary>
-    protected void RefreshLocalStatuses()
+    private void RefreshLocalStatuses()
     {
         foreach (var entry in Items)
         {
@@ -577,9 +680,9 @@ public class RemoteBrowserViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Client corrente (per il task download).</summary>
-    protected IRemoteFileClient? Client => _client;
-
-    /// <summary>Percorso del file profili (per il task download/editor).</summary>
-    protected string ProfilesFilePath => _profilesFilePath;
+    /// <summary>
+    /// Percorso del file profili: la view lo usa per salvare dall'editor, così view e viewmodel
+    /// scrivono sempre sullo stesso file anche quando non è quello predefinito (test compresi).
+    /// </summary>
+    internal string ProfilesFilePath => _profilesFilePath;
 }
