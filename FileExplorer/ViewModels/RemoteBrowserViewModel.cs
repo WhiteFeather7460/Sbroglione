@@ -630,14 +630,16 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// Carica il contenuto di una cartella locale nella cartella corrente, ricorsivamente se
     /// <see cref="IncludeSubfolders"/> è attiva, preservando la struttura relativa.
     /// </summary>
-    public Task UploadFolderAsync(string localFolderPath)
+    public async Task UploadFolderAsync(string localFolderPath)
     {
         var searchOption = IncludeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        var entries = Directory.EnumerateFiles(localFolderPath, "*", searchOption)
+        // L'enumerazione ricorsiva della cartella è I/O sincrono: fuori dal thread UI, che
+        // altrimenti si bloccherebbe su cartelle grandi mentre IncludeSubfolders è attiva.
+        var entries = await Task.Run(() => Directory.EnumerateFiles(localFolderPath, "*", searchOption)
             .Select(path => new UploadEntry(
                 path, Path.GetRelativePath(localFolderPath, path).Replace(Path.DirectorySeparatorChar, '/')))
-            .ToList();
-        return RunUploadAsync(entries);
+            .ToList());
+        await RunUploadAsync(entries);
     }
 
     /// <summary>Annulla il batch di upload in corso: termina con "Caricamento annullato."</summary>
@@ -686,11 +688,14 @@ public class RemoteBrowserViewModel : ViewModelBase
         // IsUploading, così LoadListingAsync (che guarda anche IsUploading) non si blocca da solo.
         // LoadListingCoreAsync sovrascrive StatusMessage/ErrorMessage con l'esito dell'elenco: li
         // catturiamo prima e li ripristiniamo dopo, così il riepilogo dell'upload resta visibile.
+        // Se però l'elenco fresco produce un proprio ErrorMessage (es. la cartella non è più
+        // raggiungibile), quello ha priorità: è più recente e più rilevante del vecchio errore di
+        // upload, e non va perso sotto un messaggio ormai superato.
         string? finalStatusMessage = StatusMessage;
         string? finalErrorMessage = ErrorMessage;
         await RefreshAsync();
         StatusMessage = finalStatusMessage;
-        if (finalErrorMessage is not null)
+        if (finalErrorMessage is not null && ErrorMessage is null)
             ErrorMessage = finalErrorMessage;
     }
 
