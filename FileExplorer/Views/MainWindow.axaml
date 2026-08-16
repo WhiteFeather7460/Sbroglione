@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
         xmlns:views="clr-namespace:FileExplorer.Views"
         x:Class="FileExplorer.Views.MainWindow"
         Title="File Explorer"
@@ -7,6 +8,25 @@
         MinWidth="640" MinHeight="480"
         Background="{DynamicResource Brush.Surface}">
 
-  <views:CopyPairsView />
+  <TabControl Padding="0">
+    <TabItem>
+      <TabItem.Header>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <i:Icon Value="fa-solid fa-copy" />
+          <TextBlock Text="Copia" />
+        </StackPanel>
+      </TabItem.Header>
+      <views:CopyPairsView />
+    </TabItem>
+    <TabItem>
+      <TabItem.Header>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <i:Icon Value="fa-solid fa-server" />
+          <TextBlock Text="Server remoto" />
+        </StackPanel>
+      </TabItem.Header>
+      <views:RemoteBrowserView />
+    </TabItem>
+  </TabControl>
 
 </Window>
