@@ -92,13 +92,31 @@ public sealed class ProfileEditorViewModelTests
         vm.Username = "utente";
         vm.Protocol = RemoteProtocol.Sftp;
 
-        var saved = await vm.SaveAsync();
+        Assert.True(await vm.SaveAsync());
 
-        Assert.Same(profile, saved);
-        Assert.Equal("NAS", saved.Name);
-        Assert.Equal("nas.local", saved.Host);
-        Assert.Equal(2222, saved.Port);
-        Assert.Equal("utente", saved.Username);
-        Assert.Equal(RemoteProtocol.Sftp, saved.Protocol);
+        Assert.Equal("NAS", profile.Name);
+        Assert.Equal("nas.local", profile.Host);
+        Assert.Equal(2222, profile.Port);
+        Assert.Equal("utente", profile.Username);
+        Assert.Equal(RemoteProtocol.Sftp, profile.Protocol);
+        Assert.Null(vm.ValidationError);
+    }
+
+    [Fact]
+    public async Task SaveAsync_KeyringWriteThrows_ReturnsFalseWithoutLeakingPassword()
+    {
+        var profile = new ConnectionProfile();
+        var vm = new ProfileEditorViewModel(profile, new FakeCredentialStore { ThrowOnSet = true });
+        vm.Name = "NAS";
+        vm.Host = "nas.local";
+        vm.PortText = "22";
+        vm.Password = "s3gr3t0";
+
+        // L'handler del pulsante Salva è async void: un'eccezione qui farebbe cadere il processo.
+        Assert.False(await vm.SaveAsync());
+
+        Assert.NotNull(vm.ValidationError);
+        Assert.DoesNotContain("s3gr3t0", vm.ValidationError);
+        Assert.Equal("NAS", profile.Name);   // i campi del profilo restano applicati
     }
 }

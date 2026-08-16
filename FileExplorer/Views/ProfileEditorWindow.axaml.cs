@@ -31,7 +31,11 @@ public partial class ProfileEditorWindow : Window
         if (!_viewModel.Validate())
             return;
 
-        await _viewModel.SaveAsync();
+        // Salvataggio password fallito: la finestra resta aperta con il messaggio d'errore,
+        // così l'utente può riprovare o rinunciare a salvare la password.
+        if (!await _viewModel.SaveAsync())
+            return;
+
         Close(true);
     }
 }

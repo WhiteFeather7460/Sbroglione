@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Threading.Tasks;
 using FileExplorer.Models;
@@ -110,8 +111,13 @@ public class ProfileEditorViewModel : ViewModelBase
         return true;
     }
 
-    /// <summary>Applica i campi al profilo e salva l'eventuale nuova password nel keyring.</summary>
-    public async Task<ConnectionProfile> SaveAsync()
+    /// <summary>
+    /// Applica i campi al profilo e salva l'eventuale nuova password nel keyring.
+    /// Ritorna false se la scrittura nel keyring fallisce: il chiamante (handler async void)
+    /// tiene la finestra aperta mostrando <see cref="ValidationError"/> invece di far cadere
+    /// l'applicazione. Il messaggio è fisso e non riporta mai la password.
+    /// </summary>
+    public async Task<bool> SaveAsync()
     {
         _profile.Name = Name.Trim();
         _profile.Host = Host.Trim();
@@ -120,8 +126,20 @@ public class ProfileEditorViewModel : ViewModelBase
         _profile.Protocol = Protocol;
 
         if (!string.IsNullOrEmpty(Password) && _credentialStore.IsAvailable)
-            await _credentialStore.SetPasswordAsync(_profile.Id, Password);
+        {
+            try
+            {
+                await _credentialStore.SetPasswordAsync(_profile.Id, Password);
+            }
+            catch (Exception)
+            {
+                ValidationError = "Impossibile salvare la password nel keyring di sistema. "
+                                  + "Svuota il campo password per salvare solo il profilo.";
+                return false;
+            }
+        }
 
-        return _profile;
+        ValidationError = null;
+        return true;
     }
 }
