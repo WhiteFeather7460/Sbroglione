@@ -145,4 +145,58 @@ public static class FileCopyService
 
         await Task.WhenAll(tasks);
     }
+
+    /// <summary>
+    /// Copia ricorsivamente una cartella verso più destinazioni (più file in parallelo),
+    /// leggendo ogni file sorgente una sola volta. L'avanzamento conta i byte della sorgente.
+    /// </summary>
+    public static async Task CopyDirectoryToManyAsync(
+        string sourceRoot,
+        IReadOnlyList<string> destinationRoots,
+        int maxDegreeOfParallelism,
+        Action<CopyProgress>? onProgress,
+        CancellationToken ct,
+        int bufferSize = DefaultBufferSize)
+    {
+        if (bufferSize <= 0)
+            bufferSize = DefaultBufferSize;
+
+        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
+        long totalBytes = files.Sum(file => new FileInfo(file).Length);
+
+        onProgress?.Invoke(new CopyProgress(0, totalBytes, files.Count));
+        if (files.Count == 0)
+            return;
+
+        using var semaphore = new SemaphoreSlim(maxDegreeOfParallelism);
+        long copiedBytes = 0;
+
+        var tasks = files.Select(async sourceFile =>
+        {
+            ct.ThrowIfCancellationRequested();
+            await semaphore.WaitAsync(ct);
+            try
+            {
+                string relative = Path.GetRelativePath(sourceRoot, sourceFile);
+                var destinationFiles = destinationRoots
+                    .Select(root => Path.Combine(root, relative))
+                    .ToList();
+
+                foreach (var destinationFile in destinationFiles)
+                    Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
+
+                await CopyFileToManyAsync(sourceFile, destinationFiles, deltaBytes =>
+                {
+                    long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
+                    onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
+                }, ct, bufferSize);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+    }
 }

@@ -113,4 +113,32 @@ public sealed class FileCopyServiceTests : IDisposable
 
         Assert.Equal(20, totalReported);
     }
+
+    [Fact]
+    public async Task CopyDirectoryToManyAsync_ReplicatesTreeInEveryDestination()
+    {
+        string sourceRoot = Path.Combine(_root, "many-dir-src");
+        Directory.CreateDirectory(Path.Combine(sourceRoot, "sub"));
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.txt"), "alfa");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "sub", "b.txt"), "beta");
+
+        var destinationRoots = new List<string>
+        {
+            Path.Combine(_root, "many-dir-d1"),
+            Path.Combine(_root, "many-dir-d2")
+        };
+
+        var progressEvents = new List<CopyProgress>();
+        await FileCopyService.CopyDirectoryToManyAsync(
+            sourceRoot, destinationRoots, 2, progressEvents.Add, CancellationToken.None);
+
+        foreach (var destinationRoot in destinationRoots)
+        {
+            Assert.Equal("alfa", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "a.txt")));
+            Assert.Equal("beta", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "sub", "b.txt")));
+        }
+
+        Assert.Equal(2, progressEvents[0].TotalFiles);
+        Assert.Equal(8, progressEvents[^1].CopiedBytes); // "alfa" + "beta" contati una sola volta
+    }
 }
