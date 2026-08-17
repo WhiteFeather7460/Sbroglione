@@ -71,8 +71,6 @@ public class CopyPairsViewModel : ViewModelBase
         if (jobs.Count == 0)
             return;
 
-        await CopyJournalStore.ClearAsync();
-
         foreach (var job in jobs)
         {
             var pair = new FolderFilePairViewModel
@@ -88,6 +86,17 @@ public class CopyPairsViewModel : ViewModelBase
                 pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
 
             PathPairs.Add(pair);
+        }
+
+        try
+        {
+            // Svuotato solo dopo che le coppie sono state ripristinate in memoria:
+            // un fallimento qui causa al più un'offerta duplicata al prossimo avvio.
+            await CopyJournalStore.ClearAsync();
+        }
+        catch (Exception)
+        {
+            // best effort.
         }
     }
 
@@ -184,7 +193,14 @@ public class CopyPairsViewModel : ViewModelBase
         }
         finally
         {
-            await CopyJournalStore.RemoveAsync(journalRecord.Id);
+            try
+            {
+                await CopyJournalStore.RemoveAsync(journalRecord.Id);
+            }
+            catch (Exception)
+            {
+                // best effort: una voce residua causa solo una nuova offerta di ripresa al prossimo avvio.
+            }
 
             pair.IsCopying = false;
 
