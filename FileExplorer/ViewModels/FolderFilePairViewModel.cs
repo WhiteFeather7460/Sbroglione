@@ -115,6 +115,12 @@ public class FolderFilePairViewModel : ReactiveObject
     public IReadOnlyList<string> AllDestinations =>
         new[] { DestinationPath! }.Concat(ExtraDestinations.Select(e => e.Path)).ToList();
 
+    /// <summary>
+    /// True per le coppie ripristinate dal journal: la copia di cartelle salta
+    /// i file già identici in destinazione (stessa dimensione e mtime).
+    /// </summary>
+    public bool SkipUnchanged { get; set; }
+
     private bool _isCopying;
     public bool IsCopying
     {

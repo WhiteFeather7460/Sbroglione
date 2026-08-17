@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,6 +51,44 @@ public class CopyPairsViewModel : ViewModelBase
         AddExtraDestinationCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(AddExtraDestinationAsync);
         RemoveExtraDestinationCommand = ReactiveCommand.Create<ExtraDestinationViewModel>(
             extra => extra.Owner.ExtraDestinations.Remove(extra));
+
+        JournalRestore = RestoreInterruptedJobsAsync();
+    }
+
+    /// <summary>
+    /// Task del ripristino delle copie interrotte, avviato dal costruttore.
+    /// I test lo attendono; la UI non ne ha bisogno.
+    /// </summary>
+    public Task JournalRestore { get; }
+
+    /// <summary>
+    /// Ripropone come coppie "interrotte" le voci rimaste nel journal
+    /// (copie in corso al momento di un crash/chiusura), poi svuota il journal.
+    /// </summary>
+    private async Task RestoreInterruptedJobsAsync()
+    {
+        List<CopyJobRecord> jobs = await CopyJournalStore.LoadAsync();
+        if (jobs.Count == 0)
+            return;
+
+        await CopyJournalStore.ClearAsync();
+
+        foreach (var job in jobs)
+        {
+            var pair = new FolderFilePairViewModel
+            {
+                SourcePath = job.SourcePath,
+                DestinationPath = job.DestinationPath,
+                SkipUnchanged = true,
+                Status = "Interrotto — premere Avvia per riprendere",
+                StateKind = CopyStateKind.Warning
+            };
+
+            foreach (var extra in job.ExtraDestinations)
+                pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
+
+            PathPairs.Add(pair);
+        }
     }
 
     private async Task BrowseSourceAsync(FolderFilePairViewModel pair)
@@ -97,6 +136,15 @@ public class CopyPairsViewModel : ViewModelBase
             return;
         }
 
+        var journalRecord = new CopyJobRecord
+        {
+            SourcePath = pair.SourcePath!,
+            DestinationPath = pair.DestinationPath!,
+            ExtraDestinations = pair.ExtraDestinations.Select(e => e.Path).ToList(),
+            StartedUtc = DateTime.UtcNow
+        };
+        await CopyJournalStore.AddAsync(journalRecord);
+
         var cts = new CancellationTokenSource();
         _ctsByPair[pair] = cts;
 
@@ -136,6 +184,8 @@ public class CopyPairsViewModel : ViewModelBase
         }
         finally
         {
+            await CopyJournalStore.RemoveAsync(journalRecord.Id);
+
             pair.IsCopying = false;
 
             if (_ctsByPair.Remove(pair, out var toDispose))
@@ -227,7 +277,8 @@ public class CopyPairsViewModel : ViewModelBase
                 pair.Progress = progress.Fraction;
             },
             ct,
-            bufferSize: AppSettingsStore.Current.BufferSizeBytes);
+            bufferSize: AppSettingsStore.Current.BufferSizeBytes,
+            skipUnchanged: pair.SkipUnchanged);
 
         if (ct.IsCancellationRequested || knownFileCount == 0)
         {
