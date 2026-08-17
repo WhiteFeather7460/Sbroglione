@@ -5,6 +5,7 @@ namespace FileExplorer.Tests;
 
 public sealed class FileCopyServiceTests : IDisposable
 {
+    private static readonly string[] ManyDestinationNames = { "d1.bin", "d2.bin", "d3.bin" };
     private readonly string _root;
 
     public FileCopyServiceTests()
@@ -87,7 +88,7 @@ public sealed class FileCopyServiceTests : IDisposable
         byte[] content = Enumerable.Range(0, 300).Select(i => (byte)(i % 256)).ToArray();
         await File.WriteAllBytesAsync(source, content);
 
-        var destinations = new[] { "d1.bin", "d2.bin", "d3.bin" }
+        var destinations = ManyDestinationNames
             .Select(name => Path.Combine(_root, name)).ToList();
 
         await FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None);
