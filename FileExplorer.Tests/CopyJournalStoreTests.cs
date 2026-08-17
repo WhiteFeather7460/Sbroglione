@@ -5,6 +5,7 @@ namespace FileExplorer.Tests;
 
 public sealed class CopyJournalStoreTests : IDisposable
 {
+    private static readonly string[] ExpectedExtraDestinations = { "/tmp/dst2" };
     private readonly string _root;
     private readonly string _originalCurrentPath;
 
@@ -45,7 +46,7 @@ public sealed class CopyJournalStoreTests : IDisposable
         var single = Assert.Single(loaded);
         Assert.Equal(record.Id, single.Id);
         Assert.Equal("/tmp/src", single.SourcePath);
-        Assert.Equal(new[] { "/tmp/dst2" }, single.ExtraDestinations);
+        Assert.Equal(ExpectedExtraDestinations, single.ExtraDestinations);
     }
 
     [Fact]
