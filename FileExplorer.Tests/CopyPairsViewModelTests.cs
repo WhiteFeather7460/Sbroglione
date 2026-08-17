@@ -126,4 +126,49 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.Null(pair.IsVerified);
         Assert.Equal("Completato", pair.Status);
     }
+
+    [Fact]
+    public async Task StartCopy_SingleFile_WithExtraDestination_CopiesToBoth()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = false;
+
+        string sourceFile = Path.Combine(_root, "multi-src.txt");
+        await File.WriteAllTextAsync(sourceFile, "multi");
+        string primary = Path.Combine(_root, "multi-d1.txt");
+        string extra = Path.Combine(_root, "multi-d2.txt");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceFile, DestinationPath = primary };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+        Assert.Equal("multi", await File.ReadAllTextAsync(primary));
+        Assert.Equal("multi", await File.ReadAllTextAsync(extra));
+    }
+
+    [Fact]
+    public async Task StartCopy_Directory_WithExtraDestination_VerifiesEveryDestination()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = true;
+
+        string sourceDir = Path.Combine(_root, "multi-vsrc");
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.txt"), "aaa");
+        string primary = Path.Combine(_root, "multi-vd1");
+        string extra = Path.Combine(_root, "multi-vd2");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceDir, DestinationPath = primary };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+        Assert.True(pair.IsVerified);
+        Assert.Equal("aaa", await File.ReadAllTextAsync(Path.Combine(extra, "a.txt")));
+    }
 }

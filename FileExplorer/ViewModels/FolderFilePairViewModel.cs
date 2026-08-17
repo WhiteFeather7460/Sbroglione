@@ -1,10 +1,25 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using FileExplorer.Models;
 using FileExplorer.Services;
 using ReactiveUI;
 
 namespace FileExplorer.ViewModels;
+
+/// <summary>Destinazione aggiuntiva di una coppia di copia (copia multi-destinazione).</summary>
+public class ExtraDestinationViewModel
+{
+    public ExtraDestinationViewModel(FolderFilePairViewModel owner, string path)
+    {
+        Owner = owner;
+        Path = path;
+    }
+
+    public FolderFilePairViewModel Owner { get; }
+    public string Path { get; }
+}
 
 /// <summary>
 /// Riga della lista di copie: coppia sorgente/destinazione con stato, avanzamento
@@ -92,6 +107,13 @@ public class FolderFilePairViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(CanStart));
         }
     }
+
+    /// <summary>Destinazioni aggiuntive oltre a <see cref="DestinationPath"/>.</summary>
+    public ObservableCollection<ExtraDestinationViewModel> ExtraDestinations { get; } = new();
+
+    /// <summary>Tutte le destinazioni (primaria + extra). Valido solo quando CanStart è true.</summary>
+    public IReadOnlyList<string> AllDestinations =>
+        new[] { DestinationPath! }.Concat(ExtraDestinations.Select(e => e.Path)).ToList();
 
     private bool _isCopying;
     public bool IsCopying
