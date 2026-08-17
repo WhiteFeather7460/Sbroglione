@@ -49,6 +49,19 @@ public sealed class TreemapLayoutTests
     }
 
     [Fact]
+    public void Compute_NonFiniteBounds_ReturnsDefaultRects()
+    {
+        foreach (double bad in new[] { double.NaN, double.PositiveInfinity })
+        {
+            var rects = TreemapLayout.Compute(new long[] { 5, 3 }, 0, 0, bad, 100);
+            Assert.All(rects, rect => Assert.Equal(default, rect));
+
+            rects = TreemapLayout.Compute(new long[] { 5, 3 }, 0, 0, 100, bad);
+            Assert.All(rects, rect => Assert.Equal(default, rect));
+        }
+    }
+
+    [Fact]
     public void Compute_EmptyAndZeroValues_HandledGracefully()
     {
         Assert.Empty(TreemapLayout.Compute(Array.Empty<long>(), 0, 0, 100, 100));

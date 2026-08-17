@@ -22,7 +22,15 @@ public static class TreemapLayout
     {
         var result = new TreemapRect[values.Count];
         double total = values.Where(v => v > 0).Sum(v => (double)v);
-        if (values.Count == 0 || total <= 0 || width <= 0 || height <= 0)
+
+        // I confronti su NaN sono sempre falsi: senza il controllo esplicito di finitezza
+        // un bound NaN (tipico di un controllo non ancora misurato) supererebbe la guardia
+        // "<= 0" e propagherebbe NaN in tutti i rettangoli. Anche x/y sono verificati:
+        // un'origine non finita inquinerebbe le coordinate allo stesso modo.
+        if (values.Count == 0 || total <= 0
+            || !double.IsFinite(x) || !double.IsFinite(y)
+            || !double.IsFinite(width) || !double.IsFinite(height)
+            || width <= 0 || height <= 0)
             return result;
 
         // Fattore che trasforma un valore nella sua area in pixel quadri.
