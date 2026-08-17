@@ -138,7 +138,7 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
         finally
         {
             IsScanning = false;
-            _scanCts.Dispose();
+            _scanCts?.Dispose();
             _scanCts = null;
         }
     }

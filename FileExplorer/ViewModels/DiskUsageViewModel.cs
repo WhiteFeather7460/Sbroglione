@@ -113,7 +113,7 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
         finally
         {
             IsScanning = false;
-            _scanCts.Dispose();
+            _scanCts?.Dispose();
             _scanCts = null;
         }
     }
@@ -134,8 +134,9 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
         if (_breadcrumb.Count == 0)
             return;
 
-        CurrentNode = _breadcrumb[^1];
+        var parent = _breadcrumb[^1];
         _breadcrumb.RemoveAt(_breadcrumb.Count - 1);
+        CurrentNode = parent;
     }
 
     /// <summary>Annulla e rilascia un'eventuale scansione in corso (chiusura della vista).</summary>
