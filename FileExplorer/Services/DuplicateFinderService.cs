@@ -30,10 +30,20 @@ public static class DuplicateFinderService
         CancellationToken ct)
     {
         // Fase 1: enumerazione e raggruppamento per dimensione (file vuoti e illeggibili esclusi).
+        var enumerationOptions = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true,
+            // Esplicito: il default salterebbe Hidden/System; qui si escludono solo i reparse point
+            // (symlink/junction), per evitare cicli e duplicati apparenti dello stesso file.
+            AttributesToSkip = FileAttributes.ReparsePoint
+        };
+
         List<(string Path, long Length)> files = await Task.Run(() =>
-            Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories)
+            Directory.EnumerateFiles(rootPath, "*", enumerationOptions)
                 .Select(path =>
                 {
+                    ct.ThrowIfCancellationRequested();
                     try { return (Path: path, Length: new FileInfo(path).Length); }
                     catch (IOException) { return (Path: path, Length: -1L); }
                     catch (UnauthorizedAccessException) { return (Path: path, Length: -1L); }
