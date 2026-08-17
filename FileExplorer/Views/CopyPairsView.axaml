@@ -75,6 +75,33 @@
                             CommandParameter="{Binding}" />
                   </Grid>
 
+                  <!-- Destinazioni extra (copia multi-destinazione) -->
+                  <ItemsControl ItemsSource="{Binding ExtraDestinations}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
+                          <i:Icon Grid.Column="0" Value="fa-solid fa-folder-plus" Width="26"
+                                  Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+                          <TextBox Grid.Column="1" Text="{Binding Path}" IsReadOnly="True" Margin="8,0" />
+                          <Button Grid.Column="2" Classes="iconbtn"
+                                  i:Attached.Icon="fa-solid fa-xmark"
+                                  Command="{Binding DataContext.RemoveExtraDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <Button Classes="secondary" HorizontalAlignment="Left"
+                          Command="{Binding DataContext.AddExtraDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          CommandParameter="{Binding}"
+                          IsEnabled="{Binding !IsCopying}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <i:Icon Value="fa-solid fa-folder-plus" />
+                      <TextBlock Text="Aggiungi destinazione" />
+                    </StackPanel>
+                  </Button>
+
                   <!-- Stato + comandi -->
                   <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">

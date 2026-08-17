@@ -31,6 +31,8 @@ public class CopyPairsViewModel : ViewModelBase
     public ReactiveCommand<FolderFilePairViewModel, Unit> BrowseDestinationCommand { get; }
     public ReactiveCommand<FolderFilePairViewModel, Unit> StartCopyCommand { get; }
     public ReactiveCommand<FolderFilePairViewModel, Unit> CancelCopyCommand { get; }
+    public ReactiveCommand<FolderFilePairViewModel, Unit> AddExtraDestinationCommand { get; }
+    public ReactiveCommand<ExtraDestinationViewModel, Unit> RemoveExtraDestinationCommand { get; }
 
     public CopyPairsViewModel()
     {
@@ -44,6 +46,10 @@ public class CopyPairsViewModel : ViewModelBase
         // Start/Cancel: la validazione CanStart è valutata sulla singola riga via binding (IsEnabled).
         StartCopyCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(StartCopyAsync);
         CancelCopyCommand = ReactiveCommand.Create<FolderFilePairViewModel>(CancelCopy);
+
+        AddExtraDestinationCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(AddExtraDestinationAsync);
+        RemoveExtraDestinationCommand = ReactiveCommand.Create<ExtraDestinationViewModel>(
+            extra => extra.Owner.ExtraDestinations.Remove(extra));
     }
 
     private async Task BrowseSourceAsync(FolderFilePairViewModel pair)
@@ -58,6 +64,13 @@ public class CopyPairsViewModel : ViewModelBase
         var selected = await ShowSelectPathDialogAsync(directoriesOnly: true, pair.DestinationPath);
         if (!string.IsNullOrEmpty(selected))
             pair.DestinationPath = selected;
+    }
+
+    private async Task AddExtraDestinationAsync(FolderFilePairViewModel pair)
+    {
+        var selected = await ShowSelectPathDialogAsync(directoriesOnly: true, pair.DestinationPath);
+        if (!string.IsNullOrEmpty(selected))
+            pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, selected));
     }
 
     private static async Task<string?> ShowSelectPathDialogAsync(bool directoriesOnly, string? currentPath)
@@ -89,9 +102,13 @@ public class CopyPairsViewModel : ViewModelBase
 
         try
         {
-            // La cartella che conterrà la destinazione viene creata in ogni caso
+            // Le cartelle che conterranno le destinazioni vengono create in ogni caso
             // (in background: su percorsi di rete può bloccare).
-            await Task.Run(() => Directory.CreateDirectory(Path.GetDirectoryName(pair.DestinationPath!)!));
+            await Task.Run(() =>
+            {
+                foreach (var destination in pair.AllDestinations)
+                    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            });
 
             pair.IsCopying = true;
             pair.Progress = 0;
@@ -100,7 +117,7 @@ public class CopyPairsViewModel : ViewModelBase
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
-                // La copia di cartelle non prevede la verifica checksum.
+                // La copia di cartelle verifica il checksum dell'intero albero (se abilitato).
                 await CopyDirectoryAsync(pair, cts.Token);
                 return;
             }
@@ -134,16 +151,20 @@ public class CopyPairsViewModel : ViewModelBase
 
     private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, CancellationToken ct)
     {
-        // Se la sorgente è un file e la destinazione una cartella, il file viene copiato dentro la cartella.
-        bool isFileCopyToFolder = await FileSystemService.GetPathTypeAsync(pair.DestinationPath) == PathType.Directory;
-        string destinationPath = isFileCopyToFolder
-            ? Path.Combine(pair.DestinationPath!, Path.GetFileName(pair.SourcePath!))
-            : pair.DestinationPath!;
+        // Se la sorgente è un file e una destinazione è una cartella, il file viene copiato dentro la cartella.
+        var destinationFiles = new List<string>();
+        foreach (var destination in pair.AllDestinations)
+        {
+            bool intoFolder = await FileSystemService.GetPathTypeAsync(destination) == PathType.Directory;
+            destinationFiles.Add(intoFolder
+                ? Path.Combine(destination, Path.GetFileName(pair.SourcePath!))
+                : destination);
+        }
 
         long totalBytes = new FileInfo(pair.SourcePath!).Length;
         long copiedBytes = 0;
 
-        await FileCopyService.CopyFileAsync(pair.SourcePath!, destinationPath, deltaBytes =>
+        await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, deltaBytes =>
         {
             copiedBytes += deltaBytes;
             pair.Progress = totalBytes > 0 ? (double)copiedBytes / totalBytes : 1;
@@ -157,15 +178,22 @@ public class CopyPairsViewModel : ViewModelBase
             return;
         }
 
-        // Verifica checksum dopo la copia.
+        // Verifica checksum di tutte le destinazioni.
         pair.Status = "Verifica checksum…";
         pair.SourceChecksum ??= await ChecksumService.ComputeSha256Async(pair.SourcePath!, ct);
-        pair.DestinationChecksum = await ChecksumService.ComputeSha256Async(destinationPath, ct);
-        pair.IsVerified = string.Equals(pair.SourceChecksum, pair.DestinationChecksum, StringComparison.OrdinalIgnoreCase);
 
+        bool allMatch = true;
+        foreach (var destinationFile in destinationFiles)
+        {
+            string destinationHash = await ChecksumService.ComputeSha256Async(destinationFile, ct);
+            pair.DestinationChecksum = destinationHash;
+            allMatch &= string.Equals(pair.SourceChecksum, destinationHash, StringComparison.OrdinalIgnoreCase);
+        }
+
+        pair.IsVerified = allMatch;
         pair.Progress = 1;
-        pair.Status = pair.IsVerified == true ? "Completato" : "Completato (checksum non corrisponde)";
-        pair.StateKind = pair.IsVerified == true ? CopyStateKind.Success : CopyStateKind.Warning;
+        pair.Status = allMatch ? "Completato" : "Completato (checksum non corrisponde)";
+        pair.StateKind = allMatch ? CopyStateKind.Success : CopyStateKind.Warning;
     }
 
     private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, CancellationToken ct)
@@ -173,12 +201,18 @@ public class CopyPairsViewModel : ViewModelBase
         int knownFileCount = -1;
 
         var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
-        var destinationType = await DiskTypeService.GetDiskTypeAsync(pair.DestinationPath, ct);
-        int parallelism = CopyParallelismResolver.Resolve(AppSettingsStore.Current, sourceType, destinationType);
+        int parallelism = int.MaxValue;
+        foreach (var destination in pair.AllDestinations)
+        {
+            var destinationType = await DiskTypeService.GetDiskTypeAsync(destination, ct);
+            parallelism = Math.Min(
+                parallelism,
+                CopyParallelismResolver.Resolve(AppSettingsStore.Current, sourceType, destinationType));
+        }
 
-        await FileCopyService.CopyDirectoryAsync(
+        await FileCopyService.CopyDirectoryToManyAsync(
             pair.SourcePath!,
-            pair.DestinationPath!,
+            pair.AllDestinations,
             maxDegreeOfParallelism: parallelism,
             onProgress: progress =>
             {
@@ -195,15 +229,52 @@ public class CopyPairsViewModel : ViewModelBase
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes);
 
-        if (!ct.IsCancellationRequested && knownFileCount != 0)
+        if (ct.IsCancellationRequested || knownFileCount == 0)
+        {
+            if (knownFileCount == 0)
+                pair.StateKind = CopyStateKind.Ready;
+            return;
+        }
+
+        if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
             pair.Status = "Completato";
             pair.StateKind = CopyStateKind.Success;
+            return;
         }
-        else if (knownFileCount == 0)
+
+        pair.Status = "Verifica checksum…";
+        int totalVerified = 0;
+        int mismatchedTotal = 0;
+        int missingTotal = 0;
+
+        foreach (var destination in pair.AllDestinations)
         {
-            pair.StateKind = CopyStateKind.Ready;
+            var verifyResult = await DirectoryVerificationService.VerifyDirectoryAsync(
+                pair.SourcePath!,
+                destination,
+                parallelism,
+                progress => pair.Status = $"Verifica checksum… ({progress.VerifiedFiles}/{progress.TotalFiles})",
+                ct);
+
+            totalVerified = verifyResult.TotalFiles;
+            mismatchedTotal += verifyResult.MismatchedFiles.Count;
+            missingTotal += verifyResult.MissingFiles.Count;
+        }
+
+        pair.Progress = 1;
+        pair.IsVerified = mismatchedTotal == 0 && missingTotal == 0;
+
+        if (pair.IsVerified == true)
+        {
+            pair.Status = $"Completato e verificato ({totalVerified} file)";
+            pair.StateKind = CopyStateKind.Success;
+        }
+        else
+        {
+            pair.Status = $"Verifica fallita: {mismatchedTotal} file diversi, {missingTotal} mancanti";
+            pair.StateKind = CopyStateKind.Warning;
         }
     }
 }
