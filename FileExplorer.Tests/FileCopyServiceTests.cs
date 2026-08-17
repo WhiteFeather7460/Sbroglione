@@ -79,4 +79,38 @@ public sealed class FileCopyServiceTests : IDisposable
 
         Assert.Equal(content, await File.ReadAllBytesAsync(destination));
     }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_ThreeDestinations_AllReceiveIdenticalContent()
+    {
+        string source = Path.Combine(_root, "many-src.bin");
+        byte[] content = Enumerable.Range(0, 300).Select(i => (byte)(i % 256)).ToArray();
+        await File.WriteAllBytesAsync(source, content);
+
+        var destinations = new[] { "d1.bin", "d2.bin", "d3.bin" }
+            .Select(name => Path.Combine(_root, name)).ToList();
+
+        await FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None);
+
+        foreach (var destination in destinations)
+            Assert.Equal(content, await File.ReadAllBytesAsync(destination));
+    }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_CountsSourceBytesOnce()
+    {
+        string source = Path.Combine(_root, "many-src2.bin");
+        await File.WriteAllBytesAsync(source, new byte[20]);
+        var destinations = new List<string>
+        {
+            Path.Combine(_root, "m1.bin"),
+            Path.Combine(_root, "m2.bin")
+        };
+
+        long totalReported = 0;
+        await FileCopyService.CopyFileToManyAsync(
+            source, destinations, delta => totalReported += delta, CancellationToken.None, bufferSize: 8);
+
+        Assert.Equal(20, totalReported);
+    }
 }

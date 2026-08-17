@@ -54,6 +54,47 @@ public static class FileCopyService
     }
 
     /// <summary>
+    /// Copia un file verso più destinazioni con una sola lettura della sorgente:
+    /// ogni blocco letto viene scritto in parallelo su tutte le destinazioni.
+    /// <paramref name="onBytesCopied"/> conta i byte letti (una volta sola, non per destinazione).
+    /// </summary>
+    public static async Task CopyFileToManyAsync(
+        string sourcePath,
+        IReadOnlyList<string> destinationPaths,
+        Action<long>? onBytesCopied,
+        CancellationToken ct,
+        int bufferSize = DefaultBufferSize)
+    {
+        if (bufferSize <= 0)
+            bufferSize = DefaultBufferSize;
+
+        await using var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        var outputs = new List<FileStream>(destinationPaths.Count);
+        try
+        {
+            foreach (var destination in destinationPaths)
+                outputs.Add(new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None));
+
+            var buffer = new byte[bufferSize];
+            int read;
+            while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
+            {
+                await Task.WhenAll(outputs.Select(o => o.WriteAsync(buffer.AsMemory(0, read), ct).AsTask()));
+                onBytesCopied?.Invoke(read);
+            }
+
+            foreach (var output in outputs)
+                await output.FlushAsync(ct);
+        }
+        finally
+        {
+            foreach (var output in outputs)
+                await output.DisposeAsync();
+        }
+    }
+
+    /// <summary>
     /// Copia ricorsivamente una cartella (più file in parallelo), replicando la struttura
     /// di <paramref name="sourceRoot"/> sotto <paramref name="destinationRoot"/>.
     /// Il primo evento di avanzamento comunica il totale di file e byte da copiare.
