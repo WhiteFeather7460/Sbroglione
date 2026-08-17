@@ -4,6 +4,7 @@ namespace FileExplorer.Tests;
 
 public sealed class DirectoryVerificationServiceTests : IDisposable
 {
+    private static readonly string[] ExpectedMissingSingleA = { "a.txt" };
     private readonly string _root;
 
     public DirectoryVerificationServiceTests()
@@ -67,7 +68,7 @@ public sealed class DirectoryVerificationServiceTests : IDisposable
             source, destination, 1, progressEvents.Add, CancellationToken.None);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal(new[] { "a.txt" }, result.MissingFiles);
+        Assert.Equal(ExpectedMissingSingleA, result.MissingFiles);
         Assert.Equal(2, progressEvents.Count);
         Assert.Equal(new VerifyProgress(2, 2), progressEvents[^1]);
     }

@@ -5,6 +5,7 @@ namespace FileExplorer.Tests;
 
 public sealed class FileCopyServiceTests : IDisposable
 {
+    private static readonly string[] ManyDestinationNames = { "d1.bin", "d2.bin", "d3.bin" };
     private readonly string _root;
 
     public FileCopyServiceTests()
@@ -78,5 +79,69 @@ public sealed class FileCopyServiceTests : IDisposable
         await FileCopyService.CopyFileAsync(source, destination, null, CancellationToken.None, bufferSize: -1);
 
         Assert.Equal(content, await File.ReadAllBytesAsync(destination));
+    }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_ThreeDestinations_AllReceiveIdenticalContent()
+    {
+        string source = Path.Combine(_root, "many-src.bin");
+        byte[] content = Enumerable.Range(0, 300).Select(i => (byte)(i % 256)).ToArray();
+        await File.WriteAllBytesAsync(source, content);
+
+        var destinations = ManyDestinationNames
+            .Select(name => Path.Combine(_root, name)).ToList();
+
+        await FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None);
+
+        foreach (var destination in destinations)
+            Assert.Equal(content, await File.ReadAllBytesAsync(destination));
+    }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_CountsSourceBytesOnce()
+    {
+        string source = Path.Combine(_root, "many-src2.bin");
+        await File.WriteAllBytesAsync(source, new byte[20]);
+        var destinations = new List<string>
+        {
+            Path.Combine(_root, "m1.bin"),
+            Path.Combine(_root, "m2.bin")
+        };
+
+        long totalReported = 0;
+        await FileCopyService.CopyFileToManyAsync(
+            source, destinations, delta => totalReported += delta, CancellationToken.None, bufferSize: 8);
+
+        Assert.Equal(20, totalReported);
+    }
+
+    [Fact]
+    public async Task CopyDirectoryToManyAsync_ReplicatesTreeInEveryDestination()
+    {
+        string sourceRoot = Path.Combine(_root, "many-dir-src");
+        Directory.CreateDirectory(Path.Combine(sourceRoot, "sub"));
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.txt"), "alfa");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "sub", "b.txt"), "beta");
+
+        var destinationRoots = new List<string>
+        {
+            Path.Combine(_root, "many-dir-d1"),
+            Path.Combine(_root, "many-dir-d2")
+        };
+
+        var progressEvents = new List<CopyProgress>();
+        await FileCopyService.CopyDirectoryToManyAsync(
+            sourceRoot, destinationRoots, 2,
+            progress => { lock (progressEvents) progressEvents.Add(progress); },
+            CancellationToken.None);
+
+        foreach (var destinationRoot in destinationRoots)
+        {
+            Assert.Equal("alfa", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "a.txt")));
+            Assert.Equal("beta", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "sub", "b.txt")));
+        }
+
+        Assert.Equal(2, progressEvents[0].TotalFiles);
+        Assert.Equal(8, progressEvents.Max(p => p.CopiedBytes)); // "alfa" + "beta" contati una sola volta
     }
 }
