@@ -43,6 +43,10 @@ public static class DiskUsageService
         {
             foreach (var subDirectory in directory.EnumerateDirectories())
             {
+                // Symlink/junction: saltati per evitare cicli di ricorsione e conteggi doppi.
+                if ((subDirectory.Attributes & FileAttributes.ReparsePoint) != 0)
+                    continue;
+
                 var child = BuildNode(subDirectory, counter, onFilesScanned, ct);
                 node.Children.Add(child);
                 node.SizeBytes += child.SizeBytes;
@@ -50,6 +54,10 @@ public static class DiskUsageService
 
             foreach (var file in directory.EnumerateFiles())
             {
+                // Coerenza con la scansione duplicati: i reparse point non vengono conteggiati.
+                if ((file.Attributes & FileAttributes.ReparsePoint) != 0)
+                    continue;
+
                 node.Children.Add(new DiskUsageNode
                 {
                     Name = file.Name,
