@@ -6,10 +6,8 @@ using System.Linq;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls.ApplicationLifetimes;
 using FileExplorer.Models;
 using FileExplorer.Services;
-using FileExplorer.Views;
 using ReactiveUI;
 
 namespace FileExplorer.ViewModels;
@@ -102,38 +100,23 @@ public class CopyPairsViewModel : ViewModelBase
 
     private async Task BrowseSourceAsync(FolderFilePairViewModel pair)
     {
-        var selected = await ShowSelectPathDialogAsync(directoriesOnly: false, pair.SourcePath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: false, pair.SourcePath);
         if (!string.IsNullOrEmpty(selected))
             pair.SourcePath = selected;
     }
 
     private async Task BrowseDestinationAsync(FolderFilePairViewModel pair)
     {
-        var selected = await ShowSelectPathDialogAsync(directoriesOnly: true, pair.DestinationPath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, pair.DestinationPath);
         if (!string.IsNullOrEmpty(selected))
             pair.DestinationPath = selected;
     }
 
     private async Task AddExtraDestinationAsync(FolderFilePairViewModel pair)
     {
-        var selected = await ShowSelectPathDialogAsync(directoriesOnly: true, pair.DestinationPath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, pair.DestinationPath);
         if (!string.IsNullOrEmpty(selected))
             pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, selected));
-    }
-
-    private static async Task<string?> ShowSelectPathDialogAsync(bool directoriesOnly, string? currentPath)
-    {
-        var dialog = new SelectPathDialog
-        {
-            DataContext = new SelectPathDialogViewModel(
-                directoriesOnly,
-                currentPath ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
-        };
-
-        if ((App.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } owner)
-            return null;
-
-        return await dialog.ShowDialog<string?>(owner);
     }
 
     public async Task StartCopyAsync(FolderFilePairViewModel pair)
