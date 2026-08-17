@@ -39,18 +39,22 @@ public static class FileCopyService
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        await using var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        await using var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-
-        var buffer = new byte[bufferSize];
-        int read;
-        while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
+        await using (var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        await using (var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None))
         {
-            await output.WriteAsync(buffer.AsMemory(0, read), ct);
-            onBytesCopied?.Invoke(read);
+            var buffer = new byte[bufferSize];
+            int read;
+            while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
+            {
+                await output.WriteAsync(buffer.AsMemory(0, read), ct);
+                onBytesCopied?.Invoke(read);
+            }
+
+            await output.FlushAsync(ct);
         }
 
-        await output.FlushAsync(ct);
+        // La ripresa (skipUnchanged) confronta dimensione + mtime: il timestamp va preservato.
+        File.SetLastWriteTimeUtc(destinationPath, File.GetLastWriteTimeUtc(sourcePath));
     }
 
     /// <summary>
@@ -92,6 +96,12 @@ public static class FileCopyService
             foreach (var output in outputs)
                 await output.DisposeAsync();
         }
+
+        // La ripresa (skipUnchanged) confronta dimensione + mtime: il timestamp va preservato
+        // su tutte le destinazioni, ma solo se la copia è andata a buon fine.
+        DateTime sourceTime = File.GetLastWriteTimeUtc(sourcePath);
+        foreach (var destination in destinationPaths)
+            File.SetLastWriteTimeUtc(destination, sourceTime);
     }
 
     /// <summary>
@@ -105,7 +115,8 @@ public static class FileCopyService
         int maxDegreeOfParallelism,
         Action<CopyProgress>? onProgress,
         CancellationToken ct,
-        int bufferSize = DefaultBufferSize)
+        int bufferSize = DefaultBufferSize,
+        bool skipUnchanged = false)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -128,6 +139,13 @@ public static class FileCopyService
             {
                 string relative = Path.GetRelativePath(sourceRoot, sourceFile);
                 string destinationFile = Path.Combine(destinationRoot, relative);
+
+                if (skipUnchanged && IsUnchanged(sourceFile, destinationFile))
+                {
+                    long skippedTotal = Interlocked.Add(ref copiedBytes, new FileInfo(sourceFile).Length);
+                    onProgress?.Invoke(new CopyProgress(skippedTotal, totalBytes, files.Count));
+                    return;
+                }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
 
@@ -156,7 +174,8 @@ public static class FileCopyService
         int maxDegreeOfParallelism,
         Action<CopyProgress>? onProgress,
         CancellationToken ct,
-        int bufferSize = DefaultBufferSize)
+        int bufferSize = DefaultBufferSize,
+        bool skipUnchanged = false)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -182,6 +201,13 @@ public static class FileCopyService
                     .Select(root => Path.Combine(root, relative))
                     .ToList();
 
+                if (skipUnchanged && destinationFiles.All(destination => IsUnchanged(sourceFile, destination)))
+                {
+                    long skippedTotal = Interlocked.Add(ref copiedBytes, new FileInfo(sourceFile).Length);
+                    onProgress?.Invoke(new CopyProgress(skippedTotal, totalBytes, files.Count));
+                    return;
+                }
+
                 foreach (var destinationFile in destinationFiles)
                     Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
 
@@ -198,5 +224,20 @@ public static class FileCopyService
         });
 
         await Task.WhenAll(tasks);
+    }
+
+    /// <summary>
+    /// True se la destinazione esiste con la stessa dimensione della sorgente e
+    /// LastWriteTimeUtc entro 2 secondi (tolleranza per filesystem a granularità grossa).
+    /// </summary>
+    private static bool IsUnchanged(string sourceFile, string destinationFile)
+    {
+        var destinationInfo = new FileInfo(destinationFile);
+        if (!destinationInfo.Exists)
+            return false;
+
+        var sourceInfo = new FileInfo(sourceFile);
+        return destinationInfo.Length == sourceInfo.Length
+               && Math.Abs((destinationInfo.LastWriteTimeUtc - sourceInfo.LastWriteTimeUtc).TotalSeconds) < 2;
     }
 }
