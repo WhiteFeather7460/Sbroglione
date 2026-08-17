@@ -1,0 +1,472 @@
+{
+  "/STORAGE_2/Workspace/FileExplorer/.claude/settings.json": {
+    "mtime": 1786735335.4862578,
+    "ast_hash": "ea3d8dfd8939a1f3b0fef9f4dbb5ad8b",
+    "semantic_hash": "ea3d8dfd8939a1f3b0fef9f4dbb5ad8b"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Desktop/FileExplorer.Desktop.csproj": {
+    "mtime": 1786735398.5024877,
+    "ast_hash": "bb4920a7a09c832c9965f8829308b693",
+    "semantic_hash": "bb4920a7a09c832c9965f8829308b693"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Desktop/Program.cs": {
+    "mtime": 1786797755.4671726,
+    "ast_hash": "e67d9d2a66a2f467286cb763ad313c9a",
+    "semantic_hash": "e67d9d2a66a2f467286cb763ad313c9a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/AppSettingsStoreTests.cs": {
+    "mtime": 1786922404.2765696,
+    "ast_hash": "be6f44f675918e79eef8b4579ff6f079",
+    "semantic_hash": "be6f44f675918e79eef8b4579ff6f079"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/CopyPairsViewModelTests.cs": {
+    "mtime": 1786922404.2766128,
+    "ast_hash": "869c721e671b8512c276ac8c87cdd827",
+    "semantic_hash": "869c721e671b8512c276ac8c87cdd827"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/CopyParallelismResolverTests.cs": {
+    "mtime": 1786922404.2766128,
+    "ast_hash": "5e5dd1e782fa29b07e2f92ecac8f688a",
+    "semantic_hash": "5e5dd1e782fa29b07e2f92ecac8f688a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/CredentialStoreFactoryTests.cs": {
+    "mtime": 1786887767.7113857,
+    "ast_hash": "d1ca051291713a8c052d93281fa9576e",
+    "semantic_hash": "d1ca051291713a8c052d93281fa9576e"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/DiskTypeServiceTests.cs": {
+    "mtime": 1786922404.276679,
+    "ast_hash": "58518e5cf6dc935cd2f894493167bffa",
+    "semantic_hash": "58518e5cf6dc935cd2f894493167bffa"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/DownloadFilterTests.cs": {
+    "mtime": 1786887767.7114336,
+    "ast_hash": "73525962d79bf0eccc603b379ff2c61b",
+    "semantic_hash": "73525962d79bf0eccc603b379ff2c61b"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/DownloadServiceStatusTests.cs": {
+    "mtime": 1786887767.7114782,
+    "ast_hash": "93930bcb1da22d7c0a6c0084e96b725d",
+    "semantic_hash": "93930bcb1da22d7c0a6c0084e96b725d"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/DownloadServiceTests.cs": {
+    "mtime": 1786892113.2061949,
+    "ast_hash": "5431276aba089ce61eb91ae6d729e4da",
+    "semantic_hash": "5431276aba089ce61eb91ae6d729e4da"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/FakeCredentialStore.cs": {
+    "mtime": 1786887767.711531,
+    "ast_hash": "00829676cf4aa2ee2d187617f1a08e53",
+    "semantic_hash": "00829676cf4aa2ee2d187617f1a08e53"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/FakeRemoteClient.cs": {
+    "mtime": 1786892113.206272,
+    "ast_hash": "594f34d2ba92bc110e88c49eb3a1fe3a",
+    "semantic_hash": "594f34d2ba92bc110e88c49eb3a1fe3a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/FileCopyServiceTests.cs": {
+    "mtime": 1786922404.276679,
+    "ast_hash": "aa7d626452828160564ac8c5a842d8ef",
+    "semantic_hash": "aa7d626452828160564ac8c5a842d8ef"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/FileExplorer.Tests.csproj": {
+    "mtime": 1786922404.276761,
+    "ast_hash": "40a2702395ba32bc38950e63db8a7d94",
+    "semantic_hash": "40a2702395ba32bc38950e63db8a7d94"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/FileSystemServiceTests.cs": {
+    "mtime": 1786799326.4750538,
+    "ast_hash": "d4319c5a94f444d7c451b93411a71549",
+    "semantic_hash": "d4319c5a94f444d7c451b93411a71549"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/FolderFilePairViewModelTests.cs": {
+    "mtime": 1786799326.4750977,
+    "ast_hash": "3f868f43c4b1f55f2ed695540ce9248e",
+    "semantic_hash": "3f868f43c4b1f55f2ed695540ce9248e"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/ProfileEditorViewModelTests.cs": {
+    "mtime": 1786887767.71163,
+    "ast_hash": "7421e15e3cb0e4384a1c3530f3526813",
+    "semantic_hash": "7421e15e3cb0e4384a1c3530f3526813"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/ProfileStoreTests.cs": {
+    "mtime": 1786887767.7117193,
+    "ast_hash": "6e6eb510b0c5ef1e714b4b1ae6a81cb2",
+    "semantic_hash": "6e6eb510b0c5ef1e714b4b1ae6a81cb2"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/RemoteBrowserDownloadTests.cs": {
+    "mtime": 1786892113.2063432,
+    "ast_hash": "2a3986f6de990f4f5499ea2dbd93b9d7",
+    "semantic_hash": "2a3986f6de990f4f5499ea2dbd93b9d7"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/RemoteBrowserUploadTests.cs": {
+    "mtime": 1786892113.2063932,
+    "ast_hash": "567174a3a8d11995599f8a8e3eda7d46",
+    "semantic_hash": "567174a3a8d11995599f8a8e3eda7d46"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/RemoteBrowserViewModelTests.cs": {
+    "mtime": 1786892113.2064753,
+    "ast_hash": "61c8bd129d48ae264df04e8002446f4c",
+    "semantic_hash": "61c8bd129d48ae264df04e8002446f4c"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/SelectPathDialogViewModelTests.cs": {
+    "mtime": 1786799326.4751537,
+    "ast_hash": "c4db034a4c6eda61d6c973bb9a93b52d",
+    "semantic_hash": "c4db034a4c6eda61d6c973bb9a93b52d"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/SettingsViewModelTests.cs": {
+    "mtime": 1786922404.27681,
+    "ast_hash": "dd83a5e771305aca3aaf35ddf10329f9",
+    "semantic_hash": "dd83a5e771305aca3aaf35ddf10329f9"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/SftpHostKeyFingerprintTests.cs": {
+    "mtime": 1786887767.7118442,
+    "ast_hash": "ec5729690c0f11decec47463767b057a",
+    "semantic_hash": "ec5729690c0f11decec47463767b057a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/UploadServiceTests.cs": {
+    "mtime": 1786892113.2065365,
+    "ast_hash": "bc20b2c00ab4fc57a67183bc46f785e9",
+    "semantic_hash": "bc20b2c00ab4fc57a67183bc46f785e9"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.Tests/xunit.runner.json": {
+    "mtime": 1786922404.27681,
+    "ast_hash": "0c4b660bb5905d9dbd8ea104a4afe8c6",
+    "semantic_hash": "0c4b660bb5905d9dbd8ea104a4afe8c6"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer.sln": {
+    "mtime": 1786799326.4752162,
+    "ast_hash": "2eb6edb249a4ce2df48088275ef1f7e0",
+    "semantic_hash": "2eb6edb249a4ce2df48088275ef1f7e0"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/App.axaml.cs": {
+    "mtime": 1786922404.2769487,
+    "ast_hash": "0f60cd8b81d8828f00028be6fd911bf6",
+    "semantic_hash": "0f60cd8b81d8828f00028be6fd911bf6"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Converters/EnumEqualsConverter.cs": {
+    "mtime": 1786797755.467396,
+    "ast_hash": "ad23a832387d1439eac96b261e81aaee",
+    "semantic_hash": "ad23a832387d1439eac96b261e81aaee"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Converters/LocalFileStatusConverter.cs": {
+    "mtime": 1786887767.7118442,
+    "ast_hash": "a38ebd31bf803b245bf152afb4a4beb4",
+    "semantic_hash": "a38ebd31bf803b245bf152afb4a4beb4"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Converters/NotAnyConverter.cs": {
+    "mtime": 1786887767.7120066,
+    "ast_hash": "4b1979094f07d2a1b6b66b553c22599b",
+    "semantic_hash": "4b1979094f07d2a1b6b66b553c22599b"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/FileExplorer.csproj": {
+    "mtime": 1786922404.2769487,
+    "ast_hash": "b2884eb0373ed1973da193ddd1fc0452",
+    "semantic_hash": "b2884eb0373ed1973da193ddd1fc0452"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/AppSettings.cs": {
+    "mtime": 1786922404.2770758,
+    "ast_hash": "a3a178ec831fa2227170175f77a9f044",
+    "semantic_hash": "a3a178ec831fa2227170175f77a9f044"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/ConnectionProfile.cs": {
+    "mtime": 1786887767.712072,
+    "ast_hash": "900ff270c324ce462e434a199851fe32",
+    "semantic_hash": "900ff270c324ce462e434a199851fe32"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/CopyStateKind.cs": {
+    "mtime": 1786797755.4675124,
+    "ast_hash": "fda864daef09390323d220972cb4defb",
+    "semantic_hash": "fda864daef09390323d220972cb4defb"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/DirectoryListingResult.cs": {
+    "mtime": 1786799326.4752686,
+    "ast_hash": "315e4431234997e5af4f21953b422124",
+    "semantic_hash": "315e4431234997e5af4f21953b422124"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/DiskType.cs": {
+    "mtime": 1786922404.2770758,
+    "ast_hash": "76b24afc6ec7e43fc6d7aec20015cfb5",
+    "semantic_hash": "76b24afc6ec7e43fc6d7aec20015cfb5"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/DownloadFilter.cs": {
+    "mtime": 1786887767.7121632,
+    "ast_hash": "9042f72c0c1b4d66b6c07cded1c41e2a",
+    "semantic_hash": "9042f72c0c1b4d66b6c07cded1c41e2a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/DownloadReport.cs": {
+    "mtime": 1786887767.7122028,
+    "ast_hash": "c80f1f61ddecda01c818a25186f1c231",
+    "semantic_hash": "c80f1f61ddecda01c818a25186f1c231"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/FileSystemItem.cs": {
+    "mtime": 1786735402.7255933,
+    "ast_hash": "91bd366cc47ef10f82f05e89f5a87117",
+    "semantic_hash": "91bd366cc47ef10f82f05e89f5a87117"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/LocalFileStatus.cs": {
+    "mtime": 1786887767.7122028,
+    "ast_hash": "067c78d013b68b83b9d170d8f97853c1",
+    "semantic_hash": "067c78d013b68b83b9d170d8f97853c1"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/PathType.cs": {
+    "mtime": 1786735399.9021401,
+    "ast_hash": "4c591b39f5401a04e8d42c73ff517074",
+    "semantic_hash": "4c591b39f5401a04e8d42c73ff517074"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/RemoteError.cs": {
+    "mtime": 1786887767.712283,
+    "ast_hash": "13bc1d327da6aec6cd5d816fef233c56",
+    "semantic_hash": "13bc1d327da6aec6cd5d816fef233c56"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/RemoteItem.cs": {
+    "mtime": 1786887767.712283,
+    "ast_hash": "fcfcf59bd9eb40aae903c320182bc11c",
+    "semantic_hash": "fcfcf59bd9eb40aae903c320182bc11c"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/RemoteListingResult.cs": {
+    "mtime": 1786887767.7123625,
+    "ast_hash": "12f8b266c0e52170349dbc7ba36d43e3",
+    "semantic_hash": "12f8b266c0e52170349dbc7ba36d43e3"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/RemoteProtocol.cs": {
+    "mtime": 1786887767.7124014,
+    "ast_hash": "5f3692a31ce4ec9b4a694c3a209271ba",
+    "semantic_hash": "5f3692a31ce4ec9b4a694c3a209271ba"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/UploadEntry.cs": {
+    "mtime": 1786892113.2065365,
+    "ast_hash": "772df27baa41f19f4b0a22e6af73038b",
+    "semantic_hash": "772df27baa41f19f4b0a22e6af73038b"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Models/UploadReport.cs": {
+    "mtime": 1786892113.2065365,
+    "ast_hash": "4c09ce8f3433513eb7db199bc4f9467b",
+    "semantic_hash": "4c09ce8f3433513eb7db199bc4f9467b"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/AppSettingsStore.cs": {
+    "mtime": 1786922404.2771864,
+    "ast_hash": "05190eddb93a29267248987de484491a",
+    "semantic_hash": "05190eddb93a29267248987de484491a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/ChecksumService.cs": {
+    "mtime": 1786735416.8498816,
+    "ast_hash": "5652a434e92ee10126ee0d1382926938",
+    "semantic_hash": "5652a434e92ee10126ee0d1382926938"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/CopyParallelismResolver.cs": {
+    "mtime": 1786922404.2772455,
+    "ast_hash": "9a342f874cdb56c198ab3d26d593cf8a",
+    "semantic_hash": "9a342f874cdb56c198ab3d26d593cf8a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/CredentialStoreFactory.cs": {
+    "mtime": 1786887767.7124481,
+    "ast_hash": "777ac0a27ec74616470ee1b7ee02fae4",
+    "semantic_hash": "777ac0a27ec74616470ee1b7ee02fae4"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/DiskTypeService.cs": {
+    "mtime": 1786922404.277323,
+    "ast_hash": "7f0e0a43000990b2f8302057f4e79910",
+    "semantic_hash": "7f0e0a43000990b2f8302057f4e79910"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/DownloadService.cs": {
+    "mtime": 1786887767.712499,
+    "ast_hash": "ee10b6dcc3c32da6122e305b8790e6ff",
+    "semantic_hash": "ee10b6dcc3c32da6122e305b8790e6ff"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/FileCopyService.cs": {
+    "mtime": 1786922404.2774143,
+    "ast_hash": "6c7060d180d29ee03c7f6d968bd618a7",
+    "semantic_hash": "6c7060d180d29ee03c7f6d968bd618a7"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/FileSystemService.cs": {
+    "mtime": 1786799326.4753566,
+    "ast_hash": "fc2cda79a2cfbf581727340ed8e4d90c",
+    "semantic_hash": "fc2cda79a2cfbf581727340ed8e4d90c"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/FtpRemoteClient.cs": {
+    "mtime": 1786892113.2066903,
+    "ast_hash": "5ee07291f3aa4dd505ae5e36262e2a15",
+    "semantic_hash": "5ee07291f3aa4dd505ae5e36262e2a15"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/ICredentialStore.cs": {
+    "mtime": 1786887767.7125936,
+    "ast_hash": "2421ca5172bb5aeaf34454030ecad52f",
+    "semantic_hash": "2421ca5172bb5aeaf34454030ecad52f"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/IRemoteFileClient.cs": {
+    "mtime": 1786892113.2067456,
+    "ast_hash": "da09462dee53ab4118fec38d07b37b70",
+    "semantic_hash": "da09462dee53ab4118fec38d07b37b70"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/MacKeychainCredentialStore.cs": {
+    "mtime": 1786887767.7126825,
+    "ast_hash": "e830d9282eb1cb0ae8466ec733bc09b3",
+    "semantic_hash": "e830d9282eb1cb0ae8466ec733bc09b3"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/NullCredentialStore.cs": {
+    "mtime": 1786887767.7127268,
+    "ast_hash": "bb0e65a3727f9fcd8aff49bf968183c5",
+    "semantic_hash": "bb0e65a3727f9fcd8aff49bf968183c5"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/ProfileStore.cs": {
+    "mtime": 1786887767.7127788,
+    "ast_hash": "0c4149865c38bda6d7e1190757b4dcde",
+    "semantic_hash": "0c4149865c38bda6d7e1190757b4dcde"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/RemoteClientFactory.cs": {
+    "mtime": 1786887767.7128186,
+    "ast_hash": "cf1a815a0536e61751a34bf777b582b1",
+    "semantic_hash": "cf1a815a0536e61751a34bf777b582b1"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/SecretToolCredentialStore.cs": {
+    "mtime": 1786887767.7128656,
+    "ast_hash": "73e0a4da036279572a72aa2e44d00116",
+    "semantic_hash": "73e0a4da036279572a72aa2e44d00116"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/SftpRemoteClient.cs": {
+    "mtime": 1786892113.2068105,
+    "ast_hash": "dc6c77f1995a1173accf25dc100d6fe6",
+    "semantic_hash": "dc6c77f1995a1173accf25dc100d6fe6"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/UploadService.cs": {
+    "mtime": 1786892113.2068548,
+    "ast_hash": "cd3d8b0dbc43937b83b0c88ee09de6f0",
+    "semantic_hash": "cd3d8b0dbc43937b83b0c88ee09de6f0"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Services/WindowsCredentialStore.cs": {
+    "mtime": 1786887767.7129753,
+    "ast_hash": "b05ccb08a45b5e54d00681bffc23bf10",
+    "semantic_hash": "b05ccb08a45b5e54d00681bffc23bf10"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/CopyPairsViewModel.cs": {
+    "mtime": 1786922404.277505,
+    "ast_hash": "50ccbe739892e6cc14bd24b7de942b21",
+    "semantic_hash": "50ccbe739892e6cc14bd24b7de942b21"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/FileBrowserViewModel.cs": {
+    "mtime": 1786736122.1040006,
+    "ast_hash": "57cf127f98e824b63a3f7866fdd66285",
+    "semantic_hash": "57cf127f98e824b63a3f7866fdd66285"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/FolderFilePairViewModel.cs": {
+    "mtime": 1786799326.4755018,
+    "ast_hash": "79fc11c434f26b20ceeca29fad0e309f",
+    "semantic_hash": "79fc11c434f26b20ceeca29fad0e309f"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/MainWindowViewModel.cs": {
+    "mtime": 1786735573.8724601,
+    "ast_hash": "d10df148e2e8a1253b60b33bd4c8a9c6",
+    "semantic_hash": "d10df148e2e8a1253b60b33bd4c8a9c6"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/ProfileEditorViewModel.cs": {
+    "mtime": 1786887767.7130291,
+    "ast_hash": "3e12d923f0bf33dee3bf9718d9c9eaa8",
+    "semantic_hash": "3e12d923f0bf33dee3bf9718d9c9eaa8"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/RemoteBrowserViewModel.cs": {
+    "mtime": 1786892113.206972,
+    "ast_hash": "85273893791b9f89c4325b00938e28b1",
+    "semantic_hash": "85273893791b9f89c4325b00938e28b1"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/RemoteEntryViewModel.cs": {
+    "mtime": 1786887767.713159,
+    "ast_hash": "63eaf181e782864513cc81f768769f8a",
+    "semantic_hash": "63eaf181e782864513cc81f768769f8a"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/SelectPathDialogViewModel.cs": {
+    "mtime": 1786799326.4755642,
+    "ast_hash": "afbce280be94105f8f03c0c118333ebc",
+    "semantic_hash": "afbce280be94105f8f03c0c118333ebc"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/SettingsViewModel.cs": {
+    "mtime": 1786922404.2775624,
+    "ast_hash": "561aa64d8aa2f9bb0ef298ff0b33e73b",
+    "semantic_hash": "561aa64d8aa2f9bb0ef298ff0b33e73b"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/ViewModels/ViewModelBase.cs": {
+    "mtime": 1786735573.8724601,
+    "ast_hash": "40c0ed6b0ef2c4b6ed9b18b439b201a0",
+    "semantic_hash": "40c0ed6b0ef2c4b6ed9b18b439b201a0"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Views/CopyPairsView.axaml.cs": {
+    "mtime": 1786735573.87346,
+    "ast_hash": "823ef147a7907b66e61701cf11ecd024",
+    "semantic_hash": "823ef147a7907b66e61701cf11ecd024"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Views/FileBrowserView.axaml.cs": {
+    "mtime": 1786735573.87346,
+    "ast_hash": "bbbbe640212346380414bb326ca1cb2f",
+    "semantic_hash": "bbbbe640212346380414bb326ca1cb2f"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Views/MainWindow.axaml.cs": {
+    "mtime": 1786735573.87346,
+    "ast_hash": "2a15c1cd2d35dddb4a1312d030846be3",
+    "semantic_hash": "2a15c1cd2d35dddb4a1312d030846be3"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Views/ProfileEditorWindow.axaml.cs": {
+    "mtime": 1786887767.713271,
+    "ast_hash": "49562efe380f20e8b0db0afdee6b14da",
+    "semantic_hash": "49562efe380f20e8b0db0afdee6b14da"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Views/RemoteBrowserView.axaml.cs": {
+    "mtime": 1786892113.2071257,
+    "ast_hash": "29d2028b69d174e1508316d746d42043",
+    "semantic_hash": "29d2028b69d174e1508316d746d42043"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Views/SelectPathDialog.axaml.cs": {
+    "mtime": 1786799326.4756997,
+    "ast_hash": "8f1dd3e6d9a4abd60701eaeb8e53f0ea",
+    "semantic_hash": "8f1dd3e6d9a4abd60701eaeb8e53f0ea"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/FileExplorer/Views/SettingsView.axaml.cs": {
+    "mtime": 1786922404.2776964,
+    "ast_hash": "0cc5112ed002db68f3f7371b235b09b7",
+    "semantic_hash": "0cc5112ed002db68f3f7371b235b09b7"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/CLAUDE.md": {
+    "mtime": 1786887767.7113273,
+    "ast_hash": "d7cb9f2c89d93fdfb908e36107b4dbb5",
+    "semantic_hash": "d7cb9f2c89d93fdfb908e36107b4dbb5"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/IDEE.md": {
+    "mtime": 1786988129.0858014,
+    "ast_hash": "25d58babcd39fe561a2f9c78b411e0a1",
+    "semantic_hash": "25d58babcd39fe561a2f9c78b411e0a1"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/docs/superpowers/plans/2026-08-14-ui-restyle.md": {
+    "mtime": 1786741995.7754076,
+    "ast_hash": "f674a2a223915f5a4f0f1bb28c6bfb84",
+    "semantic_hash": "f674a2a223915f5a4f0f1bb28c6bfb84"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/docs/superpowers/plans/2026-08-15-remote-browser.md": {
+    "mtime": 1786887767.7137702,
+    "ast_hash": "8d9388f2c6a49f82ce45bd11d378a5d5",
+    "semantic_hash": "8d9388f2c6a49f82ce45bd11d378a5d5"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/docs/superpowers/plans/2026-08-16-copy-settings-plan.md": {
+    "mtime": 1786922404.2779844,
+    "ast_hash": "dd76a7e3ff9d64dd88ab4c52244eaeaa",
+    "semantic_hash": "dd76a7e3ff9d64dd88ab4c52244eaeaa"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/docs/superpowers/plans/2026-08-16-ftp-upload.md": {
+    "mtime": 1786892113.2072682,
+    "ast_hash": "b8b9b7d98a3a4fe347a9bc42bbb66b00",
+    "semantic_hash": "b8b9b7d98a3a4fe347a9bc42bbb66b00"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/docs/superpowers/specs/2026-08-14-ui-restyle-design.md": {
+    "mtime": 1786741639.6474597,
+    "ast_hash": "d54c39007dcbd826b295156f1048febe",
+    "semantic_hash": "d54c39007dcbd826b295156f1048febe"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/docs/superpowers/specs/2026-08-15-remote-browser-design.md": {
+    "mtime": 1786887767.7138386,
+    "ast_hash": "ef74ebedccbe5e09c6618b826beaef33",
+    "semantic_hash": "ef74ebedccbe5e09c6618b826beaef33"
+  },
+  "/STORAGE_2/Workspace/FileExplorer/docs/superpowers/specs/2026-08-16-copy-settings-design.md": {
+    "mtime": 1786922404.2780602,
+    "ast_hash": "e039a96a0899576097ae6d7633032359",
+    "semantic_hash": "e039a96a0899576097ae6d7633032359"
+  }
+}
