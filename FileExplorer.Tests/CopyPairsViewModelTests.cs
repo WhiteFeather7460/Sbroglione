@@ -150,6 +150,29 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task StartCopy_SingleFile_WithExtraDestination_ChecksumEnabled_VerifiesAllDestinations()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = true;
+
+        string sourceFile = Path.Combine(_root, "multi-vf-src.txt");
+        await File.WriteAllTextAsync(sourceFile, "verifica multi");
+        string primary = Path.Combine(_root, "multi-vf-d1.txt");
+        string extra = Path.Combine(_root, "multi-vf-d2.txt");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceFile, DestinationPath = primary };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+        Assert.True(pair.IsVerified);
+        Assert.Equal("Completato", pair.Status);
+        Assert.Equal("verifica multi", await File.ReadAllTextAsync(extra));
+    }
+
+    [Fact]
     public async Task StartCopy_Directory_WithExtraDestination_VerifiesEveryDestination()
     {
         AppSettingsStore.Current.VerifyChecksumAfterCopy = true;
