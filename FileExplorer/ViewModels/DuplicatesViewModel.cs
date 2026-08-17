@@ -48,7 +48,7 @@ public class DuplicateGroupViewModel : ReactiveObject
 /// Scheda "Duplicati": scansione di una cartella alla ricerca di file identici,
 /// con eliminazione per singolo file o per gruppo ("tieni solo il primo").
 /// </summary>
-public class DuplicatesViewModel : ViewModelBase
+public class DuplicatesViewModel : ViewModelBase, IDisposable
 {
     private CancellationTokenSource? _scanCts;
 
@@ -164,5 +164,14 @@ public class DuplicatesViewModel : ViewModelBase
     {
         foreach (var file in group.Files.Skip(1).ToList())
             await DeleteFileAsync(file);
+    }
+
+    /// <summary>Annulla e rilascia un'eventuale scansione in corso (chiusura della vista).</summary>
+    public void Dispose()
+    {
+        _scanCts?.Cancel();
+        _scanCts?.Dispose();
+        _scanCts = null;
+        GC.SuppressFinalize(this);
     }
 }
