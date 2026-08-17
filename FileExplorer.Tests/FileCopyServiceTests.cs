@@ -130,7 +130,9 @@ public sealed class FileCopyServiceTests : IDisposable
 
         var progressEvents = new List<CopyProgress>();
         await FileCopyService.CopyDirectoryToManyAsync(
-            sourceRoot, destinationRoots, 2, progressEvents.Add, CancellationToken.None);
+            sourceRoot, destinationRoots, 2,
+            progress => { lock (progressEvents) progressEvents.Add(progress); },
+            CancellationToken.None);
 
         foreach (var destinationRoot in destinationRoots)
         {
@@ -139,6 +141,6 @@ public sealed class FileCopyServiceTests : IDisposable
         }
 
         Assert.Equal(2, progressEvents[0].TotalFiles);
-        Assert.Equal(8, progressEvents[^1].CopiedBytes); // "alfa" + "beta" contati una sola volta
+        Assert.Equal(8, progressEvents.Max(p => p.CopiedBytes)); // "alfa" + "beta" contati una sola volta
     }
 }
