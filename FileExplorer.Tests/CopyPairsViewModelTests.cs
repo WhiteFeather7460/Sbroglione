@@ -83,4 +83,47 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.True(File.Exists(Path.Combine(destinationDir, "a.txt")));
         Assert.True(File.Exists(Path.Combine(destinationDir, "b.txt")));
     }
+
+    [Fact]
+    public async Task StartCopy_Directory_ChecksumEnabled_VerifiesTreeAndMarksSuccess()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = true;
+
+        string sourceDir = Path.Combine(_root, "vsrc");
+        Directory.CreateDirectory(Path.Combine(sourceDir, "sub"));
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.txt"), "aaa");
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "sub", "b.txt"), "bbb");
+        string destinationDir = Path.Combine(_root, "vdst");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceDir, DestinationPath = destinationDir };
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+        Assert.True(pair.IsVerified);
+        Assert.Equal("Completato e verificato (2 file)", pair.Status);
+    }
+
+    [Fact]
+    public async Task StartCopy_Directory_ChecksumDisabled_SkipsVerification()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = false;
+
+        string sourceDir = Path.Combine(_root, "vsrc2");
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.txt"), "aaa");
+        string destinationDir = Path.Combine(_root, "vdst2");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceDir, DestinationPath = destinationDir };
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+        Assert.Null(pair.IsVerified);
+        Assert.Equal("Completato", pair.Status);
+    }
 }

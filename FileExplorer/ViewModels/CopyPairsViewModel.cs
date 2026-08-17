@@ -100,7 +100,7 @@ public class CopyPairsViewModel : ViewModelBase
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
-                // La copia di cartelle non prevede la verifica checksum.
+                // La copia di cartelle verifica il checksum dell'intero albero (se abilitato).
                 await CopyDirectoryAsync(pair, cts.Token);
                 return;
             }
@@ -195,15 +195,41 @@ public class CopyPairsViewModel : ViewModelBase
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes);
 
-        if (!ct.IsCancellationRequested && knownFileCount != 0)
+        if (ct.IsCancellationRequested || knownFileCount == 0)
+        {
+            if (knownFileCount == 0)
+                pair.StateKind = CopyStateKind.Ready;
+            return;
+        }
+
+        if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
             pair.Status = "Completato";
             pair.StateKind = CopyStateKind.Success;
+            return;
         }
-        else if (knownFileCount == 0)
+
+        pair.Status = "Verifica checksum…";
+        var verifyResult = await DirectoryVerificationService.VerifyDirectoryAsync(
+            pair.SourcePath!,
+            pair.DestinationPath!,
+            parallelism,
+            progress => pair.Status = $"Verifica checksum… ({progress.VerifiedFiles}/{progress.TotalFiles})",
+            ct);
+
+        pair.Progress = 1;
+        pair.IsVerified = verifyResult.IsSuccess;
+
+        if (verifyResult.IsSuccess)
         {
-            pair.StateKind = CopyStateKind.Ready;
+            pair.Status = $"Completato e verificato ({verifyResult.TotalFiles} file)";
+            pair.StateKind = CopyStateKind.Success;
+        }
+        else
+        {
+            pair.Status = $"Verifica fallita: {verifyResult.MismatchedFiles.Count} file diversi, {verifyResult.MissingFiles.Count} mancanti";
+            pair.StateKind = CopyStateKind.Warning;
         }
     }
 }
