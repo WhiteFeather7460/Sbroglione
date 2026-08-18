@@ -49,7 +49,7 @@ Stato attuale: la copia di file singoli verifica già il checksum (`CopyPairsVie
 - Consumes: `ChecksumService.ComputeSha256Async(string path, CancellationToken ct)` (esistente).
 - Produces: `DirectoryVerificationService.VerifyDirectoryAsync(string sourceRoot, string destinationRoot, int maxDegreeOfParallelism, Action<VerifyProgress>? onProgress, CancellationToken ct)` → `Task<DirectoryVerifyResult>`; `readonly record struct VerifyProgress(int VerifiedFiles, int TotalFiles)`; `sealed record DirectoryVerifyResult(int TotalFiles, IReadOnlyList<string> MismatchedFiles, IReadOnlyList<string> MissingFiles)` con proprietà `bool IsSuccess`. I path in `MismatchedFiles`/`MissingFiles` sono relativi a `sourceRoot`.
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/DirectoryVerificationServiceTests.cs`:
 
@@ -130,12 +130,12 @@ public sealed class DirectoryVerificationServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~DirectoryVerificationServiceTests"`
 Expected: errore di compilazione — `DirectoryVerificationService` non esiste.
 
-- [ ] **Step 3: Implementare il servizio**
+- [x] **Step 3: Implementare il servizio**
 
 Creare `FileExplorer/Services/DirectoryVerificationService.cs`:
 
@@ -224,12 +224,12 @@ public static class DirectoryVerificationService
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~DirectoryVerificationServiceTests"`
 Expected: 3 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/DirectoryVerificationService.cs FileExplorer.Tests/DirectoryVerificationServiceTests.cs
@@ -248,7 +248,7 @@ git commit -m "feat(verify): aggiungi DirectoryVerificationService per verifica 
 - Consumes: `DirectoryVerificationService.VerifyDirectoryAsync(...)` (Task 1); `AppSettingsStore.Current.VerifyChecksumAfterCopy`; `FolderFilePairViewModel.IsVerified` (bool?), `Status`, `StateKind`, `Progress` (esistenti).
 - Produces: dopo copia cartella con verifica attiva, `pair.IsVerified` valorizzato; `Status` = `"Completato e verificato (N file)"` (successo) o `"Verifica fallita: X file diversi, Y mancanti"` (`StateKind = Warning`).
 
-- [ ] **Step 1: Scrivere il test che fallisce**
+- [x] **Step 1: Scrivere il test che fallisce**
 
 Aggiungere in fondo a `FileExplorer.Tests/CopyPairsViewModelTests.cs` (dentro la classe):
 
@@ -297,12 +297,12 @@ Aggiungere in fondo a `FileExplorer.Tests/CopyPairsViewModelTests.cs` (dentro la
     }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopyPairsViewModelTests"`
 Expected: i due test nuovi FALLISCONO (status `"Completato"` invece di `"Completato e verificato (2 file)"`, `IsVerified` null); gli altri passano.
 
-- [ ] **Step 3: Modificare CopyDirectoryAsync**
+- [x] **Step 3: Modificare CopyDirectoryAsync**
 
 In `FileExplorer/ViewModels/CopyPairsViewModel.cs`:
 
@@ -350,12 +350,12 @@ In `FileExplorer/ViewModels/CopyPairsViewModel.cs`:
 
 Nota: la variabile `parallelism` è già in scope (riga 177).
 
-- [ ] **Step 4: Eseguire tutti i test**
+- [x] **Step 4: Eseguire tutti i test**
 
 Run: `dotnet test`
 Expected: tutti PASS (inclusi i test preesistenti `StartCopy_Directory_CopiesAllFilesWithResolvedParallelism` ecc.; se un test preesistente asserisce `Status == "Completato"` per una copia di cartella con default `VerifyChecksumAfterCopy = true`, aggiornarlo a `"Completato e verificato (N file)"` con N corretto).
 
-- [ ] **Step 5: Build e commit**
+- [x] **Step 5: Build e commit**
 
 Run: `dotnet build FileExplorer.sln` → 0 errori.
 
@@ -364,7 +364,7 @@ git add FileExplorer/ViewModels/CopyPairsViewModel.cs FileExplorer.Tests/CopyPai
 git commit -m "feat(verify): verifica checksum post-copia anche per le cartelle"
 ```
 
-- [ ] **Step 6: PR di fase**
+- [x] **Step 6: PR di fase**
 
 ```bash
 git push -u origin feature/dir-copy-verify
@@ -399,7 +399,7 @@ Una lettura della sorgente, N scritture simultanee. Il pair guadagna destinazion
 **Interfaces:**
 - Produces: `FileCopyService.CopyFileToManyAsync(string sourcePath, IReadOnlyList<string> destinationPaths, Action<long>? onBytesCopied, CancellationToken ct, int bufferSize = DefaultBufferSize)` → `Task`. `onBytesCopied` riceve i byte letti dalla sorgente (contati una sola volta, non per destinazione).
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Aggiungere in `FileExplorer.Tests/FileCopyServiceTests.cs`:
 
@@ -439,12 +439,12 @@ Aggiungere in `FileExplorer.Tests/FileCopyServiceTests.cs`:
     }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~FileCopyServiceTests"`
 Expected: errore di compilazione — `CopyFileToManyAsync` non esiste.
 
-- [ ] **Step 3: Implementare CopyFileToManyAsync**
+- [x] **Step 3: Implementare CopyFileToManyAsync**
 
 Aggiungere in `FileExplorer/Services/FileCopyService.cs`, dopo `CopyFileAsync`:
 
@@ -491,12 +491,12 @@ Aggiungere in `FileExplorer/Services/FileCopyService.cs`, dopo `CopyFileAsync`:
     }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~FileCopyServiceTests"`
 Expected: tutti PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/FileCopyService.cs FileExplorer.Tests/FileCopyServiceTests.cs
@@ -515,7 +515,7 @@ git commit -m "feat(copy): copia file multi-destinazione con lettura singola del
 - Consumes: `CopyFileToManyAsync` (Task 3), `CopyProgress` (esistente).
 - Produces: `FileCopyService.CopyDirectoryToManyAsync(string sourceRoot, IReadOnlyList<string> destinationRoots, int maxDegreeOfParallelism, Action<CopyProgress>? onProgress, CancellationToken ct, int bufferSize = DefaultBufferSize)` → `Task`. `CopyProgress.TotalBytes` = byte della sorgente (una volta sola).
 
-- [ ] **Step 1: Scrivere il test che fallisce**
+- [x] **Step 1: Scrivere il test che fallisce**
 
 Aggiungere in `FileExplorer.Tests/FileCopyServiceTests.cs`:
 
@@ -549,12 +549,12 @@ Aggiungere in `FileExplorer.Tests/FileCopyServiceTests.cs`:
     }
 ```
 
-- [ ] **Step 2: Eseguire il test e verificarne il fallimento**
+- [x] **Step 2: Eseguire il test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~FileCopyServiceTests"`
 Expected: errore di compilazione — `CopyDirectoryToManyAsync` non esiste.
 
-- [ ] **Step 3: Implementare CopyDirectoryToManyAsync**
+- [x] **Step 3: Implementare CopyDirectoryToManyAsync**
 
 Aggiungere in `FileExplorer/Services/FileCopyService.cs`, dopo `CopyDirectoryAsync`:
 
@@ -614,12 +614,12 @@ Aggiungere in `FileExplorer/Services/FileCopyService.cs`, dopo `CopyDirectoryAsy
     }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~FileCopyServiceTests"`
 Expected: tutti PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/FileCopyService.cs FileExplorer.Tests/FileCopyServiceTests.cs
@@ -643,7 +643,7 @@ git commit -m "feat(copy): copia ricorsiva di cartelle verso più destinazioni"
   - `FolderFilePairViewModel.AllDestinations` → `IReadOnlyList<string>` (destinazione primaria + extra).
   - `CopyPairsViewModel.AddExtraDestinationCommand` / `RemoveExtraDestinationCommand` (`ReactiveCommand<FolderFilePairViewModel, Unit>` / `ReactiveCommand<ExtraDestinationViewModel, Unit>`).
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Aggiungere in `FileExplorer.Tests/CopyPairsViewModelTests.cs`:
 
@@ -694,12 +694,12 @@ Aggiungere in `FileExplorer.Tests/CopyPairsViewModelTests.cs`:
     }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopyPairsViewModelTests"`
 Expected: errore di compilazione — `ExtraDestinationViewModel` non esiste.
 
-- [ ] **Step 3: Estendere FolderFilePairViewModel**
+- [x] **Step 3: Estendere FolderFilePairViewModel**
 
 In `FileExplorer/ViewModels/FolderFilePairViewModel.cs` aggiungere in cima al file (dopo gli using, prima della classe esistente):
 
@@ -731,7 +731,7 @@ e dentro `FolderFilePairViewModel` (ad es. dopo la proprietà `DestinationPath`)
 
 Aggiungere `using System.Linq;` agli using del file.
 
-- [ ] **Step 4: Estendere CopyPairsViewModel**
+- [x] **Step 4: Estendere CopyPairsViewModel**
 
 In `FileExplorer/ViewModels/CopyPairsViewModel.cs`:
 
@@ -890,12 +890,12 @@ Nota: la variante a destinazione singola resta un caso particolare (lista con un
             });
 ```
 
-- [ ] **Step 5: Eseguire tutti i test**
+- [x] **Step 5: Eseguire tutti i test**
 
 Run: `dotnet test`
 Expected: tutti PASS (nuovi e preesistenti).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/FolderFilePairViewModel.cs FileExplorer/ViewModels/CopyPairsViewModel.cs FileExplorer.Tests/CopyPairsViewModelTests.cs
@@ -912,7 +912,7 @@ git commit -m "feat(copy): destinazioni extra per coppia con copia e verifica mu
 **Interfaces:**
 - Consumes: `ExtraDestinations`, `AddExtraDestinationCommand`, `RemoveExtraDestinationCommand` (Task 5).
 
-- [ ] **Step 1: Aggiungere la UI**
+- [x] **Step 1: Aggiungere la UI**
 
 In `FileExplorer/Views/CopyPairsView.axaml`, subito dopo il `Grid` commentato `<!-- Destinazione -->` (dopo la riga 76), inserire:
 
@@ -945,12 +945,12 @@ In `FileExplorer/Views/CopyPairsView.axaml`, subito dopo il `Grid` commentato `<
                   </Button>
 ```
 
-- [ ] **Step 2: Build e verifica manuale**
+- [x] **Step 2: Build e verifica manuale**
 
 Run: `dotnet build FileExplorer.sln` → 0 errori.
 Run (facoltativo, macchina con display): `dotnet run --project FileExplorer.Desktop` → nella card: bottone "Aggiungi destinazione" apre il dialog, la riga extra appare con la X per rimuoverla.
 
-- [ ] **Step 3: Commit e PR di fase**
+- [x] **Step 3: Commit e PR di fase**
 
 ```bash
 git add FileExplorer/Views/CopyPairsView.axaml
@@ -993,7 +993,7 @@ Un journal JSON in AppData registra le copie in corso; le voci rimaste dopo un c
   - `CopyFileAsync` e `CopyFileToManyAsync` impostano `File.SetLastWriteTimeUtc(destinazione, mtime sorgente)` a copia conclusa.
   - `CopyDirectoryAsync(..., int bufferSize = DefaultBufferSize, bool skipUnchanged = false)` e `CopyDirectoryToManyAsync(..., int bufferSize = DefaultBufferSize, bool skipUnchanged = false)`: con `skipUnchanged=true` un file è saltato se la destinazione esiste con stessa dimensione e `LastWriteTimeUtc` entro 2 secondi; i byte saltati contano comunque nell'avanzamento (per `…ToManyAsync` il salto avviene solo se TUTTE le destinazioni corrispondono).
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Aggiungere in `FileExplorer.Tests/FileCopyServiceTests.cs`:
 
@@ -1044,12 +1044,12 @@ Aggiungere in `FileExplorer.Tests/FileCopyServiceTests.cs`:
     }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~FileCopyServiceTests"`
 Expected: il test mtime FALLISCE (mtime = ora della copia); il test skip FALLISCE per parametro `skipUnchanged` inesistente (errore di compilazione).
 
-- [ ] **Step 3: Implementare**
+- [x] **Step 3: Implementare**
 
 In `FileExplorer/Services/FileCopyService.cs`:
 
@@ -1125,12 +1125,12 @@ In `CopyDirectoryToManyAsync`, dopo il calcolo di `destinationFiles`:
     }
 ```
 
-- [ ] **Step 4: Eseguire tutti i test**
+- [x] **Step 4: Eseguire tutti i test**
 
 Run: `dotnet test`
 Expected: tutti PASS (i test esistenti non asseriscono i timestamp, restano verdi).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/FileCopyService.cs FileExplorer.Tests/FileCopyServiceTests.cs
@@ -1151,7 +1151,7 @@ git commit -m "feat(copy): preserva mtime e aggiungi skipUnchanged per la ripres
   - `CopyJobRecord`: `Guid Id` (default `Guid.NewGuid()`), `string SourcePath`, `string DestinationPath`, `List<string> ExtraDestinations`, `DateTime StartedUtc`.
   - `CopyJournalStore` (statico, pattern `AppSettingsStore`): `string DefaultPath`, `string CurrentPath { get; set; }`, `Task<List<CopyJobRecord>> LoadAsync()`, `Task AddAsync(CopyJobRecord record)`, `Task RemoveAsync(Guid id)`, `Task ClearAsync()`. Scrittura atomica (tmp + move), accessi serializzati da `SemaphoreSlim`, file corrotto/assente → lista vuota.
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/CopyJournalStoreTests.cs`:
 
@@ -1231,12 +1231,12 @@ public sealed class CopyJournalStoreTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopyJournalStoreTests"`
 Expected: errore di compilazione — tipi inesistenti.
 
-- [ ] **Step 3: Implementare modello e store**
+- [x] **Step 3: Implementare modello e store**
 
 Creare `FileExplorer/Models/CopyJobRecord.cs`:
 
@@ -1373,12 +1373,12 @@ public static class CopyJournalStore
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopyJournalStoreTests"`
 Expected: 4 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Models/CopyJobRecord.cs FileExplorer/Services/CopyJournalStore.cs FileExplorer.Tests/CopyJournalStoreTests.cs
@@ -1402,7 +1402,7 @@ git commit -m "feat(journal): journal persistente delle copie in corso"
   - All'avvio: voci residue nel journal → coppie in `PathPairs` con `Status = "Interrotto — premere Avvia per riprendere"`, `StateKind = Warning`, `SkipUnchanged = true`; journal svuotato dopo il ripristino.
   - Durante `StartCopyAsync`: voce aggiunta prima della copia, rimossa nel `finally` (successo, errore o annullamento — solo il crash la lascia su disco).
 
-- [ ] **Step 1: Aggiornare il setup dei test esistenti**
+- [x] **Step 1: Aggiornare il setup dei test esistenti**
 
 In `FileExplorer.Tests/CopyPairsViewModelTests.cs` il costruttore deve reindirizzare il journal (altrimenti i test leggono/scrivono l'AppData reale). Sostituire costruttore e `Dispose` (righe 12-24) con:
 
@@ -1429,7 +1429,7 @@ In `FileExplorer.Tests/CopyPairsViewModelTests.cs` il costruttore deve reindiriz
 
 (la dichiarazione `private readonly string _originalJournalPath;` va accanto agli altri campi).
 
-- [ ] **Step 2: Scrivere i test che falliscono**
+- [x] **Step 2: Scrivere i test che falliscono**
 
 Aggiungere in `FileExplorer.Tests/CopyPairsViewModelTests.cs`:
 
@@ -1483,12 +1483,12 @@ Aggiungere in `FileExplorer.Tests/CopyPairsViewModelTests.cs`:
     }
 ```
 
-- [ ] **Step 3: Eseguire i test e verificarne il fallimento**
+- [x] **Step 3: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopyPairsViewModelTests"`
 Expected: errore di compilazione — `JournalRestore` e `SkipUnchanged` non esistono.
 
-- [ ] **Step 4: Implementare**
+- [x] **Step 4: Implementare**
 
 1. In `FileExplorer/ViewModels/FolderFilePairViewModel.cs`, dentro la classe:
 
@@ -1571,12 +1571,12 @@ e nel blocco `finally` esistente, come prima istruzione:
 
 3. In `CopyDirectoryAsync`, passare il flag alla copia: nella chiamata a `FileCopyService.CopyDirectoryToManyAsync` aggiungere l'argomento finale `skipUnchanged: pair.SkipUnchanged`.
 
-- [ ] **Step 5: Eseguire tutti i test**
+- [x] **Step 5: Eseguire tutti i test**
 
 Run: `dotnet test`
 Expected: tutti PASS.
 
-- [ ] **Step 6: Build, commit e PR di fase**
+- [x] **Step 6: Build, commit e PR di fase**
 
 Run: `dotnet build FileExplorer.sln` → 0 errori.
 
@@ -1620,7 +1620,7 @@ Nuova tab "Duplicati": scansione a cascata (dimensione → hash parziale 64 KB �
   - `ChecksumService.ComputeSha256Async(string path, long maxBytes, CancellationToken ct = default)` → `Task<string>`: SHA-256 dei primi `maxBytes` byte (dell'intero file se più corto). Con `maxBytes >= lunghezza file` il risultato coincide con l'overload esistente.
   - `SizeFormatter.Format(long bytes)` → `string` (`"512 B"`, `"1.5 KB"`, `"2.34 MB"`, `"1.02 GB"`; separatore decimale invariante di formattazione `.` non richiesto — usare la cultura corrente come il resto dell'app).
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/ChecksumServiceTests.cs`:
 
@@ -1684,12 +1684,12 @@ public sealed class ChecksumServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~ChecksumServiceTests"`
 Expected: errore di compilazione — overload e `SizeFormatter` inesistenti.
 
-- [ ] **Step 3: Implementare**
+- [x] **Step 3: Implementare**
 
 Aggiungere in `FileExplorer/Services/ChecksumService.cs`:
 
@@ -1737,12 +1737,12 @@ public static class SizeFormatter
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~ChecksumServiceTests"`
 Expected: 3 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/ChecksumService.cs FileExplorer/Services/SizeFormatter.cs FileExplorer.Tests/ChecksumServiceTests.cs
@@ -1764,7 +1764,7 @@ git commit -m "feat(dedup): hash SHA-256 parziale e formattazione dimensioni"
   - `readonly record struct DuplicateScanProgress(string Stage, int Processed, int Total)`.
   - `DuplicateFinderService.FindDuplicatesAsync(string rootPath, int maxDegreeOfParallelism, Action<DuplicateScanProgress>? onProgress, CancellationToken ct)` → `Task<IReadOnlyList<DuplicateGroup>>`. File a dimensione 0 e file illeggibili sono ignorati.
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/DuplicateFinderServiceTests.cs`:
 
@@ -1851,12 +1851,12 @@ public sealed class DuplicateFinderServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~DuplicateFinderServiceTests"`
 Expected: errore di compilazione — `DuplicateFinderService` non esiste.
 
-- [ ] **Step 3: Implementare il servizio**
+- [x] **Step 3: Implementare il servizio**
 
 Creare `FileExplorer/Services/DuplicateFinderService.cs`:
 
@@ -1989,12 +1989,12 @@ public static class DuplicateFinderService
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~DuplicateFinderServiceTests"`
 Expected: 4 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/DuplicateFinderService.cs FileExplorer.Tests/DuplicateFinderServiceTests.cs
@@ -2019,7 +2019,7 @@ git commit -m "feat(dedup): ricerca duplicati a cascata dimensione/hash parziale
   - `DuplicateGroupViewModel`: ctor `(DuplicateGroup group)`; proprietà `long FileSize`, `ObservableCollection<DuplicateFileViewModel> Files`, `string Header` (aggiornata al variare di `Files`).
   - `DuplicatesViewModel`: proprietà `RootPath` (string?), `IsScanning` (bool), `StatusText` (string), `HasGroups` (bool), `Groups` (`ObservableCollection<DuplicateGroupViewModel>`); comandi `BrowseRootCommand`, `ScanCommand`, `CancelScanCommand`, `DeleteFileCommand` (`ReactiveCommand<DuplicateFileViewModel, Unit>`), `KeepFirstCommand` (`ReactiveCommand<DuplicateGroupViewModel, Unit>`); metodi pubblici awaitabili nei test: `Task ScanAsync()`, `Task DeleteFileAsync(DuplicateFileViewModel file)`, `Task KeepFirstAsync(DuplicateGroupViewModel group)`.
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/DuplicatesViewModelTests.cs`:
 
@@ -2098,12 +2098,12 @@ public sealed class DuplicatesViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~DuplicatesViewModelTests"`
 Expected: errore di compilazione — `DuplicatesViewModel` non esiste.
 
-- [ ] **Step 3: Estrarre l'helper dialog**
+- [x] **Step 3: Estrarre l'helper dialog**
 
 Creare `FileExplorer/ViewModels/SelectPathDialogHelper.cs`:
 
@@ -2137,7 +2137,7 @@ internal static class SelectPathDialogHelper
 
 In `FileExplorer/ViewModels/CopyPairsViewModel.cs`: eliminare il metodo privato `ShowSelectPathDialogAsync` (righe 63-76) e sostituire le sue chiamate con `SelectPathDialogHelper.ShowAsync(...)` (in `BrowseSourceAsync`, `BrowseDestinationAsync`, `AddExtraDestinationAsync`). Rimuovere gli using rimasti orfani (`Avalonia.Controls.ApplicationLifetimes`, `FileExplorer.Views`) se il compilatore li segnala inutilizzati.
 
-- [ ] **Step 4: Implementare i ViewModel**
+- [x] **Step 4: Implementare i ViewModel**
 
 Creare `FileExplorer/ViewModels/DuplicatesViewModel.cs`:
 
@@ -2312,12 +2312,12 @@ public class DuplicatesViewModel : ViewModelBase
 }
 ```
 
-- [ ] **Step 5: Eseguire tutti i test**
+- [x] **Step 5: Eseguire tutti i test**
 
 Run: `dotnet test`
 Expected: tutti PASS (inclusi i CopyPairsViewModelTests dopo il refactoring dell'helper).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/SelectPathDialogHelper.cs FileExplorer/ViewModels/DuplicatesViewModel.cs FileExplorer/ViewModels/CopyPairsViewModel.cs FileExplorer.Tests/DuplicatesViewModelTests.cs
@@ -2336,7 +2336,7 @@ git commit -m "feat(dedup): DuplicatesViewModel con scansione, eliminazione e he
 **Interfaces:**
 - Consumes: `DuplicatesViewModel` (Task 12) e tutte le sue proprietà/comandi.
 
-- [ ] **Step 1: Creare la vista**
+- [x] **Step 1: Creare la vista**
 
 `FileExplorer/Views/DuplicatesView.axaml`:
 
@@ -2447,7 +2447,7 @@ public partial class DuplicatesView : UserControl
 }
 ```
 
-- [ ] **Step 2: Aggiungere la tab**
+- [x] **Step 2: Aggiungere la tab**
 
 In `FileExplorer/Views/MainWindow.axaml`, prima della TabItem "Impostazioni" (riga 30), inserire:
 
@@ -2463,13 +2463,13 @@ In `FileExplorer/Views/MainWindow.axaml`, prima della TabItem "Impostazioni" (ri
     </TabItem>
 ```
 
-- [ ] **Step 3: Build, test e verifica manuale**
+- [x] **Step 3: Build, test e verifica manuale**
 
 Run: `dotnet build FileExplorer.sln` → 0 errori.
 Run: `dotnet test` → tutti PASS.
 Run (facoltativo): `dotnet run --project FileExplorer.Desktop` → tab "Duplicati": selezione cartella, Analizza popola i gruppi, cestino elimina.
 
-- [ ] **Step 4: Commit e PR di fase**
+- [x] **Step 4: Commit e PR di fase**
 
 ```bash
 git add FileExplorer/Views/DuplicatesView.axaml FileExplorer/Views/DuplicatesView.axaml.cs FileExplorer/Views/MainWindow.axaml
@@ -2511,7 +2511,7 @@ Nuova tab "Spazio disco": scansione ricorsiva delle dimensioni, layout "squarifi
   - `DiskUsageNode`: `string Name`, `string FullPath`, `long SizeBytes`, `bool IsDirectory`, `List<DiskUsageNode> Children`.
   - `DiskUsageService.BuildTreeAsync(string rootPath, Action<int>? onFilesScanned, CancellationToken ct)` → `Task<DiskUsageNode>`: dimensioni delle cartelle = somma ricorsiva; cartelle inaccessibili ignorate; il callback riceve il conteggio file ogni 256 file.
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/DiskUsageServiceTests.cs`:
 
@@ -2565,12 +2565,12 @@ public sealed class DiskUsageServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~DiskUsageServiceTests"`
 Expected: errore di compilazione — tipi inesistenti.
 
-- [ ] **Step 3: Implementare**
+- [x] **Step 3: Implementare**
 
 Creare `FileExplorer/Models/DiskUsageNode.cs`:
 
@@ -2667,12 +2667,12 @@ public static class DiskUsageService
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~DiskUsageServiceTests"`
 Expected: 2 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Models/DiskUsageNode.cs FileExplorer/Services/DiskUsageService.cs FileExplorer.Tests/DiskUsageServiceTests.cs
@@ -2692,7 +2692,7 @@ git commit -m "feat(treemap): albero di occupazione disco con scansione ricorsiv
   - `readonly record struct TreemapRect(double X, double Y, double Width, double Height)` con proprietà `double Area => Width * Height`.
   - `TreemapLayout.Compute(IReadOnlyList<long> values, double x, double y, double width, double height)` → `IReadOnlyList<TreemapRect>`: il rettangolo i-esimo corrisponde al valore i-esimo; area proporzionale al valore; i valori vanno passati in ordine decrescente per un layout ottimale (non è un requisito di correttezza); valori ≤ 0 producono rettangoli vuoti (default `TreemapRect`).
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/TreemapLayoutTests.cs`:
 
@@ -2760,12 +2760,12 @@ public sealed class TreemapLayoutTests
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~TreemapLayoutTests"`
 Expected: errore di compilazione — `TreemapLayout` non esiste.
 
-- [ ] **Step 3: Implementare l'algoritmo**
+- [x] **Step 3: Implementare l'algoritmo**
 
 Creare `FileExplorer/Services/TreemapLayout.cs`:
 
@@ -2902,12 +2902,12 @@ public static class TreemapLayout
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~TreemapLayoutTests"`
 Expected: 4 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/TreemapLayout.cs FileExplorer.Tests/TreemapLayoutTests.cs
@@ -2926,7 +2926,7 @@ git commit -m "feat(treemap): layout squarified puro e testato"
 - Consumes: `DiskUsageService.BuildTreeAsync` (Task 14), `DiskUsageNode` (Task 14), `SizeFormatter.Format` (Task 10), `SelectPathDialogHelper.ShowAsync` (Task 12).
 - Produces: `DiskUsageViewModel` con proprietà `RootPath` (string?), `IsScanning` (bool), `StatusText` (string), `CurrentNode` (`DiskUsageNode?`), `CurrentPathText` (string), `CanNavigateUp` (bool); comandi `BrowseRootCommand`, `ScanCommand`, `CancelScanCommand`, `NavigateUpCommand`; metodi pubblici `Task ScanAsync()`, `void DrillDown(DiskUsageNode node)`, `void NavigateUp()`.
 
-- [ ] **Step 1: Scrivere i test che falliscono**
+- [x] **Step 1: Scrivere i test che falliscono**
 
 Creare `FileExplorer.Tests/DiskUsageViewModelTests.cs`:
 
@@ -3000,12 +3000,12 @@ public sealed class DiskUsageViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Eseguire i test e verificarne il fallimento**
+- [x] **Step 2: Eseguire i test e verificarne il fallimento**
 
 Run: `dotnet test --filter "FullyQualifiedName~DiskUsageViewModelTests"`
 Expected: errore di compilazione — `DiskUsageViewModel` non esiste.
 
-- [ ] **Step 3: Implementare il ViewModel**
+- [x] **Step 3: Implementare il ViewModel**
 
 Creare `FileExplorer/ViewModels/DiskUsageViewModel.cs`:
 
@@ -3152,12 +3152,12 @@ public class DiskUsageViewModel : ViewModelBase
 }
 ```
 
-- [ ] **Step 4: Eseguire i test e verificarne il successo**
+- [x] **Step 4: Eseguire i test e verificarne il successo**
 
 Run: `dotnet test --filter "FullyQualifiedName~DiskUsageViewModelTests"`
 Expected: 3 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/DiskUsageViewModel.cs FileExplorer.Tests/DiskUsageViewModelTests.cs
@@ -3176,7 +3176,7 @@ git commit -m "feat(treemap): DiskUsageViewModel con scansione e navigazione dri
 - Consumes: `TreemapLayout.Compute` (Task 15), `DiskUsageNode` (Task 14), `SizeFormatter.Format` (Task 10), brush `Brush.Treemap.1`…`Brush.Treemap.6` (questo task).
 - Produces: `TreemapControl : Canvas` con `StyledProperty<DiskUsageNode?> NodeProperty` (proprietà CLR `Node`) ed evento `event Action<DiskUsageNode>? NodeActivated` (click su un tassello). Ricostruisce i tasselli al cambio di `Node` o delle dimensioni.
 
-- [ ] **Step 1: Aggiungere i brush alla palette**
+- [x] **Step 1: Aggiungere i brush alla palette**
 
 In `FileExplorer/Styles/Palette.axaml`, nel dizionario `Light` (dopo `Brush.NeutralFg`, riga 29):
 
@@ -3200,7 +3200,7 @@ nel dizionario `Dark` (dopo `Brush.NeutralFg`, riga 47):
       <SolidColorBrush x:Key="Brush.Treemap.6" Color="#6B5546" />
 ```
 
-- [ ] **Step 2: Implementare il controllo**
+- [x] **Step 2: Implementare il controllo**
 
 Creare `FileExplorer/Views/TreemapControl.cs`:
 
@@ -3311,11 +3311,11 @@ public class TreemapControl : Canvas
 
 Nota per l'esecutore: `FindResource(ThemeVariant, object key)` è l'extension in `Avalonia.Controls.ResourceNodeExtensions`; se la firma con `ThemeVariant` non fosse disponibile nella versione di Avalonia in uso, ripiegare su `this.TryFindResource(key, ActualThemeVariant, out var value)` e castare `value`.
 
-- [ ] **Step 3: Build**
+- [x] **Step 3: Build**
 
 Run: `dotnet build FileExplorer.sln` → 0 errori.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add FileExplorer/Views/TreemapControl.cs FileExplorer/Styles/Palette.axaml
@@ -3334,7 +3334,7 @@ git commit -m "feat(treemap): controllo treemap con tasselli cliccabili e palett
 **Interfaces:**
 - Consumes: `DiskUsageViewModel` (Task 16), `TreemapControl` (Task 17).
 
-- [ ] **Step 1: Creare la vista**
+- [x] **Step 1: Creare la vista**
 
 `FileExplorer/Views/DiskUsageView.axaml`:
 
@@ -3415,7 +3415,7 @@ public partial class DiskUsageView : UserControl
 }
 ```
 
-- [ ] **Step 2: Aggiungere la tab**
+- [x] **Step 2: Aggiungere la tab**
 
 In `FileExplorer/Views/MainWindow.axaml`, prima della TabItem "Impostazioni" (dopo "Duplicati", se la Fase 4 è già mergiata), inserire:
 
@@ -3431,13 +3431,13 @@ In `FileExplorer/Views/MainWindow.axaml`, prima della TabItem "Impostazioni" (do
     </TabItem>
 ```
 
-- [ ] **Step 3: Build, test e verifica manuale**
+- [x] **Step 3: Build, test e verifica manuale**
 
 Run: `dotnet build FileExplorer.sln` → 0 errori.
 Run: `dotnet test` → tutti PASS.
 Run (facoltativo): `dotnet run --project FileExplorer.Desktop` → tab "Spazio disco": Analizza mostra la treemap, click su una cartella entra, freccia su risale, tooltip con nome e dimensione; verificare anche in tema Dark.
 
-- [ ] **Step 4: Commit e PR di fase**
+- [x] **Step 4: Commit e PR di fase**
 
 ```bash
 git add FileExplorer/Views/DiskUsageView.axaml FileExplorer/Views/DiskUsageView.axaml.cs FileExplorer/Views/MainWindow.axaml

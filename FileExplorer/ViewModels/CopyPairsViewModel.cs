@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls.ApplicationLifetimes;
 using FileExplorer.Models;
 using FileExplorer.Services;
-using FileExplorer.Views;
 using ReactiveUI;
 
 namespace FileExplorer.ViewModels;
@@ -50,42 +49,74 @@ public class CopyPairsViewModel : ViewModelBase
         AddExtraDestinationCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(AddExtraDestinationAsync);
         RemoveExtraDestinationCommand = ReactiveCommand.Create<ExtraDestinationViewModel>(
             extra => extra.Owner.ExtraDestinations.Remove(extra));
+
+        JournalRestore = RestoreInterruptedJobsAsync();
+    }
+
+    /// <summary>
+    /// Task del ripristino delle copie interrotte, avviato dal costruttore.
+    /// I test lo attendono; la UI non ne ha bisogno.
+    /// </summary>
+    public Task JournalRestore { get; }
+
+    /// <summary>
+    /// Ripropone come coppie "interrotte" le voci rimaste nel journal
+    /// (copie in corso al momento di un crash/chiusura), poi svuota il journal.
+    /// </summary>
+    private async Task RestoreInterruptedJobsAsync()
+    {
+        List<CopyJobRecord> jobs = await CopyJournalStore.LoadAsync();
+        if (jobs.Count == 0)
+            return;
+
+        foreach (var job in jobs)
+        {
+            var pair = new FolderFilePairViewModel
+            {
+                SourcePath = job.SourcePath,
+                DestinationPath = job.DestinationPath,
+                SkipUnchanged = true,
+                Status = "Interrotto — premere Avvia per riprendere",
+                StateKind = CopyStateKind.Warning
+            };
+
+            foreach (var extra in job.ExtraDestinations)
+                pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
+
+            PathPairs.Add(pair);
+        }
+
+        try
+        {
+            // Svuotato solo dopo che le coppie sono state ripristinate in memoria:
+            // un fallimento qui causa al più un'offerta duplicata al prossimo avvio.
+            await CopyJournalStore.ClearAsync();
+        }
+        catch (Exception)
+        {
+            // best effort.
+        }
     }
 
     private async Task BrowseSourceAsync(FolderFilePairViewModel pair)
     {
-        var selected = await ShowSelectPathDialogAsync(directoriesOnly: false, pair.SourcePath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: false, pair.SourcePath);
         if (!string.IsNullOrEmpty(selected))
             pair.SourcePath = selected;
     }
 
     private async Task BrowseDestinationAsync(FolderFilePairViewModel pair)
     {
-        var selected = await ShowSelectPathDialogAsync(directoriesOnly: true, pair.DestinationPath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, pair.DestinationPath);
         if (!string.IsNullOrEmpty(selected))
             pair.DestinationPath = selected;
     }
 
     private async Task AddExtraDestinationAsync(FolderFilePairViewModel pair)
     {
-        var selected = await ShowSelectPathDialogAsync(directoriesOnly: true, pair.DestinationPath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, pair.DestinationPath);
         if (!string.IsNullOrEmpty(selected))
             pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, selected));
-    }
-
-    private static async Task<string?> ShowSelectPathDialogAsync(bool directoriesOnly, string? currentPath)
-    {
-        var dialog = new SelectPathDialog
-        {
-            DataContext = new SelectPathDialogViewModel(
-                directoriesOnly,
-                currentPath ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
-        };
-
-        if ((App.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } owner)
-            return null;
-
-        return await dialog.ShowDialog<string?>(owner);
     }
 
     public async Task StartCopyAsync(FolderFilePairViewModel pair)
@@ -97,6 +128,25 @@ public class CopyPairsViewModel : ViewModelBase
             return;
         }
 
+        IReadOnlyList<string> destinations = pair.AllDestinations;
+
+        var journalRecord = new CopyJobRecord
+        {
+            SourcePath = pair.SourcePath!,
+            DestinationPath = pair.DestinationPath!,
+            ExtraDestinations = pair.ExtraDestinations.Select(e => e.Path).ToList(),
+            StartedUtc = DateTime.UtcNow
+        };
+
+        try
+        {
+            await CopyJournalStore.AddAsync(journalRecord);
+        }
+        catch (Exception)
+        {
+            // best effort: senza voce nel journal si perde solo l'offerta di ripresa dopo un crash.
+        }
+
         var cts = new CancellationTokenSource();
         _ctsByPair[pair] = cts;
 
@@ -106,7 +156,7 @@ public class CopyPairsViewModel : ViewModelBase
             // (in background: su percorsi di rete può bloccare).
             await Task.Run(() =>
             {
-                foreach (var destination in pair.AllDestinations)
+                foreach (var destination in destinations)
                     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             });
 
@@ -114,15 +164,16 @@ public class CopyPairsViewModel : ViewModelBase
             pair.Progress = 0;
             pair.Status = "Copia in corso…";
             pair.StateKind = CopyStateKind.Copying;
+            pair.IsVerified = null;
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
                 // La copia di cartelle verifica il checksum dell'intero albero (se abilitato).
-                await CopyDirectoryAsync(pair, cts.Token);
+                await CopyDirectoryAsync(pair, destinations, cts.Token);
                 return;
             }
 
-            await CopySingleFileAsync(pair, cts.Token);
+            await CopySingleFileAsync(pair, destinations, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -136,6 +187,15 @@ public class CopyPairsViewModel : ViewModelBase
         }
         finally
         {
+            try
+            {
+                await CopyJournalStore.RemoveAsync(journalRecord.Id);
+            }
+            catch (Exception)
+            {
+                // best effort: una voce residua causa solo una nuova offerta di ripresa al prossimo avvio.
+            }
+
             pair.IsCopying = false;
 
             if (_ctsByPair.Remove(pair, out var toDispose))
@@ -149,11 +209,11 @@ public class CopyPairsViewModel : ViewModelBase
             cts.Cancel();
     }
 
-    private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, CancellationToken ct)
+    private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         // Se la sorgente è un file e una destinazione è una cartella, il file viene copiato dentro la cartella.
         var destinationFiles = new List<string>();
-        foreach (var destination in pair.AllDestinations)
+        foreach (var destination in destinations)
         {
             bool intoFolder = await FileSystemService.GetPathTypeAsync(destination) == PathType.Directory;
             destinationFiles.Add(intoFolder
@@ -196,13 +256,13 @@ public class CopyPairsViewModel : ViewModelBase
         pair.StateKind = allMatch ? CopyStateKind.Success : CopyStateKind.Warning;
     }
 
-    private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, CancellationToken ct)
+    private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         int knownFileCount = -1;
 
         var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
         int parallelism = int.MaxValue;
-        foreach (var destination in pair.AllDestinations)
+        foreach (var destination in destinations)
         {
             var destinationType = await DiskTypeService.GetDiskTypeAsync(destination, ct);
             parallelism = Math.Min(
@@ -212,7 +272,7 @@ public class CopyPairsViewModel : ViewModelBase
 
         await FileCopyService.CopyDirectoryToManyAsync(
             pair.SourcePath!,
-            pair.AllDestinations,
+            destinations,
             maxDegreeOfParallelism: parallelism,
             onProgress: progress =>
             {
@@ -227,7 +287,8 @@ public class CopyPairsViewModel : ViewModelBase
                 pair.Progress = progress.Fraction;
             },
             ct,
-            bufferSize: AppSettingsStore.Current.BufferSizeBytes);
+            bufferSize: AppSettingsStore.Current.BufferSizeBytes,
+            skipUnchanged: pair.SkipUnchanged);
 
         if (ct.IsCancellationRequested || knownFileCount == 0)
         {
@@ -249,7 +310,7 @@ public class CopyPairsViewModel : ViewModelBase
         int mismatchedTotal = 0;
         int missingTotal = 0;
 
-        foreach (var destination in pair.AllDestinations)
+        foreach (var destination in destinations)
         {
             var verifyResult = await DirectoryVerificationService.VerifyDirectoryAsync(
                 pair.SourcePath!,

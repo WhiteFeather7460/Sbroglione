@@ -8,6 +8,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
 {
     private readonly string _root;
     private readonly AppSettings _originalCurrent;
+    private readonly string _originalJournalPath;
 
     public CopyPairsViewModelTests()
     {
@@ -15,11 +16,14 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Directory.CreateDirectory(_root);
         _originalCurrent = AppSettingsStore.Current;
         AppSettingsStore.Current = new AppSettings();
+        _originalJournalPath = CopyJournalStore.CurrentPath;
+        CopyJournalStore.CurrentPath = Path.Combine(_root, "copy-journal.json");
     }
 
     public void Dispose()
     {
         AppSettingsStore.Current = _originalCurrent;
+        CopyJournalStore.CurrentPath = _originalJournalPath;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
@@ -193,5 +197,53 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.Equal(CopyStateKind.Success, pair.StateKind);
         Assert.True(pair.IsVerified);
         Assert.Equal("aaa", await File.ReadAllTextAsync(Path.Combine(extra, "a.txt")));
+    }
+
+    [Fact]
+    public async Task Constructor_JournalWithLeftoverRecord_RestoresInterruptedPair()
+    {
+        string sourceDir = Path.Combine(_root, "jrn-src");
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.txt"), "aaa");
+
+        await CopyJournalStore.AddAsync(new CopyJobRecord
+        {
+            SourcePath = sourceDir,
+            DestinationPath = Path.Combine(_root, "jrn-dst"),
+            ExtraDestinations = { Path.Combine(_root, "jrn-dst2") }
+        });
+
+        var vm = new CopyPairsViewModel();
+        await vm.JournalRestore;
+
+        var pair = Assert.Single(vm.PathPairs);
+        Assert.Equal(sourceDir, pair.SourcePath);
+        Assert.Equal(CopyStateKind.Warning, pair.StateKind);
+        Assert.Equal("Interrotto — premere Avvia per riprendere", pair.Status);
+        Assert.True(pair.SkipUnchanged);
+        Assert.Single(pair.ExtraDestinations);
+        Assert.Empty(await CopyJournalStore.LoadAsync()); // journal svuotato dopo il ripristino
+    }
+
+    [Fact]
+    public async Task StartCopy_SuccessfulCopy_LeavesJournalEmpty()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = false;
+
+        string sourceFile = Path.Combine(_root, "jrn-file.txt");
+        await File.WriteAllTextAsync(sourceFile, "contenuto");
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = sourceFile,
+            DestinationPath = Path.Combine(_root, "jrn-file-dst.txt")
+        };
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.JournalRestore;
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+        Assert.Empty(await CopyJournalStore.LoadAsync());
     }
 }

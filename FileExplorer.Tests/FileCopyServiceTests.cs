@@ -144,4 +144,49 @@ public sealed class FileCopyServiceTests : IDisposable
         Assert.Equal(2, progressEvents[0].TotalFiles);
         Assert.Equal(8, progressEvents.Max(p => p.CopiedBytes)); // "alfa" + "beta" contati una sola volta
     }
+
+    [Fact]
+    public async Task CopyFileAsync_PreservesSourceLastWriteTime()
+    {
+        string source = Path.Combine(_root, "mtime-src.bin");
+        string destination = Path.Combine(_root, "mtime-dst.bin");
+        await File.WriteAllBytesAsync(source, new byte[10]);
+        var sourceTime = new DateTime(2020, 5, 1, 12, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(source, sourceTime);
+
+        await FileCopyService.CopyFileAsync(source, destination, null, CancellationToken.None);
+
+        Assert.Equal(sourceTime, File.GetLastWriteTimeUtc(destination));
+    }
+
+    [Fact]
+    public async Task CopyDirectoryAsync_SkipUnchanged_LeavesMatchingDestinationFilesUntouched()
+    {
+        string sourceRoot = Path.Combine(_root, "skip-src");
+        string destinationRoot = Path.Combine(_root, "skip-dst");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "same.txt"), "12345");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "grown.txt"), "abc");
+
+        // Prima copia completa.
+        await FileCopyService.CopyDirectoryAsync(sourceRoot, destinationRoot, 1, null, CancellationToken.None);
+
+        // Marcatore in destinazione: stessa lunghezza e stesso mtime → deve sopravvivere al re-run.
+        await File.WriteAllTextAsync(Path.Combine(destinationRoot, "same.txt"), "MARKR");
+        File.SetLastWriteTimeUtc(
+            Path.Combine(destinationRoot, "same.txt"),
+            File.GetLastWriteTimeUtc(Path.Combine(sourceRoot, "same.txt")));
+
+        // La sorgente di grown.txt cambia dimensione → deve essere ricopiato.
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "grown.txt"), "abcdef");
+
+        var progressEvents = new List<CopyProgress>();
+        await FileCopyService.CopyDirectoryAsync(
+            sourceRoot, destinationRoot, 1, progressEvents.Add, CancellationToken.None,
+            skipUnchanged: true);
+
+        Assert.Equal("MARKR", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "same.txt")));
+        Assert.Equal("abcdef", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "grown.txt")));
+        Assert.Equal(progressEvents[^1].TotalBytes, progressEvents[^1].CopiedBytes); // i saltati contano
+    }
 }

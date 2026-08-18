@@ -8,11 +8,11 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 ## Copia & trasferimento
 
-1. `[ ]` **Verifica post-copia automatica (copy + verify)** — dopo ogni copia, ricalcolo del checksum sorgente/destinazione e report degli eventuali mismatch. Nei tool commerciali è quasi sempre feature Pro (TeraCopy). Il `ChecksumService` esiste già: si tratta di integrarlo nel flusso di copia con opzione nelle Impostazioni. *(M)*
+1. `[x]` **Verifica post-copia automatica (copy + verify)** — dopo ogni copia, ricalcolo del checksum sorgente/destinazione e report degli eventuali mismatch. Nei tool commerciali è quasi sempre feature Pro (TeraCopy). Il `ChecksumService` esiste già: si tratta di integrarlo nel flusso di copia con opzione nelle Impostazioni. *(M)*
 
-2. `[ ]` **Coda di copia persistente con ripresa** — journal su disco delle operazioni in corso; dopo crash, chiusura o riavvio l'app propone di riprendere la coda dal punto esatto (file parziali ripresi via offset). Rarissimo fuori da robocopy/rsync a riga di comando. *(A)*
+2. `[x]` **Coda di copia persistente con ripresa** — journal su disco delle operazioni in corso; dopo crash, chiusura o riavvio l'app propone di riprendere la coda dal punto esatto (file parziali ripresi via offset). Rarissimo fuori da robocopy/rsync a riga di comando. *(A)*
 
-3. `[ ]` **Copia multi-destinazione (1 lettura → N scritture)** — copiare lo stesso set di file verso più destinazioni contemporaneamente leggendo la sorgente una sola volta. Ottimo per backup su due dischi. Feature premium di Ultracopier/Supercopier. *(M)*
+3. `[x]` **Copia multi-destinazione (1 lettura → N scritture)** — copiare lo stesso set di file verso più destinazioni contemporaneamente leggendo la sorgente una sola volta. Ottimo per backup su due dischi. Feature premium di Ultracopier/Supercopier. *(M)*
 
 4. `[ ]` **Throttling I/O configurabile** — limite di banda (MB/s) per la copia, per non saturare dischi/rete mentre si lavora. Slider in Impostazioni + toggle rapido durante la copia. *(B)*
 
@@ -36,11 +36,11 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 ## Organizzazione & pulizia
 
-13. `[ ]` **Ricerca duplicati con azioni sicure** — scansione per dimensione + hash parziale + hash completo (a cascata, veloce), raggruppamento duplicati e azioni: elimina, sposta, o sostituisci con hardlink per recuperare spazio senza perdere nulla. I dedup-finder decenti sono tutti a pagamento. *(M)*
+13. `[x]` **Ricerca duplicati con azioni sicure** — scansione per dimensione + hash parziale + hash completo (a cascata, veloce), raggruppamento duplicati e azioni: elimina, sposta, o sostituisci con hardlink per recuperare spazio senza perdere nulla. I dedup-finder decenti sono tutti a pagamento. *(M)*
 
 14. `[ ]` **Rinomina batch con regex e anteprima** — rinomina multipla con pattern regex/contatori/metadati data, anteprima live del risultato e undo completo dell'operazione. Feature storica premium di Directory Opus/Total Commander plugin. *(M)*
 
-15. `[ ]` **Treemap occupazione disco integrata** — vista tipo WizTree/SpaceSniffer nel pannello: rettangoli proporzionali alla dimensione per capire subito cosa occupa spazio, con drill-down e azioni dirette (apri, elimina). *(A)*
+15. `[x]` **Treemap occupazione disco integrata** — vista tipo WizTree/SpaceSniffer nel pannello: rettangoli proporzionali alla dimensione per capire subito cosa occupa spazio, con drill-down e azioni dirette (apri, elimina). *(A)*
 
 16. `[ ]` **Cestino di sicurezza interno con undo batch** — le operazioni distruttive (sovrascrittura, eliminazione) spostano prima l'originale in un'area di staging interna; ogni batch è ripristinabile in un click per N giorni. Più affidabile del cestino di sistema per operazioni massive. *(M)*
 
