@@ -47,6 +47,14 @@ public static class AppSettingsStore
     /// <summary>Istanza in memoria delle impostazioni correnti.</summary>
     public static AppSettings Current { get; set; } = new();
 
+    /// <summary>
+    /// Sollevato quando le impostazioni del limite di banda cambiano da una vista,
+    /// così le altre viste (Impostazioni ↔ Copia) possono rinfrescare i propri binding.
+    /// </summary>
+    public static event Action? ThrottleChanged;
+
+    public static void RaiseThrottleChanged() => ThrottleChanged?.Invoke();
+
     /// <summary>Carica le impostazioni da <see cref="CurrentPath"/> in <see cref="Current"/>.</summary>
     public static async Task LoadCurrentAsync()
     {

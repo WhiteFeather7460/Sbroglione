@@ -55,6 +55,12 @@ public class CopyPairsViewModel : ViewModelBase
 
         SimulateCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(SimulatePairAsync);
 
+        AppSettingsStore.ThrottleChanged += () =>
+        {
+            this.RaisePropertyChanged(nameof(ThrottleEnabled));
+            this.RaisePropertyChanged(nameof(ThrottleMBps));
+        };
+
         JournalRestore = RestoreInterruptedJobsAsync();
     }
 
@@ -75,7 +81,8 @@ public class CopyPairsViewModel : ViewModelBase
 
             AppSettingsStore.Current.ThrottleEnabled = value;
             this.RaisePropertyChanged();
-            _ = SaveSettingsBestEffortAsync();
+            AppSettingsStore.RaiseThrottleChanged();
+            LastSaveTask = SaveSettingsBestEffortAsync();
         }
     }
 
@@ -91,9 +98,13 @@ public class CopyPairsViewModel : ViewModelBase
 
             AppSettingsStore.Current.ThrottleMBps = clamped;
             this.RaisePropertyChanged();
-            _ = SaveSettingsBestEffortAsync();
+            AppSettingsStore.RaiseThrottleChanged();
+            LastSaveTask = SaveSettingsBestEffortAsync();
         }
     }
+
+    /// <summary>Task dell'ultimo salvataggio impostazioni avviato dai setter del throttle. Solo per i test.</summary>
+    internal Task? LastSaveTask { get; private set; }
 
     private static async Task SaveSettingsBestEffortAsync()
     {
