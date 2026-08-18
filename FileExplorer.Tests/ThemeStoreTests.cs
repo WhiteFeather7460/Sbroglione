@@ -6,15 +6,18 @@ namespace FileExplorer.Tests;
 public class ThemeStoreTests : IDisposable
 {
     private readonly string _dir;
+    private readonly string _originalThemesDirectory;
 
     public ThemeStoreTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "fe-themes-" + Guid.NewGuid().ToString("N"));
+        _originalThemesDirectory = ThemeStore.ThemesDirectory;
         ThemeStore.ThemesDirectory = _dir;
     }
 
     public void Dispose()
     {
+        ThemeStore.ThemesDirectory = _originalThemesDirectory;
         if (Directory.Exists(_dir))
             Directory.Delete(_dir, recursive: true);
         GC.SuppressFinalize(this);
