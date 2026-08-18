@@ -46,7 +46,7 @@ Stato attuale: `DuplicatesViewModel.DeleteFileCommand` e `KeepFirstCommand` elim
 **Interfaces:**
 - Produces: `ConfirmDialogHelper.ShowAsync(string title, string message, string confirmLabel)` → `Task<bool>`; seam di test `internal static Func<string, string, string, Task<bool>>? Override`.
 
-- [ ] **Step 1: ViewModel**
+- [x] **Step 1: ViewModel**
 
 ```csharp
 namespace FileExplorer.ViewModels;
@@ -67,7 +67,7 @@ public class ConfirmDialogViewModel
 }
 ```
 
-- [ ] **Step 2: Finestra**
+- [x] **Step 2: Finestra**
 
 `ConfirmDialog.axaml`:
 
@@ -124,7 +124,7 @@ public partial class ConfirmDialog : Window
 }
 ```
 
-- [ ] **Step 3: Helper con seam di test**
+- [x] **Step 3: Helper con seam di test**
 
 ```csharp
 using System;
@@ -161,7 +161,7 @@ internal static class ConfirmDialogHelper
 }
 ```
 
-- [ ] **Step 4: Build clean and commit**
+- [x] **Step 4: Build clean and commit**
 
 Run: `dotnet build FileExplorer.sln` — 0 errori, nessun warning nuovo.
 
@@ -183,7 +183,7 @@ git commit -m "feat(dialog): componente ConfirmDialog riusabile con seam per i t
 - Consumes: `ConfirmDialogHelper.ShowAsync` e `Override` (Task 1), `SizeFormatter.Format` (esistente).
 - Produces: `DuplicatesViewModel.ConfirmAndDeleteFileAsync(DuplicateFileViewModel)` e `ConfirmAndKeepFirstAsync(DuplicateGroupViewModel)` (pubblici, usati dai comandi); `DeleteFileAsync`/`KeepFirstAsync` restano invariati (core senza conferma, già testati).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Aggiungere a `DuplicatesViewModelTests` (rispettando i pattern esistenti della classe; la classe DEVE ripristinare `ConfirmDialogHelper.Override = null` in `Dispose` — aggiungerlo se si imposta nei test):
 
@@ -266,12 +266,12 @@ Aggiungere a `DuplicatesViewModelTests` (rispettando i pattern esistenti della c
 
 Nota: verificare la firma reale di `DuplicateGroup` (in `DuplicateFinderService.cs`) e adattare la costruzione nel test (positional record o proprietà). Aggiungere `using FileExplorer.Services;` se serve.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~ConfirmAnd"`
 Expected: FAIL (compile error: metodi inesistenti)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `DuplicatesViewModel`:
 
@@ -317,12 +317,12 @@ In `DuplicatesViewModel`:
 
 `DeleteFileAsync` e `KeepFirstAsync` restano invariati.
 
-- [ ] **Step 4: Run the suite**
+- [x] **Step 4: Run the suite**
 
 Run: `dotnet test`
 Expected: PASS (i test esistenti che chiamano direttamente `DeleteFileAsync`/`KeepFirstAsync` non passano dal dialog e restano verdi).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/DuplicatesViewModel.cs FileExplorer.Tests/DuplicatesViewModelTests.cs
@@ -345,7 +345,7 @@ Fine fase: push e `gh pr create` (base `main`, titolo "Conferma eliminazione nel
 - Modify: `FileExplorer/Services/AppSettingsStore.cs` (F5)
 - Test: `FileExplorer.Tests/SpeedTrackerTests.cs`, `FileExplorer.Tests/AppSettingsStoreTests.cs`, `FileExplorer.Tests/CopyPairsViewModelTests.cs` (aggiunte)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `SpeedTrackerTests`:
 
@@ -391,12 +391,12 @@ Fine fase: push e `gh pr create` (base `main`, titolo "Conferma eliminazione nel
     }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~Report_OutOfOrder|FullyQualifiedName~Load_ClampsThrottle|FullyQualifiedName~FormatEta_Over"`
 Expected: FAIL (i primi due per assert, il terzo per compile error su metodo privato)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 F7 — in `SpeedTracker.CurrentLocked`, clamp a zero:
 
@@ -429,7 +429,7 @@ F5 — in `AppSettingsStore`: costanti `private const int MinThrottleMBps = 1;` 
         settings.ThrottleMBps = Math.Clamp(settings.ThrottleMBps, MinThrottleMBps, MaxThrottleMBps);
 ```
 
-- [ ] **Step 4: Run the suite and commit**
+- [x] **Step 4: Run the suite and commit**
 
 Run: `dotnet test` — PASS.
 
@@ -451,7 +451,7 @@ git commit -m "fix(followup): clamp velocità negativa, ETA con giorni, clamp th
 **Interfaces:**
 - Produces: `AppSettingsStore.ThrottleChanged` (`event Action?`) + `RaiseThrottleChanged()`; `CopyPairsViewModel.LastSaveTask` (`internal Task?`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `CopyPairsViewModelTests`:
 
@@ -485,12 +485,12 @@ git commit -m "fix(followup): clamp velocità negativa, ETA con giorni, clamp th
 
 Inoltre: i due test throttle esistenti della classe (`ThrottleEnabled_RoundTripsThroughSettings`, `ThrottleMBps_ClampsToRange`) vanno aggiornati per attendere `viewModel.LastSaveTask` prima di uscire (chiusura definitiva del residuo F1: nessuna scrittura fire-and-forget sopravvive al test).
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~ThrottleSetters_Expose|FullyQualifiedName~ThrottleChangedFromSettings"`
 Expected: FAIL (compile error: LastSaveTask inesistente; PropertyChanged non sollevato)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 1. `AppSettingsStore`:
 
@@ -525,7 +525,7 @@ Nel costruttore, sottoscrizione (le VM delle tab vivono quanto l'app, l'handler 
 
 Nota re-entrancy: i setter hanno guard di uguaglianza in testa → l'evento non provoca loop.
 
-- [ ] **Step 4: Run the suite and commit**
+- [x] **Step 4: Run the suite and commit**
 
 Run: `dotnet test` — PASS (aggiornati anche i due test esistenti con l'await di LastSaveTask).
 
@@ -546,7 +546,7 @@ git commit -m "fix(throttle): salvataggio attendibile nei test e sync visiva tra
 **Interfaces:**
 - Produces: overload `DirectoryComparisonService.CompareAsync(..., StringComparer pathComparer, CancellationToken ct)`; l'overload esistente sceglie `DefaultPathComparer` (OrdinalIgnoreCase su Windows/macOS, Ordinal altrove), esposto `internal static StringComparer DefaultPathComparer`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `DirectoryComparisonServiceTests`:
 
@@ -600,12 +600,12 @@ git commit -m "fix(throttle): salvataggio attendibile nei test e sync visiva tra
     }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~CaseInsensitiveComparer|FullyQualifiedName~DefaultPathComparer|FullyQualifiedName~UsesPathsCapturedAtCompare"`
 Expected: FAIL (compile error sull'overload; export usa i path correnti)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `DirectoryComparisonService`:
 
@@ -629,7 +629,7 @@ L'overload nuovo prende `StringComparer pathComparer` e lo usa: `new Dictionary<
 
 `ComparisonViewModel`: aggiungere campi `private string? _comparedLeftRoot; private string? _comparedRightRoot;`, valorizzati al successo del confronto (dove viene assegnato `Result`); `ExportAsync` usa quelli al posto di `LeftPath!`/`RightPath!` e ritorna `null` se sono assenti (niente null-forgiving).
 
-- [ ] **Step 4: Run the suite and commit**
+- [x] **Step 4: Run the suite and commit**
 
 Run: `dotnet test` — PASS.
 
@@ -646,7 +646,7 @@ git commit -m "fix(confronto): comparer platform-aware e path catturati al momen
 - Modify: `FileExplorer/Services/FileCopyService.cs`
 - Test: `FileExplorer.Tests/FileCopyServiceTests.cs` (aggiunta)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```csharp
     [Fact]
@@ -672,12 +672,12 @@ git commit -m "fix(confronto): comparer platform-aware e path catturati al momen
 
 (adattare `_root` al nome reale del campo tempdir della classe.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dotnet test --filter "FullyQualifiedName~SymlinkLoop"`
 Expected: FAIL (eccezione o timeout per il loop di symlink — se l'enumerazione lancia IOException il test fallisce comunque)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `FileCopyService` aggiungere il campo (stesso pattern di `CopySimulationService`):
 
@@ -702,7 +702,7 @@ e sostituire in `CopyDirectoryAsync` e `CopyDirectoryToManyAsync`:
 
 (al posto di `SearchOption.AllDirectories`; il parametro pattern `"*"` resta.)
 
-- [ ] **Step 4: Run the suite and commit**
+- [x] **Step 4: Run the suite and commit**
 
 Run: `dotnet test` — PASS (i test esistenti di copia directory non usano symlink/hidden e restano verdi; `AttributesToSkip = ReparsePoint` esplicito non salta Hidden/System, quindi il set di file copiati per gli alberi normali è identico).
 
