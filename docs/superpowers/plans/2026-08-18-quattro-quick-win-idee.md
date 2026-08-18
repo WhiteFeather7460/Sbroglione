@@ -48,7 +48,7 @@ Stato attuale: `FileCopyService.CopyFileAsync` e `CopyFileToManyAsync` copiano a
 **Interfaces:**
 - Produces: `TokenBucket(Func<double> nowSeconds)` con `double BytesPerSecond { get; set; }` (0 = illimitato) e `double ReserveOrWaitSeconds(long bytes)`; `IoThrottleService.WaitAsync(long bytes, CancellationToken ct)` statico che legge `AppSettingsStore.Current` a ogni chiamata.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 using System;
@@ -116,12 +116,12 @@ public sealed class TokenBucketTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~TokenBucketTests"`
 Expected: FAIL (compile error: `TokenBucket` non esiste)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```csharp
 using System;
@@ -218,7 +218,7 @@ public static class IoThrottleService
 
 Nota: `AppSettings.ThrottleEnabled`/`ThrottleMBps` non esistono ancora — vengono aggiunti in questo stesso task (Step 4) perché `IoThrottleService` non compila senza.
 
-- [ ] **Step 4: Add the settings fields**
+- [x] **Step 4: Add the settings fields**
 
 In `FileExplorer/Models/AppSettings.cs` aggiungere dopo `VerifyChecksumAfterCopy`:
 
@@ -230,12 +230,12 @@ In `FileExplorer/Models/AppSettings.cs` aggiungere dopo `VerifyChecksumAfterCopy
     public int ThrottleMBps { get; set; } = 50;
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~TokenBucketTests"`
 Expected: PASS (5 test)
 
-- [ ] **Step 6: Build clean and commit**
+- [x] **Step 6: Build clean and commit**
 
 Run: `dotnet build FileExplorer.sln` — 0 errori, nessun warning nuovo.
 
@@ -256,7 +256,7 @@ git commit -m "feat(throttle): token bucket e servizio globale di limite banda"
 - Consumes: `IoThrottleService.WaitAsync(long bytes, CancellationToken ct)` (Task 1).
 - Produces: nessuna firma nuova — il throttle è trasparente per i chiamanti.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Aggiungere a `FileCopyServiceTests` (rispettando i pattern esistenti della classe: directory temporanea, salvataggio/ripristino di `AppSettingsStore.Current` se la classe non lo fa già — verificarlo e in caso aggiungere il salvataggio nel costruttore/`Dispose`):
 
@@ -286,12 +286,12 @@ Aggiungere a `FileCopyServiceTests` (rispettando i pattern esistenti della class
 
 Nota anti-flakiness: la soglia è 0.5 s su un'attesa teorica di ~1 s — il test verifica che il throttle rallenti, non il tempo esatto.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopyFileAsync_WithThrottleEnabled"`
 Expected: FAIL (la copia termina in millisecondi)
 
-- [ ] **Step 3: Hook the throttle**
+- [x] **Step 3: Hook the throttle**
 
 In `FileCopyService.CopyFileAsync`, dentro il loop di lettura, come prima istruzione dopo la `ReadAsync`:
 
@@ -306,12 +306,12 @@ In `FileCopyService.CopyFileAsync`, dentro il loop di lettura, come prima istruz
 
 Stessa aggiunta nel loop di `CopyFileToManyAsync` (prima della `Task.WhenAll` delle scritture). I byte sono contati una sola volta per blocco letto (non per destinazione): il limite è sulla lettura della sorgente, coerente con `onBytesCopied`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~FileCopyServiceTests"`
 Expected: PASS (tutti, inclusi i preesistenti — con throttle disattivo il comportamento è identico)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/FileCopyService.cs FileExplorer.Tests/FileCopyServiceTests.cs
@@ -334,7 +334,7 @@ git commit -m "feat(throttle): limite di banda applicato ai loop di copia"
 - Consumes: `AppSettings.ThrottleEnabled` / `ThrottleMBps` (Task 1).
 - Produces: `SettingsViewModel.ThrottleEnabled` (bool), `SettingsViewModel.ThrottleMBps` (int, clamp 1–1000); `CopyPairsViewModel.ThrottleEnabled` (bool, stesso storage, auto-save) e `CopyPairsViewModel.ThrottleMBps` (int, clamp 1–1000, auto-save).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `SettingsViewModelTests` (seguire il pattern esistente della classe per save/restore dello stato statico):
 
@@ -380,12 +380,12 @@ In `CopyPairsViewModelTests`:
     }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~Throttle"`
 Expected: FAIL (compile error: proprietà inesistenti)
 
-- [ ] **Step 3: Implement the ViewModel properties**
+- [x] **Step 3: Implement the ViewModel properties**
 
 In `SettingsViewModel`, dopo `VerifyChecksumAfterCopy`, stesso pattern auto-save:
 
@@ -467,7 +467,7 @@ In `CopyPairsViewModel` (il toggle rapido scrive le stesse impostazioni; il salv
     }
 ```
 
-- [ ] **Step 4: Add the Settings UI**
+- [x] **Step 4: Add the Settings UI**
 
 In `SettingsView.axaml`, nella card "Copia", dopo la riga "Verifica checksum dopo la copia":
 
@@ -486,7 +486,7 @@ In `SettingsView.axaml`, nella card "Copia", dopo la riga "Verifica checksum dop
             </Grid>
 ```
 
-- [ ] **Step 5: Add the quick toggle in CopyPairsView**
+- [x] **Step 5: Add the quick toggle in CopyPairsView**
 
 In `CopyPairsView.axaml`, l'header è `<Border DockPanel.Dock="Top" …><Grid ColumnDefinitions="*,Auto">` con il bottone "Aggiungi coppia" in colonna 1. Estendere a `ColumnDefinitions="*,Auto,Auto"`, spostare il bottone esistente in `Grid.Column="2"` e inserire in colonna 1 il toggle rapido (il DataContext dell'header è già `CopyPairsViewModel`):
 
@@ -502,7 +502,7 @@ In `CopyPairsView.axaml`, l'header è `<Border DockPanel.Dock="Top" …><Grid Co
 
 (l'header ha sfondo `Brush.AccentGradient`: i testi/icone usano `Brush.OnAccent` come gli elementi già presenti.)
 
-- [ ] **Step 6: Run the full suite, mark IDEE, commit**
+- [x] **Step 6: Run the full suite, mark IDEE, commit**
 
 Run: `dotnet test`
 Expected: PASS (nessuna regressione)
@@ -548,7 +548,7 @@ public static class CopySimulationService
 }
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 using System;
@@ -641,12 +641,12 @@ public sealed class CopySimulationServiceTests : IDisposable
 
 Attenzione CA1861: se l'analyzer segnala gli array inline `new[] { destination }`, hoistarli è impossibile (dipendono dal tempdir) — in quel caso usare variabili locali `string[] destinations = { destination };`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopySimulationServiceTests"`
 Expected: FAIL (compile error)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `FileCopyService.cs` cambiare `private static bool IsUnchanged` in `internal static bool IsUnchanged` (nessun altro cambio).
 
@@ -760,12 +760,12 @@ public static class CopySimulationService
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopySimulationServiceTests"`
 Expected: PASS (3 test); poi `dotnet test` completo senza regressioni.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/CopySimulationService.cs FileExplorer/Services/FileCopyService.cs FileExplorer.Tests/CopySimulationServiceTests.cs
@@ -787,7 +787,7 @@ git commit -m "feat(dry-run): servizio di simulazione copia senza scritture"
 - Consumes: `CopySimulationService.SimulateAsync` (Task 4), `SizeFormatter.Format(long)` (esistente).
 - Produces: `CopyPairsViewModel.SimulateCommand` (`ReactiveCommand<FolderFilePairViewModel, Unit>`); `FolderFilePairViewModel.SimulationSummary` (`string?`, null = pannello nascosto) e `HasSimulation` (bool derivata).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```csharp
     [Fact]
@@ -818,12 +818,12 @@ git commit -m "feat(dry-run): servizio di simulazione copia senza scritture"
     }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dotnet test --filter "FullyQualifiedName~SimulatePair_PopulatesSummary"`
 Expected: FAIL (compile error: `SimulatePairAsync` / `SimulationSummary` non esistono)
 
-- [ ] **Step 3: Implement ViewModel changes**
+- [x] **Step 3: Implement ViewModel changes**
 
 In `FolderFilePairViewModel`:
 
@@ -894,7 +894,7 @@ In `CopyPairsViewModel`: dichiarare `public ReactiveCommand<FolderFilePairViewMo
     }
 ```
 
-- [ ] **Step 4: Add the UI**
+- [x] **Step 4: Add the UI**
 
 In `CopyPairsView.axaml`, nella riga della coppia: accanto al bottone Avvia aggiungere un bottone icona (stessa classe degli altri `iconbtn`):
 
@@ -924,7 +924,7 @@ Sotto la riga di stato della coppia, il pannello risultato:
 
 Azzerare `SimulationSummary` all'avvio di una copia reale: in `StartCopyAsync`, nel blocco che resetta lo stato (`pair.IsVerified = null;`), aggiungere `pair.SimulationSummary = null;`.
 
-- [ ] **Step 5: Run the suite, mark IDEE, commit**
+- [x] **Step 5: Run the suite, mark IDEE, commit**
 
 Run: `dotnet test`
 Expected: PASS
@@ -973,7 +973,7 @@ public readonly record struct SpeedSnapshot(
     double PeakBytesPerSecond, double? EtaSeconds, IReadOnlyList<double> Samples);
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 using System;
@@ -1068,12 +1068,12 @@ public sealed class SpeedTrackerTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~SpeedTrackerTests"`
 Expected: FAIL (compile error)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```csharp
 using System;
@@ -1237,12 +1237,12 @@ public sealed class SpeedTracker
 
 Nota per l'implementatore: se un assert numerico dei test in Step 1 non torna con questa implementazione, la discrepanza va risolta a favore della semantica documentata nei commenti dei test (finestra mobile ~1 s, media dall'inizio, ETA sulla media) — correggere l'implementazione, non l'assert.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~SpeedTrackerTests"`
 Expected: PASS (6 test)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/SpeedTracker.cs FileExplorer.Tests/SpeedTrackerTests.cs
@@ -1260,7 +1260,7 @@ git commit -m "feat(speed): tracker velocità con finestra mobile, picco ed ETA"
 **Interfaces:**
 - Produces: `SparklineControl : Control` con `StyledProperty<IReadOnlyList<double>?> SamplesProperty` (`Samples`); ridisegna su cambio proprietà e su cambio tema (pattern `TreemapControl`: `FindResource(ActualThemeVariant, "Brush.Sparkline.Line")`).
 
-- [ ] **Step 1: Add the palette brushes**
+- [x] **Step 1: Add the palette brushes**
 
 In `Palette.axaml`, ThemeDictionary Light:
 
@@ -1278,7 +1278,7 @@ ThemeDictionary Dark:
 
 (se la palette usa già un blu accent con chiave dedicata, riusare quei valori esatti per coerenza cromatica.)
 
-- [ ] **Step 2: Write the control**
+- [x] **Step 2: Write the control**
 
 ```csharp
 using System;
@@ -1377,7 +1377,7 @@ public class SparklineControl : Control
 
 Nota: verificare la firma esatta di `FindResource(ThemeVariant, object)` usata da `TreemapControl` e replicarla (stessa API, stesso using). Se `ActualThemeVariantChanged` in `TreemapControl` è agganciato diversamente, copiare quel pattern.
 
-- [ ] **Step 3: Build clean and commit**
+- [x] **Step 3: Build clean and commit**
 
 Run: `dotnet build FileExplorer.sln` — 0 errori, nessun warning nuovo.
 
@@ -1401,7 +1401,7 @@ git commit -m "feat(speed): controllo sparkline theme-aware"
 - Consumes: `SpeedTracker` (Task 6), `SparklineControl` (Task 7), `SizeFormatter.Format` (esistente).
 - Produces: `FolderFilePairViewModel.SpeedText` (`string?`), `FolderFilePairViewModel.SpeedSamples` (`IReadOnlyList<double>?`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```csharp
     [Fact]
@@ -1432,12 +1432,12 @@ git commit -m "feat(speed): controllo sparkline theme-aware"
     }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dotnet test --filter "FullyQualifiedName~CopyDirectory_UpdatesSpeedText"`
 Expected: FAIL (compile error: `SpeedText` non esiste)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `FolderFilePairViewModel`:
 
@@ -1506,7 +1506,7 @@ A copia conclusa (prima della verifica checksum): pubblicare un ultimo snapshot 
 
 4. Reset: in `StartCopyAsync`, nel blocco di reset dello stato, `pair.SpeedText = null; pair.SpeedSamples = null;` — e ripristino dello `SpeedText` finale lasciato visibile a fine copia (non azzerarlo nel `finally`).
 
-- [ ] **Step 4: Add the UI**
+- [x] **Step 4: Add the UI**
 
 In `CopyPairsView.axaml`, nella riga della coppia sotto la ProgressBar:
 
@@ -1520,7 +1520,7 @@ In `CopyPairsView.axaml`, nella riga della coppia sotto la ProgressBar:
 
 Aggiungere `xmlns:views="clr-namespace:FileExplorer.Views"` se assente.
 
-- [ ] **Step 5: Run the suite, mark IDEE, commit**
+- [x] **Step 5: Run the suite, mark IDEE, commit**
 
 Run: `dotnet test`
 Expected: PASS
@@ -1567,7 +1567,7 @@ public static class DirectoryComparisonService
 
 Tutti i path nei risultati sono relativi alle radici, ordinati con `StringComparer.Ordinal`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 using System;
@@ -1661,12 +1661,12 @@ public sealed class DirectoryComparisonServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~DirectoryComparisonServiceTests"`
 Expected: FAIL (compile error)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```csharp
 using System;
@@ -1778,12 +1778,12 @@ public static class DirectoryComparisonService
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~DirectoryComparisonServiceTests"`
 Expected: PASS (4 test)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/DirectoryComparisonService.cs FileExplorer.Tests/DirectoryComparisonServiceTests.cs
@@ -1816,7 +1816,7 @@ public static class ComparisonReportExporter
 }
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 using System;
@@ -1892,12 +1892,12 @@ public sealed class ComparisonReportExporterTests
 
 (aggiungere `using System.Linq;` in testa.)
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~ComparisonReportExporterTests"`
 Expected: FAIL (compile error)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```csharp
 using System;
@@ -2062,12 +2062,12 @@ public static class ComparisonReportExporter
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~ComparisonReportExporterTests"`
 Expected: PASS (4 test)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/ComparisonReportExporter.cs FileExplorer.Tests/ComparisonReportExporterTests.cs
@@ -2086,7 +2086,7 @@ git commit -m "feat(confronto): esportazione report HTML/CSV/JSON"
 - Consumes: `DirectoryComparisonService.CompareAsync` (Task 9), `ComparisonReportExporter` (Task 10), `SelectPathDialogHelper.ShowAsync(bool directoriesOnly, string? initialPath)` (esistente).
 - Produces: proprietà `LeftPath`/`RightPath` (string?), `IsComparing` (bool), `StatusText` (string), `Result` (`DirectoryComparisonResult?`), `HasResult` (bool), contatori `LeftOnlyCount/RightOnlyCount/DifferentCount/IdenticalCount`, comandi `BrowseLeftCommand`, `BrowseRightCommand`, `CompareCommand`, `CancelCommand`, `ExportHtmlCommand`, `ExportCsvCommand`, `ExportJsonCommand`; metodi testabili `CompareAsync()` e `ExportAsync(ComparisonReportFormat format, string targetDirectory)`; `IDisposable`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 using System;
@@ -2167,12 +2167,12 @@ public sealed class ComparisonViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test --filter "FullyQualifiedName~ComparisonViewModelTests"`
 Expected: FAIL (compile error)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```csharp
 using System;
@@ -2369,12 +2369,12 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test --filter "FullyQualifiedName~ComparisonViewModelTests"`
 Expected: PASS (3 test); poi `dotnet build` senza warning nuovi (CA1001 coperto da IDisposable).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/ComparisonViewModel.cs FileExplorer.Tests/ComparisonViewModelTests.cs
@@ -2394,7 +2394,7 @@ git commit -m "feat(confronto): ViewModel della scheda Confronto con export"
 **Interfaces:**
 - Consumes: `ComparisonViewModel` (Task 11) — la vista crea il proprio ViewModel nel costruttore (pattern `CopyPairsView`).
 
-- [ ] **Step 1: Create the code-behind**
+- [x] **Step 1: Create the code-behind**
 
 ```csharp
 using Avalonia.Controls;
@@ -2412,7 +2412,7 @@ public partial class ComparisonView : UserControl
 }
 ```
 
-- [ ] **Step 2: Create the view**
+- [x] **Step 2: Create the view**
 
 ```xml
 <!-- FileExplorer/Views/ComparisonView.axaml -->
@@ -2516,7 +2516,7 @@ public partial class ComparisonView : UserControl
 </UserControl>
 ```
 
-- [ ] **Step 3: Add the tab**
+- [x] **Step 3: Add the tab**
 
 In `MainWindow.axaml`, dopo la TabItem "Server remoto":
 
@@ -2532,7 +2532,7 @@ In `MainWindow.axaml`, dopo la TabItem "Server remoto":
     </TabItem>
 ```
 
-- [ ] **Step 4: Build, run the suite, mark IDEE, commit**
+- [x] **Step 4: Build, run the suite, mark IDEE, commit**
 
 Run: `dotnet build FileExplorer.sln` (0 errori, nessun warning nuovo) e `dotnet test` (PASS).
 
