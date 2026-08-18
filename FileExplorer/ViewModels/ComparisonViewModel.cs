@@ -15,6 +15,8 @@ namespace FileExplorer.ViewModels;
 public class ComparisonViewModel : ViewModelBase, IDisposable
 {
     private CancellationTokenSource? _compareCts;
+    private string? _comparedLeftRoot;
+    private string? _comparedRightRoot;
 
     public ComparisonViewModel()
     {
@@ -119,13 +121,20 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
         try
         {
+            // Catturati prima dell'await: le TextBox restano editabili durante il confronto,
+            // quindi LeftPath/RightPath potrebbero cambiare mentre CompareAsync è in corso.
+            string left = LeftPath;
+            string right = RightPath;
+
             int parallelism = Math.Max(2, Environment.ProcessorCount - 1);
             var result = await DirectoryComparisonService.CompareAsync(
-                LeftPath, RightPath, parallelism,
+                left, right, parallelism,
                 progress => StatusText = $"Confronto in corso… ({progress.Processed}/{progress.Total})",
                 ct);
 
             Result = result;
+            _comparedLeftRoot = left;
+            _comparedRightRoot = right;
             StatusText = $"{result.Identical.Count} identici, {result.Different.Count} diversi, " +
                          $"{result.LeftOnly.Count} solo a sinistra, {result.RightOnly.Count} solo a destra";
         }
@@ -160,7 +169,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
     /// <summary>Esporta l'ultimo risultato nella cartella indicata; ritorna il path scritto o null. Pubblico per i test.</summary>
     public async Task<string?> ExportAsync(ComparisonReportFormat format, string targetDirectory)
     {
-        if (Result is null)
+        if (Result is null || _comparedLeftRoot is null || _comparedRightRoot is null)
             return null;
 
         try
@@ -170,7 +179,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
                 targetDirectory, ComparisonReportExporter.SuggestFileName(format, generatedUtc));
 
             await ComparisonReportExporter.ExportAsync(
-                filePath, Result, format, LeftPath!, RightPath!, generatedUtc, CancellationToken.None);
+                filePath, Result, format, _comparedLeftRoot, _comparedRightRoot, generatedUtc, CancellationToken.None);
 
             StatusText = $"Report esportato: {filePath}";
             return filePath;

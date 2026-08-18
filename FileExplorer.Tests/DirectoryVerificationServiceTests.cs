@@ -72,4 +72,27 @@ public sealed class DirectoryVerificationServiceTests : IDisposable
         Assert.Equal(2, progressEvents.Count);
         Assert.Equal(new VerifyProgress(2, 2), progressEvents[^1]);
     }
+
+    [Fact]
+    public async Task VerifyDirectoryAsync_WithSymlinkLoop_DoesNotFollowSymlinks()
+    {
+        // I symlink non sono affidabili su Windows senza privilegi: test solo Unix.
+        if (OperatingSystem.IsWindows())
+            return;
+
+        string source = Path.Combine(_root, "loop-src");
+        string destination = Path.Combine(_root, "loop-dst");
+        Directory.CreateDirectory(source);
+        await File.WriteAllBytesAsync(Path.Combine(source, "reale.bin"), new byte[8]);
+        // Symlink che punta alla cartella stessa: senza skip, l'enumerazione ricorsiva esplode.
+        Directory.CreateSymbolicLink(Path.Combine(source, "loop"), source);
+
+        await FileCopyService.CopyDirectoryAsync(source, destination, 1, null, CancellationToken.None);
+
+        var result = await DirectoryVerificationService.VerifyDirectoryAsync(
+            source, destination, 2, null, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.TotalFiles);
+    }
 }

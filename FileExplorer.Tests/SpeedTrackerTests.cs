@@ -108,4 +108,18 @@ public sealed class SpeedTrackerTests
 
         Assert.True(tracker.Samples.Count <= 60);
     }
+
+    [Fact]
+    public void Report_OutOfOrderCumulative_NeverNegativeCurrent()
+    {
+        double now = 0;
+        var tracker = new SpeedTracker(() => now);
+        tracker.Start(totalBytes: 1000);
+
+        now = 1.0; tracker.Report(500);
+        now = 2.0; tracker.Report(400); // cumulativo out-of-order da callback paralleli
+
+        Assert.True(tracker.CurrentBytesPerSecond >= 0);
+        Assert.All(tracker.Samples, sample => Assert.True(sample >= 0));
+    }
 }

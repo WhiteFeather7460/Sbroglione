@@ -252,27 +252,61 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ThrottleEnabled_RoundTripsThroughSettings()
+    public async Task ThrottleEnabled_RoundTripsThroughSettings()
     {
         var viewModel = new CopyPairsViewModel();
 
         viewModel.ThrottleEnabled = true;
         Assert.True(AppSettingsStore.Current.ThrottleEnabled);
+        if (viewModel.LastSaveTask is not null)
+            await viewModel.LastSaveTask;
 
         viewModel.ThrottleEnabled = false;
         Assert.False(AppSettingsStore.Current.ThrottleEnabled);
+        if (viewModel.LastSaveTask is not null)
+            await viewModel.LastSaveTask;
     }
 
     [Fact]
-    public void ThrottleMBps_ClampsToRange()
+    public async Task ThrottleMBps_ClampsToRange()
     {
         var viewModel = new CopyPairsViewModel();
 
         viewModel.ThrottleMBps = 5000;
         Assert.Equal(1000, AppSettingsStore.Current.ThrottleMBps);
+        if (viewModel.LastSaveTask is not null)
+            await viewModel.LastSaveTask;
 
         viewModel.ThrottleMBps = 0;
         Assert.Equal(1, AppSettingsStore.Current.ThrottleMBps);
+        if (viewModel.LastSaveTask is not null)
+            await viewModel.LastSaveTask;
+    }
+
+    [Fact]
+    public async Task ThrottleSetters_ExposeAwaitableSaveTask()
+    {
+        var viewModel = new CopyPairsViewModel();
+
+        viewModel.ThrottleEnabled = !viewModel.ThrottleEnabled;
+
+        Assert.NotNull(viewModel.LastSaveTask);
+        await viewModel.LastSaveTask!;
+    }
+
+    [Fact]
+    public void ThrottleChangedFromSettings_RaisesPropertyChangedOnCopyPairs()
+    {
+        var copyViewModel = new CopyPairsViewModel();
+        var settingsViewModel = new SettingsViewModel();
+
+        var raised = new List<string?>();
+        copyViewModel.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        settingsViewModel.ThrottleEnabled = !settingsViewModel.ThrottleEnabled;
+
+        Assert.Contains(nameof(CopyPairsViewModel.ThrottleEnabled), raised);
+        Assert.Contains(nameof(CopyPairsViewModel.ThrottleMBps), raised);
     }
 
     [Fact]
@@ -327,5 +361,12 @@ public sealed class CopyPairsViewModelTests : IDisposable
         {
             Directory.Delete(tempDir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void FormatEta_OverOneDay_ShowsDays()
+    {
+        double twoDays = 2 * 24 * 3600 + 3 * 3600 + 4 * 60 + 5; // 2g 3:04:05
+        Assert.Equal("2g 3:04:05", CopyPairsViewModel.FormatEta(twoDays));
     }
 }

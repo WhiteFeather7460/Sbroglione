@@ -13,6 +13,15 @@ namespace FileExplorer.ViewModels;
 /// </summary>
 public class SettingsViewModel : ViewModelBase
 {
+    public SettingsViewModel()
+    {
+        AppSettingsStore.ThrottleChanged += () =>
+        {
+            this.RaisePropertyChanged(nameof(ThrottleEnabled));
+            this.RaisePropertyChanged(nameof(ThrottleMBps));
+        };
+    }
+
     public bool AutoParallelism
     {
         get => AppSettingsStore.Current.AutoParallelism;
@@ -84,6 +93,7 @@ public class SettingsViewModel : ViewModelBase
             AppSettingsStore.Current.ThrottleEnabled = value;
             this.RaisePropertyChanged();
             SaveCurrent();
+            AppSettingsStore.RaiseThrottleChanged();
         }
     }
 
@@ -99,6 +109,7 @@ public class SettingsViewModel : ViewModelBase
             AppSettingsStore.Current.ThrottleMBps = clamped;
             this.RaisePropertyChanged();
             SaveCurrent();
+            AppSettingsStore.RaiseThrottleChanged();
         }
     }
 

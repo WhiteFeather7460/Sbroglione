@@ -206,4 +206,15 @@ public sealed class AppSettingsStoreTests : IDisposable
         Assert.InRange(loaded.ManualParallelism, 1, 32);
         Assert.False(File.Exists(StorePath + ".tmp"));
     }
+
+    [Fact]
+    public async Task Load_ClampsThrottleMBps()
+    {
+        string path = Path.Combine(_root, "settings.json");
+        await File.WriteAllTextAsync(path, "{\"ThrottleMBps\": 99999}");
+
+        var settings = await AppSettingsStore.LoadAsync(path);
+
+        Assert.Equal(1000, settings.ThrottleMBps);
+    }
 }

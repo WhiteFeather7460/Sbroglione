@@ -55,6 +55,12 @@ public class CopyPairsViewModel : ViewModelBase
 
         SimulateCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(SimulatePairAsync);
 
+        AppSettingsStore.ThrottleChanged += () =>
+        {
+            this.RaisePropertyChanged(nameof(ThrottleEnabled));
+            this.RaisePropertyChanged(nameof(ThrottleMBps));
+        };
+
         JournalRestore = RestoreInterruptedJobsAsync();
     }
 
@@ -75,7 +81,8 @@ public class CopyPairsViewModel : ViewModelBase
 
             AppSettingsStore.Current.ThrottleEnabled = value;
             this.RaisePropertyChanged();
-            _ = SaveSettingsBestEffortAsync();
+            AppSettingsStore.RaiseThrottleChanged();
+            LastSaveTask = SaveSettingsBestEffortAsync();
         }
     }
 
@@ -91,9 +98,13 @@ public class CopyPairsViewModel : ViewModelBase
 
             AppSettingsStore.Current.ThrottleMBps = clamped;
             this.RaisePropertyChanged();
-            _ = SaveSettingsBestEffortAsync();
+            AppSettingsStore.RaiseThrottleChanged();
+            LastSaveTask = SaveSettingsBestEffortAsync();
         }
     }
+
+    /// <summary>Task dell'ultimo salvataggio impostazioni avviato dai setter del throttle. Solo per i test.</summary>
+    internal Task? LastSaveTask { get; private set; }
 
     private static async Task SaveSettingsBestEffortAsync()
     {
@@ -314,11 +325,13 @@ public class CopyPairsViewModel : ViewModelBase
     private static string FormatSpeed(double bytesPerSecond) =>
         $"{SizeFormatter.Format((long)bytesPerSecond)}/s";
 
-    private static string FormatEta(double? etaSeconds)
+    internal static string FormatEta(double? etaSeconds)
     {
         if (etaSeconds is null || !double.IsFinite(etaSeconds.Value))
             return "—";
         var time = TimeSpan.FromSeconds(Math.Min(etaSeconds.Value, TimeSpan.MaxValue.TotalSeconds - 1));
+        if (time.TotalDays >= 1)
+            return $"{(int)time.TotalDays}g {time.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)}";
         return time.TotalHours >= 1
             ? time.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
             : time.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);

@@ -216,4 +216,24 @@ public sealed class FileCopyServiceTests : IDisposable
         Assert.Equal("abcdef", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "grown.txt")));
         Assert.Equal(progressEvents[^1].TotalBytes, progressEvents[^1].CopiedBytes); // i saltati contano
     }
+
+    [Fact]
+    public async Task CopyDirectoryAsync_WithSymlinkLoop_DoesNotFollowSymlinks()
+    {
+        // I symlink non sono affidabili su Windows senza privilegi: test solo Unix.
+        if (OperatingSystem.IsWindows())
+            return;
+
+        string source = Path.Combine(_root, "loop-src");
+        string destination = Path.Combine(_root, "loop-dst");
+        Directory.CreateDirectory(source);
+        await File.WriteAllBytesAsync(Path.Combine(source, "reale.bin"), new byte[8]);
+        // Symlink che punta alla cartella stessa: senza skip, l'enumerazione ricorsiva esplode.
+        Directory.CreateSymbolicLink(Path.Combine(source, "loop"), source);
+
+        await FileCopyService.CopyDirectoryAsync(source, destination, 1, null, CancellationToken.None);
+
+        Assert.True(File.Exists(Path.Combine(destination, "reale.bin")));
+        Assert.False(Directory.Exists(Path.Combine(destination, "loop")));
+    }
 }

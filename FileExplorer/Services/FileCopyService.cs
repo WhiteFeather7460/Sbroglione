@@ -27,6 +27,17 @@ public static class FileCopyService
     private const int DefaultBufferSize = 1024 * 1024; // 1 MB
 
     /// <summary>
+    /// Enumerazione tollerante, identica a quella della simulazione: ignora i file
+    /// inaccessibili e non segue i reparse point (symlink), evitando i loop.
+    /// </summary>
+    private static readonly EnumerationOptions SafeEnumeration = new()
+    {
+        IgnoreInaccessible = true,
+        RecurseSubdirectories = true,
+        AttributesToSkip = FileAttributes.ReparsePoint
+    };
+
+    /// <summary>
     /// Copia un singolo file a blocchi, segnalando i byte copiati a ogni blocco.
     /// </summary>
     public static async Task CopyFileAsync(
@@ -125,7 +136,7 @@ public static class FileCopyService
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
+        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration).ToList();
         long totalBytes = files.Sum(file => new FileInfo(file).Length);
 
         onProgress?.Invoke(new CopyProgress(0, totalBytes, files.Count));
@@ -184,7 +195,7 @@ public static class FileCopyService
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
+        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration).ToList();
         long totalBytes = files.Sum(file => new FileInfo(file).Length);
 
         onProgress?.Invoke(new CopyProgress(0, totalBytes, files.Count));

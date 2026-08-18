@@ -92,4 +92,27 @@ public sealed class DirectoryComparisonServiceTests : IDisposable
 
         Assert.Equal(1, lastProcessed);
     }
+
+    [Fact]
+    public async Task CompareAsync_CaseInsensitiveComparer_MatchesDifferentCase()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_left, "Same.TXT"), "uguale");
+        await File.WriteAllTextAsync(Path.Combine(_right, "same.txt"), "uguale");
+
+        var result = await DirectoryComparisonService.CompareAsync(
+            _left, _right, 1, null, StringComparer.OrdinalIgnoreCase, CancellationToken.None);
+
+        Assert.Empty(result.LeftOnly);
+        Assert.Empty(result.RightOnly);
+        Assert.Single(result.Identical);
+    }
+
+    [Fact]
+    public void DefaultPathComparer_MatchesPlatform()
+    {
+        bool caseInsensitiveFs = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
+        var comparer = DirectoryComparisonService.DefaultPathComparer;
+
+        Assert.Equal(caseInsensitiveFs, comparer.Equals("A.TXT", "a.txt"));
+    }
 }

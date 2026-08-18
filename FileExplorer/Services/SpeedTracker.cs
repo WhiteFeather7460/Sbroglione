@@ -83,7 +83,8 @@ public sealed class SpeedTracker
 
         var oldest = _points[0];
         double window = now - oldest.Time;
-        return window > 0 ? (_lastBytes - oldest.Bytes) / window : 0;
+        // Cumulativi out-of-order dai callback paralleli possono dare delta negativi: clamp a 0.
+        return window > 0 ? Math.Max(0, (_lastBytes - oldest.Bytes) / window) : 0;
     }
 
     public double CurrentBytesPerSecond

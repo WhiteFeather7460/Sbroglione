@@ -29,6 +29,17 @@ public sealed record DirectoryVerifyResult(
 /// </summary>
 public static class DirectoryVerificationService
 {
+    /// <summary>
+    /// Enumerazione tollerante, identica a quella della simulazione: ignora i file
+    /// inaccessibili e non segue i reparse point (symlink), evitando i loop.
+    /// </summary>
+    private static readonly EnumerationOptions SafeEnumeration = new()
+    {
+        IgnoreInaccessible = true,
+        RecurseSubdirectories = true,
+        AttributesToSkip = FileAttributes.ReparsePoint
+    };
+
     public static async Task<DirectoryVerifyResult> VerifyDirectoryAsync(
         string sourceRoot,
         string destinationRoot,
@@ -36,7 +47,7 @@ public static class DirectoryVerificationService
         Action<VerifyProgress>? onProgress,
         CancellationToken ct)
     {
-        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
+        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration).ToList();
 
         var mismatched = new ConcurrentBag<string>();
         var missing = new ConcurrentBag<string>();
