@@ -246,4 +246,16 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.Equal(CopyStateKind.Success, pair.StateKind);
         Assert.Empty(await CopyJournalStore.LoadAsync());
     }
+
+    [Fact]
+    public void ThrottleEnabled_RoundTripsThroughSettings()
+    {
+        var viewModel = new CopyPairsViewModel();
+
+        viewModel.ThrottleEnabled = true;
+        Assert.True(AppSettingsStore.Current.ThrottleEnabled);
+
+        viewModel.ThrottleEnabled = false;
+        Assert.False(AppSettingsStore.Current.ThrottleEnabled);
+    }
 }

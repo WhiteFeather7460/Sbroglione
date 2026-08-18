@@ -85,4 +85,28 @@ public sealed class SettingsViewModelTests : IDisposable
         var saved = await AppSettingsStore.LoadAsync(AppSettingsStore.CurrentPath);
         Assert.Equal(8, saved.ManualParallelism);
     }
+
+    [Fact]
+    public async Task ThrottleMBps_ClampsAndPersists()
+    {
+        var viewModel = new SettingsViewModel();
+
+        viewModel.ThrottleMBps = 5000;
+        Assert.Equal(1000, AppSettingsStore.Current.ThrottleMBps);
+
+        viewModel.ThrottleMBps = 0;
+        Assert.Equal(1, AppSettingsStore.Current.ThrottleMBps);
+
+        if (viewModel.LastSaveTask is not null)
+            await viewModel.LastSaveTask;
+    }
+
+    [Fact]
+    public void ThrottleEnabled_WritesSetting()
+    {
+        var viewModel = new SettingsViewModel();
+
+        viewModel.ThrottleEnabled = true;
+        Assert.True(AppSettingsStore.Current.ThrottleEnabled);
+    }
 }

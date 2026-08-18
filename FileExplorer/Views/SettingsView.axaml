@@ -45,6 +45,19 @@
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
               <ToggleSwitch Grid.Column="1" IsChecked="{Binding VerifyChecksumAfterCopy}" />
             </Grid>
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="Limita velocità di copia"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding ThrottleEnabled}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding ThrottleEnabled}">
+              <TextBlock Grid.Column="0" Text="Limite di banda (MB/s, 1-1000)"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <NumericUpDown Grid.Column="1" Width="140" Minimum="1" Maximum="1000" Increment="5"
+                             Value="{Binding ThrottleMBps}" />
+            </Grid>
           </StackPanel>
         </Border>
 

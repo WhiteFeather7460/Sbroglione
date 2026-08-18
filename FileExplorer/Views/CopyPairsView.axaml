@@ -12,12 +12,19 @@
 
     <!-- Header con gradiente -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.AccentGradient}" Padding="20,14">
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="{DynamicResource Brush.OnAccent}" />
           <TextBlock Text="File Explorer" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.OnAccent}" VerticalAlignment="Center" />
         </StackPanel>
-        <Button Grid.Column="1" Classes="onaccent" Command="{Binding AddPairCommand}">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,14,0">
+          <i:Icon Value="fa-solid fa-gauge-high" Foreground="{DynamicResource Brush.OnAccent}" VerticalAlignment="Center" />
+          <NumericUpDown Width="110" Minimum="1" Maximum="1000" Increment="5"
+                         Value="{Binding ThrottleMBps}" IsEnabled="{Binding ThrottleEnabled}" />
+          <TextBlock Text="MB/s" VerticalAlignment="Center" Foreground="{DynamicResource Brush.OnAccent}" />
+          <ToggleSwitch IsChecked="{Binding ThrottleEnabled}" ToolTip.Tip="Limita velocità di copia" />
+        </StackPanel>
+        <Button Grid.Column="2" Classes="onaccent" Command="{Binding AddPairCommand}">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-plus" />
             <TextBlock Text="Aggiungi coppia" />
