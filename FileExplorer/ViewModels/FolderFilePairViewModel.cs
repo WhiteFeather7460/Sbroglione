@@ -191,4 +191,19 @@ public class FolderFilePairViewModel : ReactiveObject
         get => _isVerified;
         set => this.RaiseAndSetIfChanged(ref _isVerified, value);
     }
+
+    private string? _simulationSummary;
+
+    /// <summary>Esito testuale dell'ultima simulazione (dry-run); null = nessuna simulazione visibile.</summary>
+    public string? SimulationSummary
+    {
+        get => _simulationSummary;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _simulationSummary, value);
+            this.RaisePropertyChanged(nameof(HasSimulation));
+        }
+    }
+
+    public bool HasSimulation => !string.IsNullOrEmpty(SimulationSummary);
 }

@@ -274,4 +274,31 @@ public sealed class CopyPairsViewModelTests : IDisposable
         viewModel.ThrottleMBps = 0;
         Assert.Equal(1, AppSettingsStore.Current.ThrottleMBps);
     }
+
+    [Fact]
+    public async Task SimulatePair_PopulatesSummary()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "fe-simcmd-" + Guid.NewGuid().ToString("N"));
+        string source = Path.Combine(tempDir, "src");
+        string destination = Path.Combine(tempDir, "dst");
+        Directory.CreateDirectory(source);
+        Directory.CreateDirectory(destination);
+        await File.WriteAllBytesAsync(Path.Combine(source, "a.bin"), new byte[10]);
+
+        try
+        {
+            var viewModel = new CopyPairsViewModel();
+            var pair = new FolderFilePairViewModel { SourcePath = source, DestinationPath = destination };
+            await pair.SourceStateRefresh;
+
+            await viewModel.SimulatePairAsync(pair);
+
+            Assert.NotNull(pair.SimulationSummary);
+            Assert.Contains("1 file", pair.SimulationSummary!);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
 }

@@ -234,7 +234,7 @@ public static class FileCopyService
     /// True se la destinazione esiste con la stessa dimensione della sorgente e
     /// LastWriteTimeUtc entro 2 secondi (tolleranza per filesystem a granularità grossa).
     /// </summary>
-    private static bool IsUnchanged(string sourceFile, string destinationFile)
+    internal static bool IsUnchanged(string sourceFile, string destinationFile)
     {
         var destinationInfo = new FileInfo(destinationFile);
         if (!destinationInfo.Exists)
