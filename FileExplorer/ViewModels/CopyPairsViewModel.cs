@@ -314,11 +314,13 @@ public class CopyPairsViewModel : ViewModelBase
     private static string FormatSpeed(double bytesPerSecond) =>
         $"{SizeFormatter.Format((long)bytesPerSecond)}/s";
 
-    private static string FormatEta(double? etaSeconds)
+    internal static string FormatEta(double? etaSeconds)
     {
         if (etaSeconds is null || !double.IsFinite(etaSeconds.Value))
             return "—";
         var time = TimeSpan.FromSeconds(Math.Min(etaSeconds.Value, TimeSpan.MaxValue.TotalSeconds - 1));
+        if (time.TotalDays >= 1)
+            return $"{(int)time.TotalDays}g {time.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)}";
         return time.TotalHours >= 1
             ? time.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
             : time.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);

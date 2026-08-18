@@ -24,6 +24,10 @@ public static class AppSettingsStore
     private const int MinBufferSizeBytes = 262144;
     private const int MaxBufferSizeBytes = 16777216;
 
+    /// <summary>Limiti di validazione per ThrottleMBps, mirror di quelli in SettingsViewModel/CopyPairsViewModel.</summary>
+    private const int MinThrottleMBps = 1;
+    private const int MaxThrottleMBps = 1000;
+
     /// <summary>Serializza gli accessi concorrenti a <see cref="SaveCurrentAsync"/> per evitare scritture sovrapposte.</summary>
     private static readonly SemaphoreSlim SaveLock = new(1, 1);
 
@@ -117,6 +121,7 @@ public static class AppSettingsStore
     {
         settings.ManualParallelism = Math.Clamp(settings.ManualParallelism, MinManualParallelism, MaxManualParallelism);
         settings.BufferSizeBytes = Math.Clamp(settings.BufferSizeBytes, MinBufferSizeBytes, MaxBufferSizeBytes);
+        settings.ThrottleMBps = Math.Clamp(settings.ThrottleMBps, MinThrottleMBps, MaxThrottleMBps);
     }
 
     /// <summary>Salva le impostazioni creando la cartella se assente, con scrittura atomica (file temporaneo + move).</summary>

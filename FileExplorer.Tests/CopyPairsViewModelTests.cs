@@ -328,4 +328,11 @@ public sealed class CopyPairsViewModelTests : IDisposable
             Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void FormatEta_OverOneDay_ShowsDays()
+    {
+        double twoDays = 2 * 24 * 3600 + 3 * 3600 + 4 * 60 + 5; // 2g 3:04:05
+        Assert.Equal("2g 3:04:05", CopyPairsViewModel.FormatEta(twoDays));
+    }
 }
