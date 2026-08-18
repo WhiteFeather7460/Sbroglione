@@ -128,6 +128,8 @@ public class CopyPairsViewModel : ViewModelBase
             return;
         }
 
+        IReadOnlyList<string> destinations = pair.AllDestinations;
+
         var journalRecord = new CopyJobRecord
         {
             SourcePath = pair.SourcePath!,
@@ -135,7 +137,15 @@ public class CopyPairsViewModel : ViewModelBase
             ExtraDestinations = pair.ExtraDestinations.Select(e => e.Path).ToList(),
             StartedUtc = DateTime.UtcNow
         };
-        await CopyJournalStore.AddAsync(journalRecord);
+
+        try
+        {
+            await CopyJournalStore.AddAsync(journalRecord);
+        }
+        catch (Exception)
+        {
+            // best effort: senza voce nel journal si perde solo l'offerta di ripresa dopo un crash.
+        }
 
         var cts = new CancellationTokenSource();
         _ctsByPair[pair] = cts;
@@ -146,7 +156,7 @@ public class CopyPairsViewModel : ViewModelBase
             // (in background: su percorsi di rete può bloccare).
             await Task.Run(() =>
             {
-                foreach (var destination in pair.AllDestinations)
+                foreach (var destination in destinations)
                     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             });
 
@@ -154,15 +164,16 @@ public class CopyPairsViewModel : ViewModelBase
             pair.Progress = 0;
             pair.Status = "Copia in corso…";
             pair.StateKind = CopyStateKind.Copying;
+            pair.IsVerified = null;
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
                 // La copia di cartelle verifica il checksum dell'intero albero (se abilitato).
-                await CopyDirectoryAsync(pair, cts.Token);
+                await CopyDirectoryAsync(pair, destinations, cts.Token);
                 return;
             }
 
-            await CopySingleFileAsync(pair, cts.Token);
+            await CopySingleFileAsync(pair, destinations, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -198,11 +209,11 @@ public class CopyPairsViewModel : ViewModelBase
             cts.Cancel();
     }
 
-    private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, CancellationToken ct)
+    private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         // Se la sorgente è un file e una destinazione è una cartella, il file viene copiato dentro la cartella.
         var destinationFiles = new List<string>();
-        foreach (var destination in pair.AllDestinations)
+        foreach (var destination in destinations)
         {
             bool intoFolder = await FileSystemService.GetPathTypeAsync(destination) == PathType.Directory;
             destinationFiles.Add(intoFolder
@@ -245,13 +256,13 @@ public class CopyPairsViewModel : ViewModelBase
         pair.StateKind = allMatch ? CopyStateKind.Success : CopyStateKind.Warning;
     }
 
-    private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, CancellationToken ct)
+    private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         int knownFileCount = -1;
 
         var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
         int parallelism = int.MaxValue;
-        foreach (var destination in pair.AllDestinations)
+        foreach (var destination in destinations)
         {
             var destinationType = await DiskTypeService.GetDiskTypeAsync(destination, ct);
             parallelism = Math.Min(
@@ -261,7 +272,7 @@ public class CopyPairsViewModel : ViewModelBase
 
         await FileCopyService.CopyDirectoryToManyAsync(
             pair.SourcePath!,
-            pair.AllDestinations,
+            destinations,
             maxDegreeOfParallelism: parallelism,
             onProgress: progress =>
             {
@@ -299,7 +310,7 @@ public class CopyPairsViewModel : ViewModelBase
         int mismatchedTotal = 0;
         int missingTotal = 0;
 
-        foreach (var destination in pair.AllDestinations)
+        foreach (var destination in destinations)
         {
             var verifyResult = await DirectoryVerificationService.VerifyDirectoryAsync(
                 pair.SourcePath!,

@@ -1,0 +1,17 @@
+using Avalonia.Controls;
+using FileExplorer.ViewModels;
+
+namespace FileExplorer.Views;
+
+public partial class DiskUsageView : UserControl
+{
+    public DiskUsageView()
+    {
+        InitializeComponent();
+        var viewModel = new DiskUsageViewModel();
+        DataContext = viewModel;
+
+        var treemap = this.FindControl<TreemapControl>("Treemap")!;
+        treemap.NodeActivated += viewModel.DrillDown;
+    }
+}

@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:views="clr-namespace:FileExplorer.Views"
+             x:Class="FileExplorer.Views.DiskUsageView">
+
+  <DockPanel>
+
+    <!-- Header con gradiente -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.AccentGradient}" Padding="20,14">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <i:Icon Value="fa-solid fa-chart-pie" FontSize="20" Foreground="{DynamicResource Brush.OnAccent}" />
+        <TextBlock Text="Spazio disco" FontSize="18" FontWeight="Bold"
+                   Foreground="{DynamicResource Brush.OnAccent}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <!-- Barra comandi -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,12">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+        <Button Grid.Column="0" Classes="iconbtn" Margin="0,0,8,0"
+                i:Attached.Icon="fa-solid fa-arrow-up"
+                Command="{Binding NavigateUpCommand}"
+                IsEnabled="{Binding CanNavigateUp}" />
+        <TextBox Grid.Column="1" Text="{Binding RootPath}" IsReadOnly="True"
+                 Watermark="Cartella da analizzare…" />
+        <Button Grid.Column="2" Classes="iconbtn" Margin="8,0,0,0"
+                i:Attached.Icon="fa-solid fa-magnifying-glass"
+                Command="{Binding BrowseRootCommand}" />
+        <Button Grid.Column="3" Classes="primary" Content="Analizza" Margin="8,0,0,0"
+                Command="{Binding ScanCommand}" IsEnabled="{Binding !IsScanning}" />
+        <Button Grid.Column="4" Classes="secondary" Content="Annulla" Margin="8,0,0,0"
+                Command="{Binding CancelScanCommand}" IsEnabled="{Binding IsScanning}" />
+      </Grid>
+    </Border>
+
+    <!-- Stato e percorso corrente -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,0,20,8">
+      <StackPanel Spacing="2">
+        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource Brush.TextMuted}" />
+        <TextBlock Text="{Binding CurrentPathText}" FontSize="11"
+                   Foreground="{DynamicResource Brush.TextMuted}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Treemap -->
+    <Border Background="{DynamicResource Brush.Surface}" Padding="20,0,20,20">
+      <views:TreemapControl x:Name="Treemap" Node="{Binding CurrentNode}" />
+    </Border>
+  </DockPanel>
+
+</UserControl>

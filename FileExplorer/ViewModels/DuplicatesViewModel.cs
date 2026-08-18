@@ -125,7 +125,9 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
             foreach (var group in found)
                 Groups.Add(new DuplicateGroupViewModel(group));
 
-            StatusText = found.Count == 0 ? "Nessun duplicato trovato" : $"{found.Count} gruppi di duplicati";
+            StatusText = found.Count == 0
+                ? "Nessun duplicato trovato"
+                : found.Count == 1 ? "1 gruppo di duplicati" : $"{found.Count} gruppi di duplicati";
         }
         catch (OperationCanceledException)
         {
@@ -138,7 +140,7 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
         finally
         {
             IsScanning = false;
-            _scanCts.Dispose();
+            _scanCts?.Dispose();
             _scanCts = null;
         }
     }

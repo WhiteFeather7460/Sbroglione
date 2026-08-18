@@ -27,6 +27,12 @@
       <SolidColorBrush x:Key="Brush.ProgressFg" Color="#D8481F" />
       <SolidColorBrush x:Key="Brush.NeutralBg" Color="#EFEAE5" />
       <SolidColorBrush x:Key="Brush.NeutralFg" Color="#6E635C" />
+      <SolidColorBrush x:Key="Brush.Treemap.1" Color="#F2C4B3" />
+      <SolidColorBrush x:Key="Brush.Treemap.2" Color="#F5D8A7" />
+      <SolidColorBrush x:Key="Brush.Treemap.3" Color="#C9DEC4" />
+      <SolidColorBrush x:Key="Brush.Treemap.4" Color="#BCD5E3" />
+      <SolidColorBrush x:Key="Brush.Treemap.5" Color="#D9C6E0" />
+      <SolidColorBrush x:Key="Brush.Treemap.6" Color="#E3CFC0" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <SolidColorBrush x:Key="Brush.Surface" Color="#1E1B1A" />
@@ -45,6 +51,12 @@
       <SolidColorBrush x:Key="Brush.ProgressFg" Color="#FFA07C" />
       <SolidColorBrush x:Key="Brush.NeutralBg" Color="#35302D" />
       <SolidColorBrush x:Key="Brush.NeutralFg" Color="#B5A89F" />
+      <SolidColorBrush x:Key="Brush.Treemap.1" Color="#7A4A3C" />
+      <SolidColorBrush x:Key="Brush.Treemap.2" Color="#7A6236" />
+      <SolidColorBrush x:Key="Brush.Treemap.3" Color="#46603F" />
+      <SolidColorBrush x:Key="Brush.Treemap.4" Color="#3B586B" />
+      <SolidColorBrush x:Key="Brush.Treemap.5" Color="#5C4668" />
+      <SolidColorBrush x:Key="Brush.Treemap.6" Color="#6B5546" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

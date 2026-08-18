@@ -86,7 +86,8 @@
                           <Button Grid.Column="2" Classes="iconbtn"
                                   i:Attached.Icon="fa-solid fa-xmark"
                                   Command="{Binding DataContext.RemoveExtraDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                  CommandParameter="{Binding}" />
+                                  CommandParameter="{Binding}"
+                                  IsEnabled="{Binding !Owner.IsCopying}" />
                         </Grid>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
