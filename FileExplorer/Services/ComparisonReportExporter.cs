@@ -66,7 +66,7 @@ public static class ComparisonReportExporter
             ComparisonReportFormat.Json => "json",
             _ => "html"
         };
-        return $"confronto-{generatedUtc:yyyyMMdd-HHmmss}.{extension}";
+        return $"confronto-{generatedUtc.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.{extension}";
     }
 
     private static string RenderCsv(DirectoryComparisonResult result)
