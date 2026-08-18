@@ -18,4 +18,7 @@ public class AppSettings
 
     /// <summary>"Default" (segue il sistema), "Light" o "Dark".</summary>
     public string ThemeVariant { get; set; } = "Default";
+
+    /// <summary>Id del tema custom attivo (file in AppData/themes); null = usa ThemeVariant.</summary>
+    public string? CustomThemeId { get; set; }
 }

@@ -1,16 +1,17 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- Accent identico nelle due varianti -->
-  <SolidColorBrush x:Key="Brush.Accent" Color="#FF5E62" />
-  <LinearGradientBrush x:Key="Brush.AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-    <GradientStop Color="#FF5E62" Offset="0" />
-    <GradientStop Color="#FF9446" Offset="1" />
-  </LinearGradientBrush>
-  <SolidColorBrush x:Key="Brush.OnAccent" Color="White" />
+  <!-- Risorse accent duplicate nelle varianti Light e Dark per consentire override per-tema (vedi ThemeService). -->
 
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
+      <!-- Accent resources per la variante Light -->
+      <SolidColorBrush x:Key="Brush.Accent" Color="#FF5E62" />
+      <LinearGradientBrush x:Key="Brush.AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#FF5E62" Offset="0" />
+        <GradientStop Color="#FF9446" Offset="1" />
+      </LinearGradientBrush>
+      <SolidColorBrush x:Key="Brush.OnAccent" Color="White" />
       <SolidColorBrush x:Key="Brush.Surface" Color="#FAF9F7" />
       <SolidColorBrush x:Key="Brush.Card" Color="#FFFFFF" />
       <SolidColorBrush x:Key="Brush.CardBorder" Color="#EEE2DA" />
@@ -37,6 +38,13 @@
       <SolidColorBrush x:Key="Brush.Sparkline.Fill" Color="#332563EB" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
+      <!-- Accent resources per la variante Dark -->
+      <SolidColorBrush x:Key="Brush.Accent" Color="#FF5E62" />
+      <LinearGradientBrush x:Key="Brush.AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#FF5E62" Offset="0" />
+        <GradientStop Color="#FF9446" Offset="1" />
+      </LinearGradientBrush>
+      <SolidColorBrush x:Key="Brush.OnAccent" Color="White" />
       <SolidColorBrush x:Key="Brush.Surface" Color="#1E1B1A" />
       <SolidColorBrush x:Key="Brush.Card" Color="#2A2624" />
       <SolidColorBrush x:Key="Brush.CardBorder" Color="#3A3430" />
