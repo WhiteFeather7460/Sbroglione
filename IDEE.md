@@ -18,7 +18,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 5. `[ ]` **Delta-copy stile rsync** — se il file di destinazione esiste, copiare solo i blocchi cambiati (rolling checksum). Enorme risparmio su file grandi modificati poco (VM, database, video in editing). *(A)*
 
-6. `[ ]` **Dry-run / simulazione operazioni** — anteprima completa di cosa verrebbe copiato/sovrascritto/eliminato, con verifica spazio disponibile per destinazione, prima di lanciare il batch. Beyond Compare lo fa solo in versione Pro. *(B)*
+6. `[x]` **Dry-run / simulazione operazioni** — anteprima completa di cosa verrebbe copiato/sovrascritto/eliminato, con verifica spazio disponibile per destinazione, prima di lanciare il batch. Beyond Compare lo fa solo in versione Pro. *(B)*
 
 7. `[ ]` **Profili di copia salvabili** — preset nominati (es. "Backup foto", "Sync progetti") che memorizzano coppie sorgente/destinazione, filtri, opzioni di verifica e parallelismo. Un click per rieseguire. *(M)*
 

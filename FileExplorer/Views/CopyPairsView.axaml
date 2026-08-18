@@ -123,6 +123,12 @@
                       </Border>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                      <Button Classes="iconbtn"
+                              i:Attached.Icon="fa-solid fa-flask"
+                              Command="{Binding DataContext.SimulateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding CanStart}"
+                              ToolTip.Tip="Simula (dry-run): niente viene scritto" />
                       <Button Classes="primary" Content="Avvia"
                               Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}"
@@ -133,6 +139,17 @@
                               IsEnabled="{Binding IsCopying}" />
                     </StackPanel>
                   </Grid>
+
+                  <!-- Esito simulazione (dry-run) -->
+                  <Border IsVisible="{Binding HasSimulation}"
+                          Background="{DynamicResource Brush.NeutralBg}"
+                          CornerRadius="8"
+                          Padding="10"
+                          Margin="0,6,0,0">
+                    <TextBlock Text="{Binding SimulationSummary}"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.TextMuted}" />
+                  </Border>
 
                   <!-- File da elaborare -->
                   <Expander Header="Mostra file da elaborare">

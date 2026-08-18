@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -32,6 +33,7 @@ public class CopyPairsViewModel : ViewModelBase
     public ReactiveCommand<FolderFilePairViewModel, Unit> CancelCopyCommand { get; }
     public ReactiveCommand<FolderFilePairViewModel, Unit> AddExtraDestinationCommand { get; }
     public ReactiveCommand<ExtraDestinationViewModel, Unit> RemoveExtraDestinationCommand { get; }
+    public ReactiveCommand<FolderFilePairViewModel, Unit> SimulateCommand { get; }
 
     public CopyPairsViewModel()
     {
@@ -49,6 +51,8 @@ public class CopyPairsViewModel : ViewModelBase
         AddExtraDestinationCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(AddExtraDestinationAsync);
         RemoveExtraDestinationCommand = ReactiveCommand.Create<ExtraDestinationViewModel>(
             extra => extra.Owner.ExtraDestinations.Remove(extra));
+
+        SimulateCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(SimulatePairAsync);
 
         JournalRestore = RestoreInterruptedJobsAsync();
     }
@@ -208,6 +212,7 @@ public class CopyPairsViewModel : ViewModelBase
             pair.Status = "Copia in corso…";
             pair.StateKind = CopyStateKind.Copying;
             pair.IsVerified = null;
+            pair.SimulationSummary = null;
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
@@ -243,6 +248,57 @@ public class CopyPairsViewModel : ViewModelBase
 
             if (_ctsByPair.Remove(pair, out var toDispose))
                 toDispose.Dispose();
+        }
+    }
+
+    /// <summary>Dry-run della coppia: cosa verrebbe copiato, sovrascritto, saltato, e se lo spazio basta.</summary>
+    [SuppressMessage(
+        "Performance", "CA1822:Mark members as static",
+        Justification = "Metodo pubblico invocato da SimulateCommand con la stessa forma di istanza di " +
+                        "StartCopyAsync/CancelCopy; renderlo static costringerebbe i test a chiamarlo per " +
+                        "nome di tipo invece che sull'istanza del viewmodel, rompendo il pattern condiviso.")]
+    public async Task SimulatePairAsync(FolderFilePairViewModel pair)
+    {
+        if (!pair.CanStart)
+        {
+            pair.Status = "Percorsi non validi";
+            pair.StateKind = CopyStateKind.Error;
+            return;
+        }
+
+        IReadOnlyList<string> destinations = pair.AllDestinations;
+        pair.Status = "Simulazione…";
+
+        try
+        {
+            var result = await CopySimulationService.SimulateAsync(
+                pair.SourcePath!, destinations, pair.SkipUnchanged, CancellationToken.None);
+
+            var lines = new List<string>
+            {
+                $"Da copiare: {result.TotalFiles} file, {SizeFormatter.Format(result.TotalBytes)}" +
+                (result.SkippedFiles > 0 ? $" (di cui {result.SkippedFiles} invariati, saltati)" : string.Empty)
+            };
+
+            foreach (var destination in result.Destinations)
+            {
+                string space = destination.FreeBytes is null
+                    ? "spazio libero sconosciuto"
+                    : $"liberi {SizeFormatter.Format(destination.FreeBytes.Value)}" +
+                      (destination.Fits == false ? " — SPAZIO INSUFFICIENTE" : string.Empty);
+                lines.Add($"{destination.Root}: {destination.OverwriteCount} sovrascritture, {space}");
+            }
+
+            pair.SimulationSummary = string.Join(Environment.NewLine, lines);
+
+            bool anyDoesNotFit = result.Destinations.Any(d => d.Fits == false);
+            pair.Status = anyDoesNotFit ? "Simulazione: spazio insufficiente" : "Simulazione completata";
+            pair.StateKind = anyDoesNotFit ? CopyStateKind.Warning : CopyStateKind.Ready;
+        }
+        catch (Exception ex)
+        {
+            pair.Status = $"Errore simulazione: {ex.Message}";
+            pair.StateKind = CopyStateKind.Error;
         }
     }
 
