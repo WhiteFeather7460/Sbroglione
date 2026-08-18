@@ -1,0 +1,89 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using FileExplorer.Services;
+using Xunit;
+
+namespace FileExplorer.Tests;
+
+public sealed class CopySimulationServiceTests : IDisposable
+{
+    private readonly string _tempDir =
+        Path.Combine(Path.GetTempPath(), "fe-simulate-" + Guid.NewGuid().ToString("N"));
+
+    public CopySimulationServiceTests()
+    {
+        Directory.CreateDirectory(_tempDir);
+    }
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_tempDir, recursive: true); } catch (IOException) { }
+    }
+
+    [Fact]
+    public async Task SimulateAsync_Directory_CountsFilesBytesAndOverwrites()
+    {
+        string source = Path.Combine(_tempDir, "src");
+        string destination = Path.Combine(_tempDir, "dst");
+        Directory.CreateDirectory(Path.Combine(source, "sub"));
+        Directory.CreateDirectory(destination);
+        await File.WriteAllBytesAsync(Path.Combine(source, "a.bin"), new byte[10]);
+        await File.WriteAllBytesAsync(Path.Combine(source, "sub", "b.bin"), new byte[20]);
+        // "a.bin" esiste già in destinazione: è una sovrascrittura.
+        await File.WriteAllBytesAsync(Path.Combine(destination, "a.bin"), new byte[99]);
+
+        string[] destinations = { destination };
+        var result = await CopySimulationService.SimulateAsync(
+            source, destinations, skipUnchanged: false, CancellationToken.None);
+
+        Assert.Equal(2, result.TotalFiles);
+        Assert.Equal(30, result.TotalBytes);
+        Assert.Equal(0, result.SkippedFiles);
+        var dest = Assert.Single(result.Destinations);
+        Assert.Equal(1, dest.OverwriteCount);
+        Assert.NotNull(dest.FreeBytes);
+        Assert.True(dest.Fits);
+    }
+
+    [Fact]
+    public async Task SimulateAsync_SkipUnchanged_CountsUnchangedAsSkipped()
+    {
+        string source = Path.Combine(_tempDir, "src2");
+        string destination = Path.Combine(_tempDir, "dst2");
+        Directory.CreateDirectory(source);
+        Directory.CreateDirectory(destination);
+
+        string sourceFile = Path.Combine(source, "same.bin");
+        string destinationFile = Path.Combine(destination, "same.bin");
+        await File.WriteAllBytesAsync(sourceFile, new byte[10]);
+        File.Copy(sourceFile, destinationFile);
+        File.SetLastWriteTimeUtc(destinationFile, File.GetLastWriteTimeUtc(sourceFile));
+
+        string[] destinations = { destination };
+        var result = await CopySimulationService.SimulateAsync(
+            source, destinations, skipUnchanged: true, CancellationToken.None);
+
+        Assert.Equal(1, result.TotalFiles);
+        Assert.Equal(1, result.SkippedFiles);
+    }
+
+    [Fact]
+    public async Task SimulateAsync_SingleFile_Works()
+    {
+        string sourceFile = Path.Combine(_tempDir, "single.bin");
+        string destination = Path.Combine(_tempDir, "dst3");
+        Directory.CreateDirectory(destination);
+        await File.WriteAllBytesAsync(sourceFile, new byte[42]);
+
+        string[] destinations = { destination };
+        var result = await CopySimulationService.SimulateAsync(
+            sourceFile, destinations, skipUnchanged: false, CancellationToken.None);
+
+        Assert.Equal(1, result.TotalFiles);
+        Assert.Equal(42, result.TotalBytes);
+        Assert.Equal(0, Assert.Single(result.Destinations).OverwriteCount);
+    }
+}
