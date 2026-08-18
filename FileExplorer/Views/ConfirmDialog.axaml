@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
+        x:Class="FileExplorer.Views.ConfirmDialog"
+        Title="{Binding Title}"
+        Width="440" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Brush.Surface}">
+
+  <StackPanel Margin="20" Spacing="16">
+
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <i:Icon Value="fa-solid fa-triangle-exclamation" FontSize="24"
+              Foreground="{DynamicResource Brush.WarningFg}" VerticalAlignment="Top" />
+      <TextBlock Text="{Binding Message}" TextWrapping="Wrap" MaxWidth="360"
+                 Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="secondary" Content="Annulla" Click="OnCancelClick" />
+      <Button Classes="primary" Content="{Binding ConfirmLabel}" Click="OnConfirmClick" />
+    </StackPanel>
+
+  </StackPanel>
+</Window>
