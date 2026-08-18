@@ -46,6 +46,7 @@ public static class FileCopyService
             int read;
             while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
             {
+                await IoThrottleService.WaitAsync(read, ct);
                 await output.WriteAsync(buffer.AsMemory(0, read), ct);
                 onBytesCopied?.Invoke(read);
             }
@@ -84,6 +85,9 @@ public static class FileCopyService
             int read;
             while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
             {
+                // Limite sulla lettura della sorgente: i byte sono contati una sola volta per
+                // blocco (non per destinazione), coerente con onBytesCopied.
+                await IoThrottleService.WaitAsync(read, ct);
                 await Task.WhenAll(outputs.Select(o => o.WriteAsync(buffer.AsMemory(0, read), ct).AsTask()));
                 onBytesCopied?.Invoke(read);
             }
