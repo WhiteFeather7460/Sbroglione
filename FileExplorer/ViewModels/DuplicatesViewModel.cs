@@ -90,8 +90,8 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
         BrowseRootCommand = ReactiveCommand.CreateFromTask(BrowseRootAsync);
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
         CancelScanCommand = ReactiveCommand.Create(() => { _scanCts?.Cancel(); });
-        DeleteFileCommand = ReactiveCommand.CreateFromTask<DuplicateFileViewModel>(DeleteFileAsync);
-        KeepFirstCommand = ReactiveCommand.CreateFromTask<DuplicateGroupViewModel>(KeepFirstAsync);
+        DeleteFileCommand = ReactiveCommand.CreateFromTask<DuplicateFileViewModel>(ConfirmAndDeleteFileAsync);
+        KeepFirstCommand = ReactiveCommand.CreateFromTask<DuplicateGroupViewModel>(ConfirmAndKeepFirstAsync);
     }
 
     private async Task BrowseRootAsync()
@@ -166,6 +166,35 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
     {
         foreach (var file in group.Files.Skip(1).ToList())
             await DeleteFileAsync(file);
+    }
+
+    /// <summary>Chiede conferma e poi elimina il singolo file. Pubblico per i test.</summary>
+    public async Task ConfirmAndDeleteFileAsync(DuplicateFileViewModel file)
+    {
+        bool confirmed = await ConfirmDialogHelper.ShowAsync(
+            "Elimina file",
+            $"Eliminare definitivamente \"{file.FilePath}\"?\nL'operazione non è reversibile.",
+            "Elimina");
+
+        if (confirmed)
+            await DeleteFileAsync(file);
+    }
+
+    /// <summary>Chiede conferma una sola volta per il gruppo e poi elimina tutte le copie tranne la prima. Pubblico per i test.</summary>
+    public async Task ConfirmAndKeepFirstAsync(DuplicateGroupViewModel group)
+    {
+        var toDelete = group.Files.Skip(1).ToList();
+        if (toDelete.Count == 0)
+            return;
+
+        bool confirmed = await ConfirmDialogHelper.ShowAsync(
+            "Tieni solo il primo",
+            $"Eliminare definitivamente {toDelete.Count} file ({SizeFormatter.Format(group.FileSize * toDelete.Count)})?\n" +
+            $"Resta solo \"{group.Files[0].FilePath}\". L'operazione non è reversibile.",
+            "Elimina");
+
+        if (confirmed)
+            await KeepFirstAsync(group);
     }
 
     /// <summary>Annulla e rilascia un'eventuale scansione in corso (chiusura della vista).</summary>
