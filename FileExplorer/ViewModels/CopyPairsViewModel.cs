@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -213,6 +214,8 @@ public class CopyPairsViewModel : ViewModelBase
             pair.StateKind = CopyStateKind.Copying;
             pair.IsVerified = null;
             pair.SimulationSummary = null;
+            pair.SpeedText = null;
+            pair.SpeedSamples = null;
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
@@ -308,6 +311,27 @@ public class CopyPairsViewModel : ViewModelBase
             cts.Cancel();
     }
 
+    private static string FormatSpeed(double bytesPerSecond) =>
+        $"{SizeFormatter.Format((long)bytesPerSecond)}/s";
+
+    private static string FormatEta(double? etaSeconds)
+    {
+        if (etaSeconds is null || !double.IsFinite(etaSeconds.Value))
+            return "—";
+        var time = TimeSpan.FromSeconds(Math.Min(etaSeconds.Value, TimeSpan.MaxValue.TotalSeconds - 1));
+        return time.TotalHours >= 1
+            ? time.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
+            : time.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static void PublishSpeed(FolderFilePairViewModel pair, SpeedSnapshot snapshot)
+    {
+        pair.SpeedText =
+            $"{FormatSpeed(snapshot.CurrentBytesPerSecond)} · media {FormatSpeed(snapshot.AverageBytesPerSecond)}" +
+            $" · picco {FormatSpeed(snapshot.PeakBytesPerSecond)} · ETA {FormatEta(snapshot.EtaSeconds)}";
+        pair.SpeedSamples = snapshot.Samples;
+    }
+
     private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         // Se la sorgente è un file e una destinazione è una cartella, il file viene copiato dentro la cartella.
@@ -323,11 +347,19 @@ public class CopyPairsViewModel : ViewModelBase
         long totalBytes = new FileInfo(pair.SourcePath!).Length;
         long copiedBytes = 0;
 
+        var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+        tracker.Start(totalBytes);
+
         await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, deltaBytes =>
         {
             copiedBytes += deltaBytes;
             pair.Progress = totalBytes > 0 ? (double)copiedBytes / totalBytes : 1;
+            tracker.Report(copiedBytes);
+            if (tracker.TryTakeSnapshot(out var snapshot))
+                PublishSpeed(pair, snapshot);
         }, ct, AppSettingsStore.Current.BufferSizeBytes);
+
+        pair.SpeedText = $"media {FormatSpeed(tracker.AverageBytesPerSecond)} · picco {FormatSpeed(tracker.PeakBytesPerSecond)}";
 
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
@@ -358,6 +390,7 @@ public class CopyPairsViewModel : ViewModelBase
     private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         int knownFileCount = -1;
+        var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
 
         var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
         int parallelism = int.MaxValue;
@@ -381,13 +414,20 @@ public class CopyPairsViewModel : ViewModelBase
                     pair.Status = progress.TotalFiles == 0
                         ? "Nessun file da copiare"
                         : $"Copia cartella… ({progress.TotalFiles} file)";
+                    tracker.Start(progress.TotalBytes);
                 }
 
                 pair.Progress = progress.Fraction;
+                tracker.Report(progress.CopiedBytes);
+                if (tracker.TryTakeSnapshot(out var snapshot))
+                    PublishSpeed(pair, snapshot);
             },
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
             skipUnchanged: pair.SkipUnchanged);
+
+        if (knownFileCount > 0)
+            pair.SpeedText = $"media {FormatSpeed(tracker.AverageBytesPerSecond)} · picco {FormatSpeed(tracker.PeakBytesPerSecond)}";
 
         if (ct.IsCancellationRequested || knownFileCount == 0)
         {

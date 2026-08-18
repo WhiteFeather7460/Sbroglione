@@ -276,6 +276,33 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task CopyDirectory_UpdatesSpeedText()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "fe-speed-" + Guid.NewGuid().ToString("N"));
+        string source = Path.Combine(tempDir, "src");
+        string destination = Path.Combine(tempDir, "dst");
+        Directory.CreateDirectory(source);
+        await File.WriteAllBytesAsync(Path.Combine(source, "a.bin"), new byte[512 * 1024]);
+
+        try
+        {
+            var viewModel = new CopyPairsViewModel();
+            var pair = new FolderFilePairViewModel { SourcePath = source, DestinationPath = destination };
+            await pair.SourceStateRefresh;
+
+            await viewModel.StartCopyAsync(pair);
+
+            // A copia finita il testo velocità riporta la media (formato "media …/s").
+            Assert.NotNull(pair.SpeedText);
+            Assert.Contains("media", pair.SpeedText!);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task SimulatePair_PopulatesSummary()
     {
         string tempDir = Path.Combine(Path.GetTempPath(), "fe-simcmd-" + Guid.NewGuid().ToString("N"));

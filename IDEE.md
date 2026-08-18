@@ -50,7 +50,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 18. `[ ]` **Benchmark dischi integrato** — test rapido sequenziale/random su sorgente e destinazione per tarare automaticamente il parallelismo di copia adattivo già presente (suggerisce il valore ottimale invece di lasciarlo all'utente). *(M)*
 
-19. `[ ]` **Grafico velocità in tempo reale** — durante la copia: sparkline MB/s, ETA per file e totale, velocità media/di picco, file/s per le copie di molti file piccoli. Dati già disponibili dal motore parallelo, manca solo la visualizzazione. *(B)*
+19. `[x]` **Grafico velocità in tempo reale** — durante la copia: sparkline MB/s, ETA per file e totale, velocità media/di picco, file/s per le copie di molti file piccoli. Dati già disponibili dal motore parallelo, manca solo la visualizzazione. *(B)*
 
 20. `[ ]` **Sanificazione nomi cross-filesystem** — in copia verso FAT/exFAT/NTFS/SMB, rilevamento preventivo di nomi illegali, path troppo lunghi, caratteri riservati e collisioni case-insensitive, con rinomina automatica suggerita e report. Causa classica di copie fallite a metà che quasi nessun tool previene. *(M)*
 

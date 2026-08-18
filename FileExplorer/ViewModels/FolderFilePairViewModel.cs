@@ -206,4 +206,22 @@ public class FolderFilePairViewModel : ReactiveObject
     }
 
     public bool HasSimulation => !string.IsNullOrEmpty(SimulationSummary);
+
+    private string? _speedText;
+
+    /// <summary>Riga velocità: "12.3 MB/s · media 10.1 MB/s · picco 15.2 MB/s · ETA 00:42".</summary>
+    public string? SpeedText
+    {
+        get => _speedText;
+        set => this.RaiseAndSetIfChanged(ref _speedText, value);
+    }
+
+    private IReadOnlyList<double>? _speedSamples;
+
+    /// <summary>Campioni MB/s per la sparkline.</summary>
+    public IReadOnlyList<double>? SpeedSamples
+    {
+        get => _speedSamples;
+        set => this.RaiseAndSetIfChanged(ref _speedSamples, value);
+    }
 }

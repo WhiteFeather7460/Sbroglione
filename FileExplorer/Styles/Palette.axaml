@@ -33,6 +33,8 @@
       <SolidColorBrush x:Key="Brush.Treemap.4" Color="#BCD5E3" />
       <SolidColorBrush x:Key="Brush.Treemap.5" Color="#D9C6E0" />
       <SolidColorBrush x:Key="Brush.Treemap.6" Color="#E3CFC0" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Line" Color="#2563EB" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Fill" Color="#332563EB" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <SolidColorBrush x:Key="Brush.Surface" Color="#1E1B1A" />
@@ -57,6 +59,8 @@
       <SolidColorBrush x:Key="Brush.Treemap.4" Color="#3B586B" />
       <SolidColorBrush x:Key="Brush.Treemap.5" Color="#5C4668" />
       <SolidColorBrush x:Key="Brush.Treemap.6" Color="#6B5546" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Line" Color="#60A5FA" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Fill" Color="#3360A5FA" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>
