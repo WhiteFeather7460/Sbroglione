@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
              xmlns:conv="clr-namespace:FileExplorer.Converters"
+             xmlns:views="clr-namespace:FileExplorer.Views"
              x:Class="FileExplorer.Views.CopyPairsView">
 
   <UserControl.Resources>
@@ -139,6 +140,13 @@
                               IsEnabled="{Binding IsCopying}" />
                     </StackPanel>
                   </Grid>
+
+                  <!-- Velocità di copia (sparkline + testo) -->
+                  <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding SpeedText, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <views:SparklineControl Width="120" Height="24" Samples="{Binding SpeedSamples}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding SpeedText}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
+                  </StackPanel>
 
                   <!-- Esito simulazione (dry-run) -->
                   <Border IsVisible="{Binding HasSimulation}"
