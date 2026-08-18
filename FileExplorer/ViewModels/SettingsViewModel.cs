@@ -1,9 +1,10 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
-using Avalonia;
+using FileExplorer.Models;
 using FileExplorer.Services;
 using ReactiveUI;
-using AvaloniaThemeVariant = Avalonia.Styling.ThemeVariant;
 
 namespace FileExplorer.ViewModels;
 
@@ -20,6 +21,9 @@ public class SettingsViewModel : ViewModelBase
             this.RaisePropertyChanged(nameof(ThrottleEnabled));
             this.RaisePropertyChanged(nameof(ThrottleMBps));
         };
+
+        foreach (ColorTheme theme in ThemeStore.LoadAll())
+            CustomThemes.Add(theme);
     }
 
     public bool AutoParallelism
@@ -118,55 +122,120 @@ public class SettingsViewModel : ViewModelBase
         get => AppSettingsStore.Current.ThemeVariant;
         set
         {
-            if (AppSettingsStore.Current.ThemeVariant == value)
+            bool hadCustom = AppSettingsStore.Current.CustomThemeId is not null;
+            if (AppSettingsStore.Current.ThemeVariant == value && !hadCustom)
                 return;
 
             AppSettingsStore.Current.ThemeVariant = value;
+            AppSettingsStore.Current.CustomThemeId = null;
             this.RaisePropertyChanged();
             this.RaisePropertyChanged(nameof(IsThemeDefault));
             this.RaisePropertyChanged(nameof(IsThemeLight));
             this.RaisePropertyChanged(nameof(IsThemeDark));
-            ApplyThemeVariant(value);
+            this.RaisePropertyChanged(nameof(ActiveCustomTheme));
+            if (ApplyThemesToApplication)
+                ThemeService.Revert(value);
             SaveCurrent();
         }
     }
 
     public bool IsThemeDefault
     {
-        get => ThemeVariant == "Default";
+        get => ThemeVariant == "Default" && ActiveCustomTheme is null;
         set { if (value) ThemeVariant = "Default"; }
     }
 
     public bool IsThemeLight
     {
-        get => ThemeVariant == "Light";
+        get => ThemeVariant == "Light" && ActiveCustomTheme is null;
         set { if (value) ThemeVariant = "Light"; }
     }
 
     public bool IsThemeDark
     {
-        get => ThemeVariant == "Dark";
+        get => ThemeVariant == "Dark" && ActiveCustomTheme is null;
         set { if (value) ThemeVariant = "Dark"; }
     }
 
-    private static void ApplyThemeVariant(string value)
-    {
-        try
-        {
-            if (Application.Current is null)
-                return;
+    /// <summary>Temi custom salvati su disco, in ordine alfabetico.</summary>
+    public ObservableCollection<ColorTheme> CustomThemes { get; } = new();
 
-            Application.Current.RequestedThemeVariant = value switch
-            {
-                "Light" => AvaloniaThemeVariant.Light,
-                "Dark" => AvaloniaThemeVariant.Dark,
-                _ => AvaloniaThemeVariant.Default
-            };
-        }
-        catch (Exception)
+    public bool HasCustomThemes => CustomThemes.Count > 0;
+
+    /// <summary>False nei test: evita di toccare Application.Current tramite ThemeService.</summary>
+    internal bool ApplyThemesToApplication { get; set; } = true;
+
+    /// <summary>Tema custom attivo risolto da CustomThemeId, o null.</summary>
+    public ColorTheme? ActiveCustomTheme =>
+        CustomThemes.FirstOrDefault(t => t.Id == AppSettingsStore.Current.CustomThemeId);
+
+    /// <summary>Attiva un tema custom: persiste l'id e applica i colori.</summary>
+    public void ApplyCustomTheme(ColorTheme theme)
+    {
+        AppSettingsStore.Current.CustomThemeId = theme.Id;
+        if (ApplyThemesToApplication)
+            ThemeService.Apply(theme);
+        this.RaisePropertyChanged(nameof(ActiveCustomTheme));
+        this.RaisePropertyChanged(nameof(IsThemeDefault));
+        this.RaisePropertyChanged(nameof(IsThemeLight));
+        this.RaisePropertyChanged(nameof(IsThemeDark));
+        SaveCurrent();
+    }
+
+    /// <summary>Copia modificabile di un tema (anche built-in): nuovo Id, nome "(copia)". Non persistita.</summary>
+    public ColorTheme CreateThemeFrom(ColorTheme source)
+    {
+        ColorTheme copy = source.Clone();
+        copy.Id = Guid.NewGuid().ToString("N");
+        copy.Name = source.Name + " (copia)";
+        copy.IsBuiltIn = false;
+        return copy;
+    }
+
+    /// <summary>Elimina un tema custom; se era attivo torna alla variante base corrente.</summary>
+    public async Task DeleteThemeAsync(ColorTheme theme)
+    {
+        bool wasActive = AppSettingsStore.Current.CustomThemeId == theme.Id;
+        ThemeStore.Delete(theme.Id);
+        CustomThemes.Remove(theme);
+        this.RaisePropertyChanged(nameof(HasCustomThemes));
+
+        if (wasActive)
         {
-            // applicazione del tema opzionale: un fallimento qui non deve rompere il salvataggio.
+            AppSettingsStore.Current.CustomThemeId = null;
+            if (ApplyThemesToApplication)
+                ThemeService.Revert(AppSettingsStore.Current.ThemeVariant);
+            this.RaisePropertyChanged(nameof(ActiveCustomTheme));
+            SaveCurrent();
         }
+
+        if (LastSaveTask is not null)
+            await LastSaveTask;
+    }
+
+    /// <summary>Upsert nella lista dopo un salvataggio dall'editor (match per Id).</summary>
+    public void OnThemeSaved(ColorTheme theme)
+    {
+        ColorTheme? existing = CustomThemes.FirstOrDefault(t => t.Id == theme.Id);
+        if (existing is not null)
+            CustomThemes.Remove(existing);
+        CustomThemes.Add(theme);
+        this.RaisePropertyChanged(nameof(HasCustomThemes));
+        this.RaisePropertyChanged(nameof(ActiveCustomTheme));
+    }
+
+    public Task ExportThemeAsync(ColorTheme theme, string path) => ThemeStore.ExportAsync(theme, path);
+
+    /// <summary>Importa da file: sanitizza, persiste e aggiunge alla lista. Null se illeggibile.</summary>
+    public async Task<ColorTheme?> ImportThemeAsync(string path)
+    {
+        ColorTheme? theme = ThemeStore.Import(path);
+        if (theme is null)
+            return null;
+
+        await ThemeStore.SaveAsync(theme);
+        OnThemeSaved(theme);
+        return theme;
     }
 
     /// <summary>
