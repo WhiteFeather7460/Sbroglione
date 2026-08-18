@@ -86,4 +86,43 @@ public sealed class CopySimulationServiceTests : IDisposable
         Assert.Equal(42, result.TotalBytes);
         Assert.Equal(0, Assert.Single(result.Destinations).OverwriteCount);
     }
+
+    [Fact]
+    public async Task SimulateAsync_MissingSource_ThrowsFileNotFoundException()
+    {
+        string missingSource = Path.Combine(_tempDir, "non-esiste.bin");
+        string destination = Path.Combine(_tempDir, "dst4");
+        Directory.CreateDirectory(destination);
+
+        string[] destinations = { destination };
+        await Assert.ThrowsAsync<FileNotFoundException>(() =>
+            CopySimulationService.SimulateAsync(
+                missingSource, destinations, skipUnchanged: false, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SimulateAsync_SkipUnchanged_AllUnchanged_FitsRemainsTrue()
+    {
+        // Nota: non è possibile mockare DriveInfo per verificare deterministicamente la sottrazione
+        // dei byte saltati dal calcolo di Fits; questo test verifica solo che, con tutti i file
+        // invariati, il conteggio SkippedFiles combaci col totale e Fits non regredisca a false
+        // (lo spazio libero reale sul tempdir è comunque sufficiente per pochi byte).
+        string source = Path.Combine(_tempDir, "src5");
+        string destination = Path.Combine(_tempDir, "dst5");
+        Directory.CreateDirectory(source);
+        Directory.CreateDirectory(destination);
+
+        string sourceFile = Path.Combine(source, "same.bin");
+        string destinationFile = Path.Combine(destination, "same.bin");
+        await File.WriteAllBytesAsync(sourceFile, new byte[10]);
+        File.Copy(sourceFile, destinationFile);
+        File.SetLastWriteTimeUtc(destinationFile, File.GetLastWriteTimeUtc(sourceFile));
+
+        string[] destinations = { destination };
+        var result = await CopySimulationService.SimulateAsync(
+            source, destinations, skipUnchanged: true, CancellationToken.None);
+
+        Assert.Equal(result.TotalFiles, result.SkippedFiles);
+        Assert.True(Assert.Single(result.Destinations).Fits);
+    }
 }
