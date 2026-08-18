@@ -15,6 +15,8 @@ namespace FileExplorer.ViewModels;
 public class ComparisonViewModel : ViewModelBase, IDisposable
 {
     private CancellationTokenSource? _compareCts;
+    private string? _comparedLeftRoot;
+    private string? _comparedRightRoot;
 
     public ComparisonViewModel()
     {
@@ -126,6 +128,8 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
                 ct);
 
             Result = result;
+            _comparedLeftRoot = LeftPath;
+            _comparedRightRoot = RightPath;
             StatusText = $"{result.Identical.Count} identici, {result.Different.Count} diversi, " +
                          $"{result.LeftOnly.Count} solo a sinistra, {result.RightOnly.Count} solo a destra";
         }
@@ -160,7 +164,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
     /// <summary>Esporta l'ultimo risultato nella cartella indicata; ritorna il path scritto o null. Pubblico per i test.</summary>
     public async Task<string?> ExportAsync(ComparisonReportFormat format, string targetDirectory)
     {
-        if (Result is null)
+        if (Result is null || _comparedLeftRoot is null || _comparedRightRoot is null)
             return null;
 
         try
@@ -170,7 +174,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
                 targetDirectory, ComparisonReportExporter.SuggestFileName(format, generatedUtc));
 
             await ComparisonReportExporter.ExportAsync(
-                filePath, Result, format, LeftPath!, RightPath!, generatedUtc, CancellationToken.None);
+                filePath, Result, format, _comparedLeftRoot, _comparedRightRoot, generatedUtc, CancellationToken.None);
 
             StatusText = $"Report esportato: {filePath}";
             return filePath;

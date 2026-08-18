@@ -73,4 +73,25 @@ public sealed class ComparisonViewModelTests : IDisposable
         Assert.True(File.Exists(written));
         Assert.Contains("solo-a-sinistra;a.txt", await File.ReadAllTextAsync(written!));
     }
+
+    [Fact]
+    public async Task ExportAsync_UsesPathsCapturedAtCompareTime()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_left, "a.txt"), "1");
+        using var viewModel = new ComparisonViewModel { LeftPath = _left, RightPath = _right };
+        await viewModel.CompareAsync();
+
+        // L'utente cambia i path dopo il confronto: l'export deve usare quelli confrontati.
+        viewModel.LeftPath = "/altro/path";
+        viewModel.RightPath = null;
+
+        string exportDir = Path.Combine(_tempDir, "export2");
+        Directory.CreateDirectory(exportDir);
+        string? written = await viewModel.ExportAsync(ComparisonReportFormat.Json, exportDir);
+
+        Assert.NotNull(written);
+        string json = await File.ReadAllTextAsync(written!);
+        Assert.Contains(_left.Replace("\\", "\\\\"), json);
+        Assert.DoesNotContain("/altro/path", json);
+    }
 }

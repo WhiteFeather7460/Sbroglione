@@ -35,18 +35,36 @@ public static class DirectoryComparisonService
         AttributesToSkip = FileAttributes.ReparsePoint
     };
 
-    public static async Task<DirectoryComparisonResult> CompareAsync(
+    /// <summary>
+    /// Comparer di default per i path relativi: case-insensitive sui filesystem
+    /// tipicamente case-insensitive (Windows, macOS), byte-exact altrove.
+    /// </summary>
+    internal static StringComparer DefaultPathComparer =>
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
+    public static Task<DirectoryComparisonResult> CompareAsync(
         string leftRoot,
         string rightRoot,
         int maxDegreeOfParallelism,
         Action<CompareProgress>? onProgress,
         CancellationToken ct)
-    {
-        var leftFiles = await Task.Run(() => RelativeFileSet(leftRoot, ct), ct);
-        var rightFiles = await Task.Run(() => RelativeFileSet(rightRoot, ct), ct);
+        => CompareAsync(leftRoot, rightRoot, maxDegreeOfParallelism, onProgress, DefaultPathComparer, ct);
 
-        var leftOnly = leftFiles.Keys.Where(k => !rightFiles.ContainsKey(k)).OrderBy(p => p, StringComparer.Ordinal).ToList();
-        var rightOnly = rightFiles.Keys.Where(k => !leftFiles.ContainsKey(k)).OrderBy(p => p, StringComparer.Ordinal).ToList();
+    public static async Task<DirectoryComparisonResult> CompareAsync(
+        string leftRoot,
+        string rightRoot,
+        int maxDegreeOfParallelism,
+        Action<CompareProgress>? onProgress,
+        StringComparer pathComparer,
+        CancellationToken ct)
+    {
+        var leftFiles = await Task.Run(() => RelativeFileSet(leftRoot, pathComparer, ct), ct);
+        var rightFiles = await Task.Run(() => RelativeFileSet(rightRoot, pathComparer, ct), ct);
+
+        var leftOnly = leftFiles.Keys.Where(k => !rightFiles.ContainsKey(k)).OrderBy(p => p, pathComparer).ToList();
+        var rightOnly = rightFiles.Keys.Where(k => !leftFiles.ContainsKey(k)).OrderBy(p => p, pathComparer).ToList();
         var common = leftFiles.Keys.Where(rightFiles.ContainsKey).ToList();
 
         var different = new ConcurrentBag<string>();
@@ -61,10 +79,12 @@ public static class DirectoryComparisonService
             await semaphore.WaitAsync(ct);
             try
             {
-                string leftPath = Path.Combine(leftRoot, relative);
-                string rightPath = Path.Combine(rightRoot, relative);
+                var leftEntry = leftFiles[relative];
+                var rightEntry = rightFiles[relative];
+                string leftPath = Path.Combine(leftRoot, leftEntry.RelativePath);
+                string rightPath = Path.Combine(rightRoot, rightEntry.RelativePath);
 
-                if (leftFiles[relative] != rightFiles[relative])
+                if (leftEntry.Size != rightEntry.Size)
                 {
                     different.Add(relative);
                     return;
@@ -89,18 +109,22 @@ public static class DirectoryComparisonService
         return new DirectoryComparisonResult(
             leftOnly,
             rightOnly,
-            different.OrderBy(p => p, StringComparer.Ordinal).ToList(),
-            identical.OrderBy(p => p, StringComparer.Ordinal).ToList());
+            different.OrderBy(p => p, pathComparer).ToList(),
+            identical.OrderBy(p => p, pathComparer).ToList());
     }
 
-    /// <summary>Mappa path relativo → dimensione file.</summary>
-    private static Dictionary<string, long> RelativeFileSet(string root, CancellationToken ct)
+    /// <summary>Voce di un file relativo a una radice: dimensione e path relativo con il casing reale su disco.</summary>
+    private readonly record struct FileEntry(long Size, string RelativePath);
+
+    /// <summary>Mappa path relativo (chiave normalizzata secondo il comparer) → voce file.</summary>
+    private static Dictionary<string, FileEntry> RelativeFileSet(string root, StringComparer pathComparer, CancellationToken ct)
     {
-        var map = new Dictionary<string, long>(StringComparer.Ordinal);
+        var map = new Dictionary<string, FileEntry>(pathComparer);
         foreach (var file in Directory.EnumerateFiles(root, "*", SafeEnumeration))
         {
             ct.ThrowIfCancellationRequested();
-            map[Path.GetRelativePath(root, file)] = new FileInfo(file).Length;
+            string relative = Path.GetRelativePath(root, file);
+            map[relative] = new FileEntry(new FileInfo(file).Length, relative);
         }
         return map;
     }
