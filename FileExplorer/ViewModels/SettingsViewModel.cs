@@ -206,6 +206,9 @@ public class SettingsViewModel : ViewModelBase
             if (ApplyThemesToApplication)
                 ThemeService.Revert(AppSettingsStore.Current.ThemeVariant);
             this.RaisePropertyChanged(nameof(ActiveCustomTheme));
+            this.RaisePropertyChanged(nameof(IsThemeDefault));
+            this.RaisePropertyChanged(nameof(IsThemeLight));
+            this.RaisePropertyChanged(nameof(IsThemeDark));
             SaveCurrent();
         }
 

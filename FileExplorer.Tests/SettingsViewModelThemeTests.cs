@@ -104,11 +104,15 @@ public class SettingsViewModelThemeTests : IDisposable
         SettingsViewModel vm = MakeVm();
         vm.ApplyCustomTheme(vm.CustomThemes[0]);
 
+        List<string?> changed = new();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
         await vm.DeleteThemeAsync(vm.CustomThemes[0]);
 
         Assert.Null(AppSettingsStore.Current.CustomThemeId);
         Assert.Empty(vm.CustomThemes);
         Assert.Null(ThemeStore.Load(theme.Id));
+        Assert.Contains(nameof(SettingsViewModel.IsThemeDark), changed);
     }
 
     [Fact]
