@@ -26,7 +26,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 ## Confronto & sincronizzazione
 
-9. `[ ]` **Report di confronto esportabile** — esito del confronto directory esportabile in HTML/CSV/JSON con riepilogo (solo-a-sinistra, solo-a-destra, diversi, identici). Utile per audit e documentazione. Feature Pro di Beyond Compare. *(B)*
+9. `[x]` **Report di confronto esportabile** — esito del confronto directory esportabile in HTML/CSV/JSON con riepilogo (solo-a-sinistra, solo-a-destra, diversi, identici). Utile per audit e documentazione. Feature Pro di Beyond Compare. *(B)*
 
 10. `[ ]` **Sync bidirezionale con rilevamento conflitti** — merge a due vie tra i pannelli: rileva file modificati da entrambi i lati dall'ultima sync (stato salvato) e chiede risoluzione per i conflitti invece di sovrascrivere alla cieca. *(A)*
 
