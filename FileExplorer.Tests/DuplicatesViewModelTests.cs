@@ -1,3 +1,4 @@
+using FileExplorer.Services;
 using FileExplorer.ViewModels;
 
 namespace FileExplorer.Tests;
@@ -5,15 +6,18 @@ namespace FileExplorer.Tests;
 public sealed class DuplicatesViewModelTests : IDisposable
 {
     private readonly string _root;
+    private readonly Func<string, string, string, Task<bool>>? _previousOverride;
 
     public DuplicatesViewModelTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "fe-dupvm-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        _previousOverride = ConfirmDialogHelper.Override;
     }
 
     public void Dispose()
     {
+        ConfirmDialogHelper.Override = _previousOverride;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
@@ -68,5 +72,80 @@ public sealed class DuplicatesViewModelTests : IDisposable
         Assert.True(File.Exists(first));
         Assert.Single(Directory.GetFiles(_root)); // sopravvive solo il primo
         Assert.Empty(vm.Groups);
+    }
+
+    [Fact]
+    public async Task ConfirmAndDeleteFile_WhenDeclined_DoesNotDelete()
+    {
+        string file1 = Path.Combine(_root, "a.bin");
+        string file2 = Path.Combine(_root, "b.bin");
+        await File.WriteAllBytesAsync(file1, new byte[4]);
+        await File.WriteAllBytesAsync(file2, new byte[4]);
+
+        using var viewModel = new DuplicatesViewModel();
+        var group = new DuplicateGroupViewModel(new DuplicateGroup(4, "deadbeef", new[] { file1, file2 }.ToList()));
+        viewModel.Groups.Add(group);
+
+        ConfirmDialogHelper.Override = (_, _, _) => Task.FromResult(false);
+
+        await viewModel.ConfirmAndDeleteFileAsync(group.Files[0]);
+
+        Assert.True(File.Exists(file1));
+        Assert.Equal(2, group.Files.Count);
+    }
+
+    [Fact]
+    public async Task ConfirmAndDeleteFile_WhenConfirmed_DeletesAndPassesFilePathInMessage()
+    {
+        string file1 = Path.Combine(_root, "c.bin");
+        string file2 = Path.Combine(_root, "d.bin");
+        await File.WriteAllBytesAsync(file1, new byte[4]);
+        await File.WriteAllBytesAsync(file2, new byte[4]);
+
+        using var viewModel = new DuplicatesViewModel();
+        var group = new DuplicateGroupViewModel(new DuplicateGroup(4, "deadbeef", new[] { file1, file2 }.ToList()));
+        viewModel.Groups.Add(group);
+
+        string? receivedMessage = null;
+        ConfirmDialogHelper.Override = (_, message, _) =>
+        {
+            receivedMessage = message;
+            return Task.FromResult(true);
+        };
+
+        await viewModel.ConfirmAndDeleteFileAsync(group.Files[0]);
+
+        Assert.False(File.Exists(file1));
+        Assert.NotNull(receivedMessage);
+        Assert.Contains(file1, receivedMessage!);
+    }
+
+    [Fact]
+    public async Task ConfirmAndKeepFirst_AsksOnceWithCount_AndDeletesRestOnConfirm()
+    {
+        string file1 = Path.Combine(_root, "k1.bin");
+        string file2 = Path.Combine(_root, "k2.bin");
+        string file3 = Path.Combine(_root, "k3.bin");
+        foreach (var f in new[] { file1, file2, file3 })
+            await File.WriteAllBytesAsync(f, new byte[4]);
+
+        using var viewModel = new DuplicatesViewModel();
+        var group = new DuplicateGroupViewModel(new DuplicateGroup(4, "deadbeef", new[] { file1, file2, file3 }.ToList()));
+        viewModel.Groups.Add(group);
+
+        int calls = 0;
+        ConfirmDialogHelper.Override = (_, message, _) =>
+        {
+            calls++;
+            Assert.Contains("2 file", message);
+            return Task.FromResult(true);
+        };
+
+        await viewModel.ConfirmAndKeepFirstAsync(group);
+
+        Assert.Equal(1, calls);
+        Assert.True(File.Exists(file1));
+        Assert.False(File.Exists(file2));
+        Assert.False(File.Exists(file3));
     }
 }
