@@ -54,6 +54,10 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 20. `[ ]` **Sanificazione nomi cross-filesystem** — in copia verso FAT/exFAT/NTFS/SMB, rilevamento preventivo di nomi illegali, path troppo lunghi, caratteri riservati e collisioni case-insensitive, con rinomina automatica suggerita e report. Causa classica di copie fallite a metà che quasi nessun tool previene. *(M)*
 
+## Interfaccia & personalizzazione
+
+21. `[ ]` **Selettore lingua (localizzazione UI)** — picker della lingua nelle Impostazioni (es. Italiano/English) con stringhe estratte in file di risorse (`.resx` o JSON) e cambio a caldo senza riavvio dove possibile. Oggi la UI è monolingua; prerequisito per distribuire l'app a un pubblico più ampio. *(M)*
+
 ---
 
 ## Note di priorità
