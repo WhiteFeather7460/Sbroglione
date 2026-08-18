@@ -54,12 +54,16 @@ public static class CopySimulationService
         if (!isDirectory && !File.Exists(sourcePath))
             throw new FileNotFoundException("Sorgente inesistente", sourcePath);
 
+        // Sorgente file singolo: la copia reale (CopySingleFileAsync) risolve la destinazione in modo
+        // diverso da una directory e non applica mai SkipUnchanged (ricopia sempre). La simulazione deve
+        // rispecchiare questo comportamento, non quello del ramo directory.
+        if (!isDirectory)
+            return SimulateSingleFile(sourcePath, destinationRoots, ct);
+
         // Coppie (path sorgente, path relativo) da esaminare.
-        List<(string Source, string Relative)> files = isDirectory
-            ? Directory.EnumerateFiles(sourcePath, "*", SafeEnumeration)
-                .Select(f => (f, Path.GetRelativePath(sourcePath, f)))
-                .ToList()
-            : new List<(string, string)> { (sourcePath, Path.GetFileName(sourcePath)) };
+        List<(string Source, string Relative)> files = Directory.EnumerateFiles(sourcePath, "*", SafeEnumeration)
+            .Select(f => (f, Path.GetRelativePath(sourcePath, f)))
+            .ToList();
 
         long totalBytes = 0;
         foreach (var (source, _) in files)
@@ -92,25 +96,58 @@ public static class CopySimulationService
 
             int overwrites = files.Count(pair => File.Exists(Path.Combine(root, pair.Relative)));
 
-            long? freeBytes = null;
-            try
-            {
-                string? volumeRoot = Path.GetPathRoot(Path.GetFullPath(root));
-                if (!string.IsNullOrEmpty(volumeRoot))
-                    freeBytes = new DriveInfo(volumeRoot).AvailableFreeSpace;
-            }
-            catch (Exception)
-            {
-                // spazio non determinabile (percorso di rete, volume rimosso): resta null.
-            }
-
-            destinations.Add(new DestinationSimulation(
-                root,
-                overwrites,
-                freeBytes,
-                freeBytes is null ? null : freeBytes >= bytesToWrite));
+            destinations.Add(BuildDestinationSimulation(root, overwrites, bytesToWrite));
         }
 
         return new CopySimulationResult(files.Count, totalBytes, skipped, destinations);
+    }
+
+    private static CopySimulationResult SimulateSingleFile(
+        string sourcePath,
+        IReadOnlyList<string> destinationRoots,
+        CancellationToken ct)
+    {
+        long totalBytes = new FileInfo(sourcePath).Length;
+        string fileName = Path.GetFileName(sourcePath);
+
+        var destinations = new List<DestinationSimulation>(destinationRoots.Count);
+        foreach (var root in destinationRoots)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            // Stessa risoluzione della copia reale: se la destinazione è una cartella esistente il file
+            // finisce dentro, altrimenti la destinazione è già il path del file (esista o no).
+            string resolvedDestination = Directory.Exists(root)
+                ? Path.Combine(root, fileName)
+                : root;
+
+            int overwrites = File.Exists(resolvedDestination) ? 1 : 0;
+
+            destinations.Add(BuildDestinationSimulation(root, overwrites, totalBytes));
+        }
+
+        // SkipUnchanged non è applicato: la copia reale di un file singolo ricopia sempre.
+        return new CopySimulationResult(TotalFiles: 1, totalBytes, SkippedFiles: 0, destinations);
+    }
+
+    private static DestinationSimulation BuildDestinationSimulation(string root, int overwrites, long bytesToWrite)
+    {
+        long? freeBytes = null;
+        try
+        {
+            string? volumeRoot = Path.GetPathRoot(Path.GetFullPath(root));
+            if (!string.IsNullOrEmpty(volumeRoot))
+                freeBytes = new DriveInfo(volumeRoot).AvailableFreeSpace;
+        }
+        catch (Exception)
+        {
+            // spazio non determinabile (percorso di rete, volume rimosso): resta null.
+        }
+
+        return new DestinationSimulation(
+            root,
+            overwrites,
+            freeBytes,
+            freeBytes is null ? null : freeBytes >= bytesToWrite);
     }
 }

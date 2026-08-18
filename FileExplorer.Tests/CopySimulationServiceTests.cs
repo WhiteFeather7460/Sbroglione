@@ -88,6 +88,41 @@ public sealed class CopySimulationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SimulateAsync_SingleFile_DestinationIsExistingFilePath_CountsAsOverwrite()
+    {
+        // Quando la destinazione è il path di un file (non una cartella), la copia reale scrive
+        // proprio lì: la simulazione deve rilevarlo come sovrascrittura, non cercare "dentro" root.
+        string sourceFile = Path.Combine(_tempDir, "single2.bin");
+        string destinationFile = Path.Combine(_tempDir, "existing-dest.bin");
+        await File.WriteAllBytesAsync(sourceFile, new byte[42]);
+        await File.WriteAllBytesAsync(destinationFile, new byte[7]);
+
+        string[] destinations = { destinationFile };
+        var result = await CopySimulationService.SimulateAsync(
+            sourceFile, destinations, skipUnchanged: false, CancellationToken.None);
+
+        Assert.Equal(1, Assert.Single(result.Destinations).OverwriteCount);
+    }
+
+    [Fact]
+    public async Task SimulateAsync_SingleFile_SkipUnchanged_NeverSkips()
+    {
+        // La copia reale di un file singolo (CopySingleFileAsync) ignora SkipUnchanged e ricopia
+        // sempre: la simulazione non deve promettere uno skip che poi non avviene.
+        string sourceFile = Path.Combine(_tempDir, "same-single.bin");
+        string destinationFile = Path.Combine(_tempDir, "same-single-dest.bin");
+        await File.WriteAllBytesAsync(sourceFile, new byte[10]);
+        File.Copy(sourceFile, destinationFile);
+        File.SetLastWriteTimeUtc(destinationFile, File.GetLastWriteTimeUtc(sourceFile));
+
+        string[] destinations = { destinationFile };
+        var result = await CopySimulationService.SimulateAsync(
+            sourceFile, destinations, skipUnchanged: true, CancellationToken.None);
+
+        Assert.Equal(0, result.SkippedFiles);
+    }
+
+    [Fact]
     public async Task SimulateAsync_MissingSource_ThrowsFileNotFoundException()
     {
         string missingSource = Path.Combine(_tempDir, "non-esiste.bin");
