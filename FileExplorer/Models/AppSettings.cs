@@ -10,6 +10,12 @@ public class AppSettings
     public int BufferSizeBytes { get; set; } = 1024 * 1024;
     public bool VerifyChecksumAfterCopy { get; set; } = true;
 
+    /// <summary>Limite di banda della copia attivo (toggle rapido nella scheda Copia).</summary>
+    public bool ThrottleEnabled { get; set; }
+
+    /// <summary>Limite di banda in MB/s (usato solo se <see cref="ThrottleEnabled"/>).</summary>
+    public int ThrottleMBps { get; set; } = 50;
+
     /// <summary>"Default" (segue il sistema), "Light" o "Dark".</summary>
     public string ThemeVariant { get; set; } = "Default";
 }
