@@ -59,6 +59,49 @@ public class CopyPairsViewModel : ViewModelBase
     /// </summary>
     public Task JournalRestore { get; }
 
+    /// <summary>Toggle rapido del limite di banda (scrive le impostazioni, effetto immediato sulle copie in corso).</summary>
+    public bool ThrottleEnabled
+    {
+        get => AppSettingsStore.Current.ThrottleEnabled;
+        set
+        {
+            if (AppSettingsStore.Current.ThrottleEnabled == value)
+                return;
+
+            AppSettingsStore.Current.ThrottleEnabled = value;
+            this.RaisePropertyChanged();
+            _ = SaveSettingsBestEffortAsync();
+        }
+    }
+
+    /// <summary>Limite MB/s modificabile al volo dalla scheda Copia.</summary>
+    public int ThrottleMBps
+    {
+        get => AppSettingsStore.Current.ThrottleMBps;
+        set
+        {
+            int clamped = Math.Clamp(value, 1, 1000);
+            if (AppSettingsStore.Current.ThrottleMBps == clamped)
+                return;
+
+            AppSettingsStore.Current.ThrottleMBps = clamped;
+            this.RaisePropertyChanged();
+            _ = SaveSettingsBestEffortAsync();
+        }
+    }
+
+    private static async Task SaveSettingsBestEffortAsync()
+    {
+        try
+        {
+            await AppSettingsStore.SaveCurrentAsync();
+        }
+        catch (Exception)
+        {
+            // best effort: il limite resta attivo in memoria anche se il salvataggio fallisce.
+        }
+    }
+
     /// <summary>
     /// Ripropone come coppie "interrotte" le voci rimaste nel journal
     /// (copie in corso al momento di un crash/chiusura), poi svuota il journal.

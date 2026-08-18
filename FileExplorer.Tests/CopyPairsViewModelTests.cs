@@ -8,6 +8,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
 {
     private readonly string _root;
     private readonly AppSettings _originalCurrent;
+    private readonly string _originalCurrentPath;
     private readonly string _originalJournalPath;
 
     public CopyPairsViewModelTests()
@@ -15,6 +16,8 @@ public sealed class CopyPairsViewModelTests : IDisposable
         _root = Path.Combine(Path.GetTempPath(), "fe-copypairs-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         _originalCurrent = AppSettingsStore.Current;
+        _originalCurrentPath = AppSettingsStore.CurrentPath;
+        AppSettingsStore.CurrentPath = Path.Combine(_root, "settings.json");
         AppSettingsStore.Current = new AppSettings();
         _originalJournalPath = CopyJournalStore.CurrentPath;
         CopyJournalStore.CurrentPath = Path.Combine(_root, "copy-journal.json");
@@ -23,6 +26,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
     public void Dispose()
     {
         AppSettingsStore.Current = _originalCurrent;
+        AppSettingsStore.CurrentPath = _originalCurrentPath;
         CopyJournalStore.CurrentPath = _originalJournalPath;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
@@ -245,5 +249,29 @@ public sealed class CopyPairsViewModelTests : IDisposable
 
         Assert.Equal(CopyStateKind.Success, pair.StateKind);
         Assert.Empty(await CopyJournalStore.LoadAsync());
+    }
+
+    [Fact]
+    public void ThrottleEnabled_RoundTripsThroughSettings()
+    {
+        var viewModel = new CopyPairsViewModel();
+
+        viewModel.ThrottleEnabled = true;
+        Assert.True(AppSettingsStore.Current.ThrottleEnabled);
+
+        viewModel.ThrottleEnabled = false;
+        Assert.False(AppSettingsStore.Current.ThrottleEnabled);
+    }
+
+    [Fact]
+    public void ThrottleMBps_ClampsToRange()
+    {
+        var viewModel = new CopyPairsViewModel();
+
+        viewModel.ThrottleMBps = 5000;
+        Assert.Equal(1000, AppSettingsStore.Current.ThrottleMBps);
+
+        viewModel.ThrottleMBps = 0;
+        Assert.Equal(1, AppSettingsStore.Current.ThrottleMBps);
     }
 }

@@ -73,6 +73,35 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    public bool ThrottleEnabled
+    {
+        get => AppSettingsStore.Current.ThrottleEnabled;
+        set
+        {
+            if (AppSettingsStore.Current.ThrottleEnabled == value)
+                return;
+
+            AppSettingsStore.Current.ThrottleEnabled = value;
+            this.RaisePropertyChanged();
+            SaveCurrent();
+        }
+    }
+
+    public int ThrottleMBps
+    {
+        get => AppSettingsStore.Current.ThrottleMBps;
+        set
+        {
+            int clamped = Math.Clamp(value, 1, 1000);
+            if (AppSettingsStore.Current.ThrottleMBps == clamped)
+                return;
+
+            AppSettingsStore.Current.ThrottleMBps = clamped;
+            this.RaisePropertyChanged();
+            SaveCurrent();
+        }
+    }
+
     public string ThemeVariant
     {
         get => AppSettingsStore.Current.ThemeVariant;

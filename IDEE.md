@@ -14,7 +14,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 3. `[x]` **Copia multi-destinazione (1 lettura → N scritture)** — copiare lo stesso set di file verso più destinazioni contemporaneamente leggendo la sorgente una sola volta. Ottimo per backup su due dischi. Feature premium di Ultracopier/Supercopier. *(M)*
 
-4. `[ ]` **Throttling I/O configurabile** — limite di banda (MB/s) per la copia, per non saturare dischi/rete mentre si lavora. Slider in Impostazioni + toggle rapido durante la copia. *(B)*
+4. `[x]` **Throttling I/O configurabile** — limite di banda (MB/s) per la copia, per non saturare dischi/rete mentre si lavora. Slider in Impostazioni + toggle rapido durante la copia. *(B)*
 
 5. `[ ]` **Delta-copy stile rsync** — se il file di destinazione esiste, copiare solo i blocchi cambiati (rolling checksum). Enorme risparmio su file grandi modificati poco (VM, database, video in editing). *(A)*
 
