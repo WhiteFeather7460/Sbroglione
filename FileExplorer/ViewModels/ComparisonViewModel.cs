@@ -121,15 +121,20 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
         try
         {
+            // Catturati prima dell'await: le TextBox restano editabili durante il confronto,
+            // quindi LeftPath/RightPath potrebbero cambiare mentre CompareAsync è in corso.
+            string left = LeftPath;
+            string right = RightPath;
+
             int parallelism = Math.Max(2, Environment.ProcessorCount - 1);
             var result = await DirectoryComparisonService.CompareAsync(
-                LeftPath, RightPath, parallelism,
+                left, right, parallelism,
                 progress => StatusText = $"Confronto in corso… ({progress.Processed}/{progress.Total})",
                 ct);
 
             Result = result;
-            _comparedLeftRoot = LeftPath;
-            _comparedRightRoot = RightPath;
+            _comparedLeftRoot = left;
+            _comparedRightRoot = right;
             StatusText = $"{result.Identical.Count} identici, {result.Different.Count} diversi, " +
                          $"{result.LeftOnly.Count} solo a sinistra, {result.RightOnly.Count} solo a destra";
         }
