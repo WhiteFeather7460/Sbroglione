@@ -77,6 +77,10 @@ public sealed class SpeedTracker
 
     private double CurrentLocked(double now)
     {
+        // Guardia: se Start() non è ancora stato chiamato, _points è vuota.
+        if (_points.Count == 0)
+            return 0;
+
         var oldest = _points[0];
         double window = now - oldest.Time;
         return window > 0 ? (_lastBytes - oldest.Bytes) / window : 0;

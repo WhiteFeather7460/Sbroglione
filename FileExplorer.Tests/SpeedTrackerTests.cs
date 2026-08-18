@@ -73,6 +73,27 @@ public sealed class SpeedTrackerTests
     }
 
     [Fact]
+    public void QueriesBeforeStart_DoNotThrow()
+    {
+        double now = 0;
+        var tracker = new SpeedTracker(() => now);
+
+        Assert.Equal(0, tracker.CurrentBytesPerSecond, precision: 1);
+        Assert.Equal(0, tracker.AverageBytesPerSecond, precision: 1);
+        Assert.Equal(0, tracker.PeakBytesPerSecond, precision: 1);
+        Assert.Null(tracker.EtaSeconds);
+        Assert.Empty(tracker.Samples);
+
+        bool took = tracker.TryTakeSnapshot(out var snapshot);
+        Assert.True(took);
+        Assert.Equal(0, snapshot.CurrentBytesPerSecond, precision: 1);
+        Assert.Equal(0, snapshot.AverageBytesPerSecond, precision: 1);
+        Assert.Equal(0, snapshot.PeakBytesPerSecond, precision: 1);
+        Assert.Null(snapshot.EtaSeconds);
+        Assert.Empty(snapshot.Samples);
+    }
+
+    [Fact]
     public void Samples_CappedAtSixty()
     {
         double now = 0;
