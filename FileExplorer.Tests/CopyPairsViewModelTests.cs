@@ -258,4 +258,16 @@ public sealed class CopyPairsViewModelTests : IDisposable
         viewModel.ThrottleEnabled = false;
         Assert.False(AppSettingsStore.Current.ThrottleEnabled);
     }
+
+    [Fact]
+    public void ThrottleMBps_ClampsToRange()
+    {
+        var viewModel = new CopyPairsViewModel();
+
+        viewModel.ThrottleMBps = 5000;
+        Assert.Equal(1000, AppSettingsStore.Current.ThrottleMBps);
+
+        viewModel.ThrottleMBps = 0;
+        Assert.Equal(1, AppSettingsStore.Current.ThrottleMBps);
+    }
 }
