@@ -2,6 +2,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:m="using:FileExplorer.Models"
              x:Class="FileExplorer.Views.SettingsView">
 
   <DockPanel>
@@ -69,6 +70,37 @@
               <RadioButton GroupName="Theme" Content="Sistema" IsChecked="{Binding IsThemeDefault}" />
               <RadioButton GroupName="Theme" Content="Chiaro" IsChecked="{Binding IsThemeLight}" />
               <RadioButton GroupName="Theme" Content="Scuro" IsChecked="{Binding IsThemeDark}" />
+            </StackPanel>
+
+            <TextBlock Text="Temi personalizzati" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <ItemsControl ItemsSource="{Binding CustomThemes}" IsVisible="{Binding HasCustomThemes}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="m:ColorTheme">
+                  <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,2">
+                    <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextPrimary}" />
+                    <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-check"
+                            ToolTip.Tip="Applica" Click="OnApplyThemeClick" />
+                    <Button Grid.Column="2" Classes="iconbtn" i:Attached.Icon="fa-solid fa-pen"
+                            ToolTip.Tip="Modifica" Click="OnEditThemeClick" />
+                    <Button Grid.Column="3" Classes="iconbtn" i:Attached.Icon="fa-solid fa-file-export"
+                            ToolTip.Tip="Esporta" Click="OnExportThemeClick" />
+                    <Button Grid.Column="4" Classes="iconbtn" i:Attached.Icon="fa-solid fa-trash"
+                            ToolTip.Tip="Elimina" Click="OnDeleteThemeClick" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="Nessun tema personalizzato: creane uno partendo da Chiaro o Scuro."
+                       IsVisible="{Binding !HasCustomThemes}"
+                       Foreground="{DynamicResource Brush.TextMuted}" TextWrapping="Wrap" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="secondary" Content="Nuovo da Chiaro" Click="OnNewFromLightClick" />
+              <Button Classes="secondary" Content="Nuovo da Scuro" Click="OnNewFromDarkClick" />
+              <Button Classes="secondary" Content="Importa…" Click="OnImportThemeClick" />
             </StackPanel>
           </StackPanel>
         </Border>

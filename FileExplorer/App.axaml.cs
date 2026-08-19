@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 
+using FileExplorer.Models;
 using FileExplorer.Services;
 using FileExplorer.ViewModels;
 using FileExplorer.Views;
@@ -21,7 +22,13 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             AppSettingsStore.LoadCurrent();
-            RequestedThemeVariant = ParseThemeVariant(AppSettingsStore.Current.ThemeVariant);
+            ColorTheme? customTheme = AppSettingsStore.Current.CustomThemeId is { } themeId
+                ? ThemeStore.Load(themeId)
+                : null;
+            if (customTheme is not null)
+                ThemeService.Apply(customTheme);
+            else
+                RequestedThemeVariant = ParseThemeVariant(AppSettingsStore.Current.ThemeVariant);
 
             desktop.MainWindow = new MainWindow
             {
