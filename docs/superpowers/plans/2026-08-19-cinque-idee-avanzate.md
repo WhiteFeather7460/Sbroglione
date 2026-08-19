@@ -51,13 +51,13 @@ Nota rischi: `FolderFilePairViewModel.SourcePath` avvia in setter un refresh asi
   - `public static void CopyProfileStore.Sanitize(CopyProfile profile)`
   - `public static string CopyProfileStore.CurrentPath { get; set; }` (seam test)
 
-- [ ] **Step 0: Crea il branch di lavoro da main aggiornato**
+- [x] **Step 0: Crea il branch di lavoro da main aggiornato**
 
 ```bash
 git checkout main && git pull && git checkout -b feature/copy-profiles
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/CopyProfileStoreTests.cs
@@ -175,12 +175,12 @@ public sealed class CopyProfileStoreTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter CopyProfileStoreTests`
 Expected: FAIL (tipi `CopyProfile`/`CopyProfileStore` non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement il modello e lo store**
+- [x] **Step 3: Implement il modello e lo store**
 
 ```csharp
 // FileExplorer/Models/CopyProfile.cs
@@ -305,12 +305,12 @@ public static class CopyProfileStore
 }
 ```
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter CopyProfileStoreTests`
 Expected: PASS (6 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Models/CopyProfile.cs FileExplorer/Services/CopyProfileStore.cs FileExplorer.Tests/CopyProfileStoreTests.cs
@@ -337,7 +337,7 @@ git commit -m "feat(profiles): modello CopyProfile e CopyProfileStore persistent
   - `public static Task<string?> InputDialogHelper.ShowAsync(string title, string message, string? initialText)` — testo confermato o `null` su annulla
   - `internal static Func<string, string, string?, Task<string?>>? InputDialogHelper.Override { get; set; }` (seam test)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/InputDialogViewModelTests.cs
@@ -391,12 +391,12 @@ public sealed class InputDialogViewModelTests
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter InputDialogViewModelTests`
 Expected: FAIL (tipo `InputDialogViewModel` non esistente → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement ViewModel, dialog e helper**
+- [x] **Step 3: Implement ViewModel, dialog e helper**
 
 ```csharp
 // FileExplorer/ViewModels/InputDialogViewModel.cs
@@ -539,12 +539,12 @@ internal static class InputDialogHelper
 }
 ```
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter InputDialogViewModelTests`
 Expected: PASS (4 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/InputDialogViewModel.cs FileExplorer/Views/InputDialog.axaml FileExplorer/Views/InputDialog.axaml.cs FileExplorer/ViewModels/InputDialogHelper.cs FileExplorer.Tests/InputDialogViewModelTests.cs
@@ -576,7 +576,7 @@ git commit -m "feat(profiles): dialog di input riusabile con seam Override per i
   - `public Task SaveProfileAsync()`, `public void ApplyProfile()`, `public Task DeleteProfileAsync()`
   - `internal Task? LastProfilesSaveTask { get; private set; }` (seam test)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `FileExplorer.Tests/CopyPairsViewModelTests.cs` aggiornare ctor/Dispose (righe 14–32) così:
 
@@ -796,12 +796,12 @@ Poi aggiungere in fondo alla classe (prima della graffa di chiusura) i nuovi tes
     }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter CopyPairsViewModelTests`
 Expected: FAIL (membri `Profiles`/`ProfilesLoad`/`SaveProfileAsync`/… non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement i membri profili in `CopyPairsViewModel`**
+- [x] **Step 3: Implement i membri profili in `CopyPairsViewModel`**
 
 Le `using` esistenti bastano (Linq, ObjectModel, Reactive, Models, Services già importati).
 
@@ -968,12 +968,12 @@ e, subito dopo la riga `JournalRestore = RestoreInterruptedJobsAsync();`:
     }
 ```
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter CopyPairsViewModelTests`
 Expected: PASS (16 test esistenti + 8 nuovi = 24 test).
 
-- [ ] **Step 5: Aggiungi la barra profili in `CopyPairsView.axaml`**
+- [x] **Step 5: Aggiungi la barra profili in `CopyPairsView.axaml`**
 
 Inserire il blocco seguente subito dopo la chiusura del Border header (dopo la riga 35, `</Border>` del blocco `<!-- Header con gradiente -->`) e prima di `<Panel Background="{DynamicResource Brush.Surface}">`:
 
@@ -1007,14 +1007,14 @@ Inserire il blocco seguente subito dopo la chiusura del Border header (dopo la r
 
 Nota icone: `fa-floppy-disk`, `fa-bookmark`, `fa-folder-open`, `fa-trash` sono tutte nel set FontAwesome 6 Free Solid già usato dall'app.
 
-- [ ] **Step 6: Build e smoke-run**
+- [x] **Step 6: Build e smoke-run**
 
 Run: `dotnet build FileExplorer.sln`
 Expected: build OK, nessun warning nuovo.
 
 Se `DISPLAY` è impostato: `DOTNET_ROLL_FORWARD=LatestMajor dotnet run --project FileExplorer.Desktop` — verificare che la barra profili compaia sotto l'header della scheda Copia e che salvataggio/applicazione/eliminazione funzionino.
 
-- [ ] **Step 7: Aggiorna IDEE.md e commit**
+- [x] **Step 7: Aggiorna IDEE.md e commit**
 
 In `IDEE.md` cambiare la riga del punto 7 da:
 
@@ -1033,7 +1033,7 @@ git add FileExplorer/ViewModels/CopyPairsViewModel.cs FileExplorer/Views/CopyPai
 git commit -m "feat(profiles): salvataggio, applicazione ed eliminazione profili di copia"
 ```
 
-- [ ] **Step 8: Fine fase — test completi, push e PR**
+- [x] **Step 8: Fine fase — test completi, push e PR**
 
 Run: `dotnet test`
 Expected: PASS (tutti i test della soluzione).
