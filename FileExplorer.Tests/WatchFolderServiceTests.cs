@@ -108,6 +108,72 @@ public sealed class WatchFolderServiceTests : IDisposable
         await WaitUntilAsync(() => Volatile.Read(ref count) >= 2);
     }
 
+    /// <summary>
+    /// Non-sordità: dopo che un ciclo completo si è concluso il runner deve tornare in
+    /// ascolto. Un debounce che perde il segnale lascerebbe la regola morta in silenzio.
+    /// </summary>
+    [Fact]
+    public async Task SecondBurstAfterFirstCycle_TriggersNewSync()
+    {
+        WatchRule rule = CreateRule();
+        WatchFolderService.Start(rule);
+
+        await File.WriteAllTextAsync(Path.Combine(rule.SourcePath, "a.txt"), "1");
+        await WaitUntilAsync(() => Volatile.Read(ref _syncCount) >= 1);
+        await Task.Delay(600); // il primo ciclo è concluso: runner di nuovo in attesa
+
+        for (int i = 0; i < 3; i++)
+            await File.WriteAllTextAsync(Path.Combine(rule.SourcePath, $"b{i}.txt"), "2");
+
+        await WaitUntilAsync(() => Volatile.Read(ref _syncCount) >= 2);
+    }
+
+    /// <summary>Un sottoscrittore che lancia non deve uccidere il loop del runner.</summary>
+    [Fact]
+    public async Task ThrowingStatusSubscriber_DoesNotKillRunner()
+    {
+        Action<WatchStatus> handler = _ => throw new InvalidOperationException("boom");
+        WatchFolderService.StatusChanged += handler;
+        try
+        {
+            WatchRule rule = CreateRule();
+            WatchFolderService.Start(rule);
+
+            await File.WriteAllTextAsync(Path.Combine(rule.SourcePath, "a.txt"), "1");
+            await WaitUntilAsync(() => Volatile.Read(ref _syncCount) >= 1);
+            await Task.Delay(600);
+
+            await File.WriteAllTextAsync(Path.Combine(rule.SourcePath, "b.txt"), "2");
+            await WaitUntilAsync(() => Volatile.Read(ref _syncCount) >= 2);
+        }
+        finally
+        {
+            WatchFolderService.StatusChanged -= handler;
+        }
+    }
+
+    [Fact]
+    public async Task SyncThrows_ReportsErrorStatusWithoutPropagating()
+    {
+        WatchFolderService.SyncOverride = (_, _) => throw new InvalidOperationException("disco pieno");
+        var statuses = new List<WatchStatus>();
+        Action<WatchStatus> handler = status => { lock (statuses) statuses.Add(status); };
+        WatchFolderService.StatusChanged += handler;
+        try
+        {
+            WatchRule rule = CreateRule();
+
+            await WatchFolderService.RunNowAsync(rule);
+
+            lock (statuses)
+                Assert.Contains(statuses, s => !s.IsRunning && s.Message == "Errore: disco pieno");
+        }
+        finally
+        {
+            WatchFolderService.StatusChanged -= handler;
+        }
+    }
+
     [Fact]
     public async Task Stop_PreventsFurtherSyncs()
     {

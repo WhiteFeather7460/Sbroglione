@@ -20,6 +20,8 @@ public sealed record WatchStatus(string RuleId, bool IsRunning, DateTime? LastRu
 /// La sync è <see cref="FileCopyService.CopyDirectoryAsync"/> con skipUnchanged=true
 /// (incrementale). Non usa CopyJournalStore: una sync interrotta a metà viene
 /// completata dalla successiva grazie al confronto dimensione+mtime.
+/// La sync è additiva: copia file nuovi o modificati e non cancella mai nulla dalla
+/// destinazione, quindi i file rimossi dalla sorgente restano nella copia.
 /// </summary>
 public static class WatchFolderService
 {
@@ -95,7 +97,11 @@ public static class WatchFolderService
             runner.Dispose();
     }
 
-    /// <summary>Esegue subito una sync: tramite il runner se attivo (serializzata), altrimenti one-shot.</summary>
+    /// <summary>
+    /// Esegue subito una sync: tramite il runner se attivo (serializzata con quelle del loop),
+    /// altrimenti one-shot. Il percorso one-shot non è serializzato con nulla: due chiamate
+    /// concorrenti sulla stessa regola senza runner attivo possono sovrapporsi.
+    /// </summary>
     public static async Task RunNowAsync(WatchRule rule)
     {
         RuleRunner? runner;
@@ -114,9 +120,12 @@ public static class WatchFolderService
     /// <summary>Sync reale: copia incrementale directory → directory con parallelismo adattivo.</summary>
     internal static async Task DefaultSyncAsync(WatchRule rule, CancellationToken ct)
     {
+        // Snapshot: l'utente può cambiare le impostazioni mentre la sync è in corso.
+        AppSettings settings = AppSettingsStore.Current;
+
         DiskType sourceType = await DiskTypeService.GetDiskTypeAsync(rule.SourcePath, ct).ConfigureAwait(false);
         DiskType destinationType = await DiskTypeService.GetDiskTypeAsync(rule.DestinationPath, ct).ConfigureAwait(false);
-        int parallelism = CopyParallelismResolver.Resolve(AppSettingsStore.Current, sourceType, destinationType);
+        int parallelism = CopyParallelismResolver.Resolve(settings, sourceType, destinationType);
 
         await FileCopyService.CopyDirectoryAsync(
             rule.SourcePath,
@@ -124,7 +133,7 @@ public static class WatchFolderService
             parallelism,
             onProgress: null,
             ct,
-            bufferSize: AppSettingsStore.Current.BufferSizeBytes,
+            bufferSize: settings.BufferSizeBytes,
             skipUnchanged: true).ConfigureAwait(false);
     }
 
@@ -189,7 +198,6 @@ public static class WatchFolderService
 
         private FileSystemWatcher? _watcher;
         private bool _disposed;
-        private int _dirty;
         private DateTime? _lastRunUtc;
 
         public RuleRunner(WatchRule rule) => _rule = rule;
@@ -209,20 +217,7 @@ public static class WatchFolderService
 
                 if (_rule.Mode == WatchMode.OnChange)
                 {
-                    _watcher = new FileSystemWatcher(_rule.SourcePath)
-                    {
-                        IncludeSubdirectories = true,
-                        NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName
-                                     | NotifyFilters.LastWrite | NotifyFilters.Size
-                    };
-                    _watcher.Created += (_, _) => Signal();
-                    _watcher.Changed += (_, _) => Signal();
-                    _watcher.Renamed += (_, _) => Signal();
-                    _watcher.Deleted += (_, _) => Signal();
-                    _watcher.Error += (_, e) =>
-                        RaiseStatus(new WatchStatus(_rule.Id, false, LastRunUtc, $"Errore watcher: {e.GetException().Message}"));
-                    _watcher.EnableRaisingEvents = true;
-
+                    _watcher = CreateWatcher();
                     _ = Task.Run(() => LoopOnChangeAsync(_cts.Token));
                 }
                 else
@@ -232,22 +227,79 @@ public static class WatchFolderService
             }
         }
 
+        /// <summary>Crea e attiva un watcher sulla sorgente. Da chiamare sotto <see cref="_lifecycle"/>.</summary>
+        private FileSystemWatcher CreateWatcher()
+        {
+            var watcher = new FileSystemWatcher(_rule.SourcePath)
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName
+                             | NotifyFilters.LastWrite | NotifyFilters.Size
+            };
+            watcher.Created += (_, _) => Signal();
+            watcher.Changed += (_, _) => Signal();
+            watcher.Renamed += (_, _) => Signal();
+            watcher.Deleted += (_, _) => Signal();
+            watcher.Error += (_, e) => OnWatcherError(e);
+            watcher.EnableRaisingEvents = true;
+            return watcher;
+        }
+
+        /// <summary>
+        /// Errore del watcher (tipicamente InternalBufferOverflowException con
+        /// IncludeSubdirectories): gli eventi persi non tornano più. Si recupera
+        /// segnalando comunque una sync — la passata incrementale confronta l'intero
+        /// albero e riprende i cambi persi — e ricreando il watcher, che dopo un
+        /// overflow può essere morto pur risultando attivo nella UI.
+        /// </summary>
+        private void OnWatcherError(ErrorEventArgs e)
+        {
+            RaiseStatus(new WatchStatus(_rule.Id, false, LastRunUtc, $"Errore watcher: {e.GetException().Message}"));
+            Signal();
+
+            // Fuori dal thread di callback del watcher: non si dispone un watcher
+            // dall'interno di un suo stesso evento, né si blocca quel thread su _lifecycle.
+            _ = Task.Run(RecreateWatcher);
+        }
+
+        private void RecreateWatcher()
+        {
+            lock (_lifecycle)
+            {
+                if (_disposed || _rule.Mode != WatchMode.OnChange)
+                    return;
+
+                try
+                {
+                    _watcher?.Dispose();
+                    _watcher = CreateWatcher();
+                }
+                catch (Exception ex)
+                {
+                    _watcher = null;
+                    RaiseStatus(new WatchStatus(_rule.Id, false, LastRunUtc, $"Watcher non ripristinato: {ex.Message}"));
+                }
+            }
+        }
+
         /// <summary>Sync manuale, serializzata con quelle del loop tramite <see cref="_syncGate"/>.</summary>
         public Task RunOnceAsync() => RunSyncAsync(_cts.Token);
 
+        /// <summary>
+        /// Segnala un cambiamento. Il coalescing lo fa il semaforo stesso (capacità 1):
+        /// se un segnale è già pendente, Release lancia e l'eccezione viene ignorata.
+        /// Nessun flag affiancato al semaforo: due stati da tenere coerenti senza un
+        /// lock comune si disallineerebbero, lasciando il runner sordo per sempre.
+        /// </summary>
         private void Signal()
         {
-            // Coalescing: un solo release pendente per qualsiasi numero di eventi.
-            if (Interlocked.Exchange(ref _dirty, 1) == 0)
+            try
             {
-                try
-                {
-                    _wake.Release();
-                }
-                catch (SemaphoreFullException)
-                {
-                    // già segnalato
-                }
+                _wake.Release();
+            }
+            catch (SemaphoreFullException)
+            {
+                // segnale già pendente
             }
         }
 
@@ -257,23 +309,19 @@ public static class WatchFolderService
             {
                 while (true)
                 {
+                    // Primo evento della raffica: attesa senza timeout.
                     await _wake.WaitAsync(ct).ConfigureAwait(false);
 
-                    // Debounce: attende una finestra di quiete coalescendo gli eventi.
-                    do
+                    // Debounce: ogni segnale consumato riapre la finestra di quiete.
+                    // Esce quando per DebounceDelay non arriva più nulla.
+                    while (await _wake.WaitAsync(DebounceDelay, ct).ConfigureAwait(false))
                     {
-                        Interlocked.Exchange(ref _dirty, 0);
-                        await Task.Delay(DebounceDelay, ct).ConfigureAwait(false);
+                        // raffica ancora in corso
                     }
-                    while (Volatile.Read(ref _dirty) == 1);
-
-                    // Consuma l'eventuale release residuo maturato durante il debounce.
-                    while (_wake.CurrentCount > 0)
-                        await _wake.WaitAsync(ct).ConfigureAwait(false);
 
                     await RunSyncAsync(ct).ConfigureAwait(false);
-                    // Eventi arrivati durante la sync hanno rimesso _dirty/_wake:
-                    // il giro successivo riparte da WaitAsync e riesegue.
+                    // Un evento arrivato durante la sync ha lasciato un segnale pendente:
+                    // il giro successivo lo consuma subito e riesegue.
                 }
             }
             catch (OperationCanceledException)
@@ -318,16 +366,23 @@ public static class WatchFolderService
 
         public void Dispose()
         {
+            FileSystemWatcher? watcher;
             lock (_lifecycle)
             {
                 if (_disposed)
                     return;
 
                 _disposed = true;
-                _cts.Cancel();
-                _watcher?.Dispose();
+                watcher = _watcher;
                 _watcher = null;
             }
+
+            // Fuori dal lock: Dispose e Cancel eseguono callback esterni (handler del
+            // watcher, continuation dei loop), che non devono mai girare sotto _lifecycle.
+            // Il flag _disposed è già alzato, quindi Start/RecreateWatcher concorrenti
+            // escono senza creare nulla.
+            watcher?.Dispose();
+            _cts.Cancel();
 
             // Il CTS non viene disposto qui: loop e sync in volo potrebbero ancora
             // osservare il token. Cancellato resta innocuo; lo raccoglie il GC.
