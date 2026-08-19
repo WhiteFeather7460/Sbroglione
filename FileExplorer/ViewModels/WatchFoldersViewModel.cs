@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -20,6 +21,15 @@ namespace FileExplorer.ViewModels;
 public class WatchFoldersViewModel : ViewModelBase, IDisposable
 {
     private readonly Action<WatchStatus> _statusHandler;
+
+    /// <summary>
+    /// Indice per RuleId usato da <see cref="OnStatusChanged"/>, che gira su thread di
+    /// background: <see cref="Rules"/> (ObservableCollection, non thread-safe) è mutata
+    /// solo dal thread UI in Add/Remove/Load, quindi enumerarla da un altro thread
+    /// (FirstOrDefault) potrebbe incappare in un InvalidOperationException a metà
+    /// enumerazione. ConcurrentDictionary tiene la lookup thread-safe senza lock espliciti.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, WatchRuleViewModel> _ruleIndex = new();
 
     public WatchFoldersViewModel()
     {
@@ -57,7 +67,9 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     /// <summary>Pubblico per i test.</summary>
     public void AddRule()
     {
-        Rules.Add(new WatchRuleViewModel(new WatchRule(), this));
+        var rule = new WatchRuleViewModel(new WatchRule(), this);
+        Rules.Add(rule);
+        _ruleIndex[rule.Model.Id] = rule;
         this.RaisePropertyChanged(nameof(HasRules));
         // Nessun salvataggio: una regola senza percorsi verrebbe scartata dal Sanitize dello store.
     }
@@ -75,6 +87,7 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         if (ManageRunners)
             WatchFolderService.Stop(rule.Model.Id);
         Rules.Remove(rule);
+        _ruleIndex.TryRemove(rule.Model.Id, out _);
         this.RaisePropertyChanged(nameof(HasRules));
         SaveRules();
     }
@@ -146,10 +159,12 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         List<WatchRule> rules = await WatchRuleStore.LoadAsync();
         foreach (WatchRule rule in rules)
         {
-            Rules.Add(new WatchRuleViewModel(rule, this)
+            var row = new WatchRuleViewModel(rule, this)
             {
                 StatusText = rule.Enabled ? "In attesa" : "Disattivata"
-            });
+            };
+            Rules.Add(row);
+            _ruleIndex[rule.Id] = row;
         }
 
         this.RaisePropertyChanged(nameof(HasRules));
@@ -158,9 +173,9 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
 
     private void OnStatusChanged(WatchStatus status)
     {
-        // Thread di background: assegnazioni dirette come per i progressi di copia.
-        WatchRuleViewModel? row = Rules.FirstOrDefault(r => r.Model.Id == status.RuleId);
-        if (row is null)
+        // Thread di background: lookup via _ruleIndex (thread-safe), assegnazioni dirette
+        // sulla riga trovata come per i progressi di copia.
+        if (!_ruleIndex.TryGetValue(status.RuleId, out WatchRuleViewModel? row))
             return;
 
         row.StatusText = status.Message;

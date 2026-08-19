@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using FileExplorer.Models;
 using FileExplorer.Services;
 using FileExplorer.ViewModels;
@@ -10,6 +12,11 @@ public sealed class WatchFoldersViewModelTests : IDisposable
     private readonly string _originalStorePath;
     private readonly Func<string, string, string, Task<bool>>? _originalConfirm;
 
+    // VM create dai singoli test tramite CreateVm(): disposte tutte a fine test, così
+    // _statusHandler non resta iscritto a WatchFolderService.StatusChanged (evento statico,
+    // vive per tutto il processo) oltre la durata del test che l'ha creato.
+    private readonly List<WatchFoldersViewModel> _createdVms = new();
+
     public WatchFoldersViewModelTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "fe-watchvm-" + Guid.NewGuid().ToString("N"));
@@ -21,13 +28,23 @@ public sealed class WatchFoldersViewModelTests : IDisposable
 
     public void Dispose()
     {
+        // Dispose() è idempotente (-= su handler già rimosso è un no-op): sicuro anche
+        // per i test che chiamano vm.Dispose() esplicitamente prima di questo cleanup.
+        foreach (WatchFoldersViewModel vm in _createdVms)
+            vm.Dispose();
+
         ConfirmDialogHelper.Override = _originalConfirm;
         WatchRuleStore.CurrentPath = _originalStorePath;
         WatchFolderService.StopAll();
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
-    private static WatchFoldersViewModel CreateVm() => new() { ManageRunners = false };
+    private WatchFoldersViewModel CreateVm()
+    {
+        var vm = new WatchFoldersViewModel { ManageRunners = false };
+        _createdVms.Add(vm);
+        return vm;
+    }
 
     private static async Task<WatchRuleViewModel> AddCompleteRuleAsync(WatchFoldersViewModel vm)
     {
