@@ -34,6 +34,32 @@
       </Grid>
     </Border>
 
+    <!-- Barra profili di copia -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,8">
+      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <i:Icon Value="fa-solid fa-bookmark" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+        <TextBlock Text="Profilo:" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+        <ComboBox Width="220" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
+                  PlaceholderText="Nessun profilo">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-floppy-disk"
+                Command="{Binding SaveProfileCommand}"
+                ToolTip.Tip="Salva le coppie correnti come profilo" />
+        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-folder-open"
+                Command="{Binding ApplyProfileCommand}"
+                ToolTip.Tip="Applica il profilo selezionato" />
+        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-trash"
+                Command="{Binding DeleteProfileCommand}"
+                ToolTip.Tip="Elimina il profilo selezionato" />
+      </StackPanel>
+    </Border>
+
     <Panel Background="{DynamicResource Brush.Surface}">
 
       <!-- Empty state -->

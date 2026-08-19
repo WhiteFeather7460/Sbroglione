@@ -20,7 +20,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 6. `[x]` **Dry-run / simulazione operazioni** — anteprima completa di cosa verrebbe copiato/sovrascritto/eliminato, con verifica spazio disponibile per destinazione, prima di lanciare il batch. Beyond Compare lo fa solo in versione Pro. *(B)*
 
-7. `[ ]` **Profili di copia salvabili** — preset nominati (es. "Backup foto", "Sync progetti") che memorizzano coppie sorgente/destinazione, filtri, opzioni di verifica e parallelismo. Un click per rieseguire. *(M)*
+7. `[x]` **Profili di copia salvabili** — preset nominati (es. "Backup foto", "Sync progetti") che memorizzano coppie sorgente/destinazione, filtri, opzioni di verifica e parallelismo. Un click per rieseguire. *(M)*
 
 8. `[ ]` **Copia programmata / watch-folder** — monitor di una cartella (FileSystemWatcher) con sincronizzazione automatica verso la destinazione al cambiamento, o a orario fisso. È il cuore di GoodSync/SyncBackPro (a pagamento). *(A)*
 
