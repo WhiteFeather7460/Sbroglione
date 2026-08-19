@@ -119,6 +119,22 @@ public sealed class FileByteCompareServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CompareAsync_LeftEmptyRightNonEmpty_TailIsSingleRangeFromZero()
+    {
+        string left = await WriteFileAsync("l.bin", Array.Empty<byte>());
+        string right = await WriteFileAsync("r.bin", new byte[] { 1, 2, 3, 4, 5 });
+
+        var result = await FileByteCompareService.CompareAsync(left, right, null, CancellationToken.None);
+
+        Assert.False(result.AreIdentical);
+        Assert.Equal(0, result.FirstDifferenceOffset);
+        Assert.Equal(0, result.IdenticalBytes);
+        var range = Assert.Single(result.DifferentRanges);
+        Assert.Equal(new ByteRangeDiff(0, 5), range);
+        Assert.Equal(0.0, result.IdenticalFraction);
+    }
+
+    [Fact]
     public async Task CompareAsync_MaxRangesExceeded_SetsTruncatedButKeepsCounts()
     {
         // Differenze alternate agli offset 0, 2, 4, 6 → 4 intervalli, maxRanges = 2.

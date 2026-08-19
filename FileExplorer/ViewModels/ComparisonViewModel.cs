@@ -139,6 +139,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
             this.RaisePropertyChanged(nameof(FirstDiffText));
             this.RaisePropertyChanged(nameof(IdenticalPercentText));
             this.RaisePropertyChanged(nameof(RangeCountText));
+            this.RaisePropertyChanged(nameof(LengthsText));
         }
     }
 
@@ -153,13 +154,30 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
     };
 
     public string IdenticalPercentText => FileResult is { } result
-        ? string.Format(ItCulture, "{0:0.##} % identico", result.IdenticalFraction * 100)
+        ? string.Format(ItCulture, "{0:0.##} % identico", ClampedIdenticalPercent(result))
         : string.Empty;
 
+    private static double ClampedIdenticalPercent(FileCompareResult result)
+    {
+        double pct = result.IdenticalFraction * 100;
+        // Non identici ma il rounding a {0:0.##} produrrebbe comunque "100 %": evita il falso positivo.
+        if (!result.AreIdentical && pct >= 99.995)
+            pct = 99.99;
+        return pct;
+    }
+
     public string RangeCountText => FileResult is { } result
-        ? $"{result.DifferentRanges.Count} intervalli differenti" +
+        ? (result.DifferentRanges.Count == 1
+              ? "1 intervallo differente"
+              : $"{result.DifferentRanges.Count} intervalli differenti") +
           (result.RangesTruncated ? " (elenco troncato)" : string.Empty)
         : string.Empty;
+
+    public string? LengthsText => FileResult is { } result
+        ? $"Lunghezze: {result.LeftLength.ToString("N0", ItCulture)} byte vs " +
+          $"{result.RightLength.ToString("N0", ItCulture)} byte" +
+          (result.LeftLength != result.RightLength ? " (lunghezze diverse)" : string.Empty)
+        : null;
 
     private async Task BrowseLeftAsync()
     {

@@ -129,6 +129,7 @@
             <TextBlock Text="{Binding FileCompareStatus}" Foreground="{DynamicResource Brush.TextMuted}" />
 
             <StackPanel Spacing="4" IsVisible="{Binding HasFileResult}">
+              <TextBlock Text="{Binding LengthsText}" Foreground="{DynamicResource Brush.TextMuted}" />
               <TextBlock Text="{Binding FirstDiffText}" Foreground="{DynamicResource Brush.TextPrimary}" />
               <TextBlock Text="{Binding IdenticalPercentText}" Foreground="{DynamicResource Brush.TextPrimary}" />
               <TextBlock Text="{Binding RangeCountText}" Foreground="{DynamicResource Brush.TextMuted}" />

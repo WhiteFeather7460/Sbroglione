@@ -115,6 +115,7 @@ public sealed class ComparisonViewModelTests : IDisposable
         Assert.Equal("Nessuna differenza", viewModel.FirstDiffText);
         Assert.Equal("100 % identico", viewModel.IdenticalPercentText);
         Assert.Equal("0 intervalli differenti", viewModel.RangeCountText);
+        Assert.Equal("Lunghezze: 4 byte vs 4 byte", viewModel.LengthsText);
     }
 
     [Fact]
@@ -134,8 +135,31 @@ public sealed class ComparisonViewModelTests : IDisposable
         Assert.False(viewModel.FileResult!.AreIdentical);
         Assert.Equal("Primo byte diverso: offset 6 (0x6)", viewModel.FirstDiffText);
         Assert.Equal("60 % identico", viewModel.IdenticalPercentText);
-        Assert.Equal("1 intervalli differenti", viewModel.RangeCountText);
+        Assert.Equal("1 intervallo differente", viewModel.RangeCountText);
+        Assert.Equal("Lunghezze: 10 byte vs 6 byte (lunghezze diverse)", viewModel.LengthsText);
         Assert.Contains("diversi", viewModel.FileCompareStatus);
+    }
+
+    [Fact]
+    public async Task CompareFilesAsync_NearIdenticalLargeFiles_PercentClampedBelow100()
+    {
+        // 100.000 byte, un solo byte diverso: 99.999/100.000 = 99,999 % che arrotonderebbe
+        // a "100 % identico" con {0:0.##} se non venisse clampato quando AreIdentical è false.
+        string leftFile = Path.Combine(_left, "big.bin");
+        string rightFile = Path.Combine(_right, "big.bin");
+        byte[] left = new byte[100_000];
+        byte[] right = new byte[100_000];
+        right[50_000] = 1;
+        await File.WriteAllBytesAsync(leftFile, left);
+        await File.WriteAllBytesAsync(rightFile, right);
+
+        using var viewModel = new ComparisonViewModel { LeftFilePath = leftFile, RightFilePath = rightFile };
+
+        await viewModel.CompareFilesAsync();
+
+        Assert.True(viewModel.HasFileResult);
+        Assert.False(viewModel.FileResult!.AreIdentical);
+        Assert.Equal("99,99 % identico", viewModel.IdenticalPercentText);
     }
 
     [Fact]
