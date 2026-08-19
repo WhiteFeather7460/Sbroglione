@@ -30,6 +30,14 @@ public partial class App : Application
             else
                 RequestedThemeVariant = ParseThemeVariant(AppSettingsStore.Current.ThemeVariant);
 
+            // Avvia i runner watch-folder delle regole attive. Nessun handler di
+            // shutdown nell'app: i runner muoiono col processo (limite dichiarato).
+            foreach (WatchRule rule in WatchRuleStore.Load())
+            {
+                if (rule.Enabled)
+                    WatchFolderService.Start(rule);
+            }
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = new MainWindowViewModel()
