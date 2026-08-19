@@ -1,6 +1,6 @@
 # Temi personalizzabili — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Temi colore completi creabili/modificabili/importabili dall'utente, con built-in Chiaro/Scuro non modificabili e anteprima live.
 
@@ -39,7 +39,7 @@
   - `ThemeColorKeys.All : IReadOnlyList<string>`, costanti `ThemeColorKeys.Accent`, `.AccentGradientStart`, `.AccentGradientEnd`, `.OnAccent`, ecc.
   - `BuiltInThemes.Light : ColorTheme`, `BuiltInThemes.Dark : ColorTheme`, `BuiltInThemes.ForVariant(string) : ColorTheme` (istanze nuove a ogni chiamata, Id fissi `builtin-light`/`builtin-dark`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/ColorThemeTests.cs
@@ -95,12 +95,12 @@ public class ColorThemeTests
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter ColorThemeTests`
 Expected: FAIL (tipi non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement the three files**
+- [x] **Step 3: Implement the three files**
 
 ```csharp
 // FileExplorer/Models/ThemeColorKeys.cs
@@ -288,12 +288,12 @@ public static class BuiltInThemes
 }
 ```
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter ColorThemeTests`
 Expected: PASS (4 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Models/ColorTheme.cs FileExplorer/Models/ThemeColorKeys.cs FileExplorer/Services/BuiltInThemes.cs FileExplorer.Tests/ColorThemeTests.cs
@@ -322,7 +322,7 @@ git commit -m "feat(themes): modello ColorTheme, chiavi canoniche e temi built-i
   - `ColorTheme? Import(string path)` — null se illeggibile; assegna SEMPRE un nuovo Id
   - `void Sanitize(ColorTheme theme)` — normalizza in-place (vedi test)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/ThemeStoreTests.cs
@@ -461,12 +461,12 @@ public class ThemeStoreTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter ThemeStoreTests`
 Expected: FAIL (ThemeStore non esiste).
 
-- [ ] **Step 3: Implement ThemeStore**
+- [x] **Step 3: Implement ThemeStore**
 
 ```csharp
 // FileExplorer/Services/ThemeStore.cs
@@ -612,12 +612,12 @@ public static class ThemeStore
 }
 ```
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter ThemeStoreTests`
 Expected: PASS (8 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Services/ThemeStore.cs FileExplorer.Tests/ThemeStoreTests.cs
@@ -638,12 +638,12 @@ git commit -m "feat(themes): ThemeStore con sanitizzazione e import/export"
 - Consumes: nulla.
 - Produces: `AppSettings.CustomThemeId : string?` (default null); Palette con `Brush.Accent`, `Brush.AccentGradient`, `Brush.OnAccent` dentro ENTRAMBE le varianti (valori identici a oggi).
 
-- [ ] **Step 1: Verify no StaticResource usage on accent brushes**
+- [x] **Step 1: Verify no StaticResource usage on accent brushes**
 
 Run: `grep -rn "StaticResource Brush\." FileExplorer --include="*.axaml" --include="*.cs" | grep -v obj/`
 Expected: nessun risultato (tutto DynamicResource/FindResource). Se compaiono risultati, segnalarlo nel report del task PRIMA di procedere.
 
-- [ ] **Step 2: Move accent brushes into both theme dictionaries**
+- [x] **Step 2: Move accent brushes into both theme dictionaries**
 
 In `Palette.axaml`: eliminare le tre risorse globali in testa (`Brush.Accent`, `Brush.AccentGradient`, `Brush.OnAccent`) e aggiungere in TESTA a ciascuna delle due ResourceDictionary `Light` e `Dark` (stessi valori in entrambe):
 
@@ -658,7 +658,7 @@ In `Palette.axaml`: eliminare le tre risorse globali in testa (`Brush.Accent`, `
 
 Aggiornare il commento in testa al file: le risorse accent sono duplicate nelle due varianti per consentire l'override per-tema (vedi ThemeService).
 
-- [ ] **Step 3: Add CustomThemeId to AppSettings**
+- [x] **Step 3: Add CustomThemeId to AppSettings**
 
 In `AppSettings.cs`, dopo `ThemeVariant`:
 
@@ -667,14 +667,14 @@ In `AppSettings.cs`, dopo `ThemeVariant`:
     public string? CustomThemeId { get; set; }
 ```
 
-- [ ] **Step 4: Build and run the app smoke test**
+- [x] **Step 4: Build and run the app smoke test**
 
 Run: `dotnet build FileExplorer.sln`
 Expected: build OK, zero warning nuovi.
 Run: `dotnet test`
 Expected: PASS (nessuna regressione, `AppSettingsStoreTests` inclusi).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Styles/Palette.axaml FileExplorer/Models/AppSettings.cs
@@ -700,7 +700,7 @@ git commit -m "feat(themes): accent per-variante in Palette e CustomThemeId nell
   - `void UpdateColor(string key, Color color)` — anteprima live: muta i brush del tema attivo
   - `internal static ResourceDictionary BuildDictionary(ColorTheme theme)` — testabile headless
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/ThemeServiceTests.cs
@@ -766,12 +766,12 @@ public class ThemeServiceTests
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter ThemeServiceTests`
 Expected: FAIL (ThemeService non esiste).
 
-- [ ] **Step 3: Implement ThemeService**
+- [x] **Step 3: Implement ThemeService**
 
 ```csharp
 // FileExplorer/Services/ThemeService.cs
@@ -890,7 +890,7 @@ public static class ThemeService
 }
 ```
 
-- [ ] **Step 4: Hook startup in App.axaml.cs**
+- [x] **Step 4: Hook startup in App.axaml.cs**
 
 Sostituire la riga `RequestedThemeVariant = ParseThemeVariant(...)` in `OnFrameworkInitializationCompleted` con:
 
@@ -907,12 +907,12 @@ Sostituire la riga `RequestedThemeVariant = ParseThemeVariant(...)` in `OnFramew
 
 Aggiungere `using FileExplorer.Models;` in testa al file.
 
-- [ ] **Step 5: Run tests and build, verify pass**
+- [x] **Step 5: Run tests and build, verify pass**
 
 Run: `dotnet test --filter ThemeServiceTests` → PASS (4 test).
 Run: `dotnet build FileExplorer.sln` → OK.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/Services/ThemeService.cs FileExplorer/App.axaml.cs FileExplorer.Tests/ThemeServiceTests.cs
@@ -941,7 +941,7 @@ git commit -m "feat(themes): ThemeService con variante custom e applicazione all
   - `ThemeColorEntryViewModel { string Key; string Label; Color Color { get; set; } }` — il setter aggiorna `WorkingTheme.Colors[Key]` e, se LivePreview, chiama `ThemeService.UpdateColor`
   - `ThemeEditorWindow(ThemeEditorViewModel vm)` — `ShowDialog<ColorTheme?>`: tema salvato o null se annullato
 
-- [ ] **Step 1: Add ColorPicker package and theme**
+- [x] **Step 1: Add ColorPicker package and theme**
 
 In `FileExplorer/FileExplorer.csproj`, accanto agli altri pacchetti Avalonia:
 
@@ -957,7 +957,7 @@ In `FileExplorer/App.axaml`, dopo lo StyleInclude del DataGrid:
 
 Run: `dotnet build FileExplorer.sln` → OK.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/ThemeEditorViewModelTests.cs
@@ -1054,12 +1054,12 @@ public class ThemeEditorViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 3: Run tests, verify they fail**
+- [x] **Step 3: Run tests, verify they fail**
 
 Run: `dotnet test --filter ThemeEditorViewModelTests`
 Expected: FAIL (tipi non esistenti).
 
-- [ ] **Step 4: Implement ThemeEditorViewModel**
+- [x] **Step 4: Implement ThemeEditorViewModel**
 
 ```csharp
 // FileExplorer/ViewModels/ThemeEditorViewModel.cs
@@ -1239,12 +1239,12 @@ public class ThemeColorEntryViewModel : ViewModelBase
 
 Nota per il test `Setting_entry_color_updates_working_theme_hex`: `Color.ToString()` in Avalonia produce `#AARRGGBB` (es. `#FF123456`) — il test lo riflette.
 
-- [ ] **Step 5: Run tests, verify they pass**
+- [x] **Step 5: Run tests, verify they pass**
 
 Run: `dotnet test --filter ThemeEditorViewModelTests`
 Expected: PASS (5 test).
 
-- [ ] **Step 6: Implement the window**
+- [x] **Step 6: Implement the window**
 
 ```xml
 <!-- FileExplorer/Views/ThemeEditorWindow.axaml -->
@@ -1346,11 +1346,11 @@ public partial class ThemeEditorWindow : Window
 }
 ```
 
-- [ ] **Step 7: Build, verify OK**
+- [x] **Step 7: Build, verify OK**
 
 Run: `dotnet build FileExplorer.sln` → OK. `dotnet test` → PASS completo.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add FileExplorer/FileExplorer.csproj FileExplorer/App.axaml FileExplorer/ViewModels/ThemeEditorViewModel.cs FileExplorer/Views/ThemeEditorWindow.axaml FileExplorer/Views/ThemeEditorWindow.axaml.cs FileExplorer.Tests/ThemeEditorViewModelTests.cs
@@ -1381,7 +1381,7 @@ git commit -m "feat(themes): editor tema con ColorPicker e anteprima live"
   - I setter dei radio `IsThemeDefault/Light/Dark` (via `ThemeVariant`) DEVONO azzerare `CustomThemeId` e chiamare `ThemeService.Revert(value)` al posto dell'attuale `ApplyThemeVariant`
   - `internal bool ApplyThemesToApplication { get; set; } = true` — false nei test: salta le chiamate a `ThemeService` (che comunque sono no-op senza Application, ma il flag rende l'intento esplicito e i test deterministici)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/SettingsViewModelThemeTests.cs
@@ -1529,12 +1529,12 @@ public class SettingsViewModelThemeTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter SettingsViewModelThemeTests`
 Expected: FAIL (membri non esistenti).
 
-- [ ] **Step 3: Implement in SettingsViewModel**
+- [x] **Step 3: Implement in SettingsViewModel**
 
 Aggiungere `using System.Collections.ObjectModel;`, `using System.Linq;`, `using FileExplorer.Models;`. Nel costruttore, dopo la sottoscrizione ThrottleChanged:
 
@@ -1676,12 +1676,12 @@ Eliminare il metodo privato `ApplyThemeVariant` (sostituito da `ThemeService.Rev
     }
 ```
 
-- [ ] **Step 4: Run ALL tests, verify pass (incl. pre-existing SettingsViewModelTests)**
+- [x] **Step 4: Run ALL tests, verify pass (incl. pre-existing SettingsViewModelTests)**
 
 Run: `dotnet test`
 Expected: PASS. Se `SettingsViewModelTests` esistenti falliscono per il nuovo comportamento del setter (`!hadCustom` early-return), adeguare SOLO le asserzioni rese obsolete, documentando il perché nel commit.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/SettingsViewModel.cs FileExplorer.Tests/SettingsViewModelThemeTests.cs
@@ -1702,7 +1702,7 @@ git commit -m "feat(themes): gestione temi custom in SettingsViewModel"
 - Consumes: tutti i membri di Task 6, `ThemeEditorWindow`/`ThemeEditorViewModel` (Task 5), `BuiltInThemes`, `ThemeService`, pattern `TopLevel.GetTopLevel(this)` + `StorageProvider` per i file picker.
 - Produces: UI finale. Nessun consumatore successivo.
 
-- [ ] **Step 1: Replace the "Aspetto" card**
+- [x] **Step 1: Replace the "Aspetto" card**
 
 Sostituire l'intera card "Aspetto" in `SettingsView.axaml` con:
 
@@ -1753,7 +1753,7 @@ Sostituire l'intera card "Aspetto" in `SettingsView.axaml` con:
 
 Nota: `x:DataType` del template item è `ColorTheme` — aggiungere `xmlns:m="using:FileExplorer.Models"` sulla root e `x:DataType="m:ColorTheme"` sul DataTemplate.
 
-- [ ] **Step 2: Implement code-behind handlers**
+- [x] **Step 2: Implement code-behind handlers**
 
 In `SettingsView.axaml.cs` (creare i metodi; il file oggi contiene solo InitializeComponent):
 
@@ -1880,11 +1880,11 @@ public partial class SettingsView : UserControl
 
 Nota: verificare il contenuto reale attuale di `SettingsView.axaml.cs` prima di sovrascrivere (deve restare solo l'aggiunta degli handler).
 
-- [ ] **Step 3: Build + full test run**
+- [x] **Step 3: Build + full test run**
 
 Run: `dotnet build FileExplorer.sln` → OK. `dotnet test` → PASS completo.
 
-- [ ] **Step 4: Manual smoke test**
+- [x] **Step 4: Manual smoke test**
 
 Run: `dotnet run --project FileExplorer.Desktop`
 Verifiche manuali (elencarle nel report del task):
@@ -1896,7 +1896,7 @@ Verifiche manuali (elencarle nel report del task):
 6. Elimina tema attivo → fallback alla variante base.
 7. Annulla dall'editor → colori precedenti ripristinati.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Views/SettingsView.axaml FileExplorer/Views/SettingsView.axaml.cs
@@ -1915,7 +1915,7 @@ git commit -m "feat(themes): card Temi in Impostazioni con editor, import/export
 
 **Interfaces:** nessuna.
 
-- [ ] **Step 1: Update CLAUDE.md styling section**
+- [x] **Step 1: Update CLAUDE.md styling section**
 
 Nella sezione Styling di `CLAUDE.md`, aggiungere in coda:
 
@@ -1923,12 +1923,12 @@ Nella sezione Styling di `CLAUDE.md`, aggiungere in coda:
 Temi custom: `ThemeService` registra un ResourceDictionary per-tema come `ThemeVariant("Custom", base)` in `Application.Resources.ThemeDictionaries`; i valori built-in restano in `Palette.axaml` e fanno da fallback. Nuove chiavi colore vanno aggiunte in TUTTI e tre i posti: `Palette.axaml` (entrambe le varianti), `ThemeColorKeys`, `BuiltInThemes`.
 ```
 
-- [ ] **Step 2: Final verification**
+- [x] **Step 2: Final verification**
 
 Run: `dotnet build FileExplorer.sln && dotnet test`
 Expected: build OK, tutti i test PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add CLAUDE.md docs/superpowers/plans/2026-08-19-user-themes.md
