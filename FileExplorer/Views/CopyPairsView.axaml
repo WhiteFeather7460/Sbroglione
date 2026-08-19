@@ -53,9 +53,11 @@
                 ToolTip.Tip="Salva le coppie correnti come profilo" />
         <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-folder-open"
                 Command="{Binding ApplyProfileCommand}"
+                IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
                 ToolTip.Tip="Applica il profilo selezionato" />
         <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-trash"
                 Command="{Binding DeleteProfileCommand}"
+                IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
                 ToolTip.Tip="Elimina il profilo selezionato" />
       </StackPanel>
     </Border>

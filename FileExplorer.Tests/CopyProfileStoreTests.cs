@@ -82,6 +82,36 @@ public sealed class CopyProfileStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadAsync_ToleratesNullPairsNullArrayElementAndNullExtraDestinations()
+    {
+        string json = """
+        [
+          { "Id": "1", "Name": "Con pairs null", "Pairs": null },
+          null,
+          {
+            "Id": "2",
+            "Name": "Con extra null",
+            "Pairs": [
+              { "SourcePath": "/src", "DestinationPath": "/dst", "ExtraDestinations": null, "SkipUnchanged": false }
+            ]
+          }
+        ]
+        """;
+        await File.WriteAllTextAsync(CopyProfileStore.CurrentPath, json);
+
+        List<CopyProfile> loaded = await CopyProfileStore.LoadAsync();
+
+        Assert.Equal(2, loaded.Count);
+
+        var withNullPairs = loaded.Single(p => p.Name == "Con pairs null");
+        Assert.Empty(withNullPairs.Pairs);
+
+        var withNullExtra = loaded.Single(p => p.Name == "Con extra null");
+        var pair = Assert.Single(withNullExtra.Pairs);
+        Assert.Empty(pair.ExtraDestinations);
+    }
+
+    [Fact]
     public void Sanitize_EmptyName_AssignsDefaultName()
     {
         var profile = new CopyProfile { Name = "   " };

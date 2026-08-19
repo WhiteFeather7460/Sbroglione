@@ -424,6 +424,29 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveProfile_InsertsAlphabeticallyBetweenExistingProfiles()
+    {
+        await CopyProfileStore.SaveAsync(new[]
+        {
+            new CopyProfile { Name = "Alfa" },
+            new CopyProfile { Name = "Zeta" }
+        });
+
+        InputDialogHelper.Override = (_, _, _) => Task.FromResult<string?>("Mid");
+
+        var vm = new CopyPairsViewModel();
+        await vm.ProfilesLoad;
+
+        vm.PathPairs.Add(new FolderFilePairViewModel { SourcePath = "/a", DestinationPath = "/b" });
+        await vm.SaveProfileAsync();
+
+        Assert.Equal(new[] { "Alfa", "Mid", "Zeta" }, vm.Profiles.Select(p => p.Name));
+
+        List<CopyProfile> persisted = await CopyProfileStore.LoadAsync();
+        Assert.Equal(new[] { "Alfa", "Mid", "Zeta" }, persisted.Select(p => p.Name));
+    }
+
+    [Fact]
     public async Task SaveProfile_SameName_OverwritesExistingProfile()
     {
         InputDialogHelper.Override = (_, _, _) => Task.FromResult<string?>("Sync progetti");

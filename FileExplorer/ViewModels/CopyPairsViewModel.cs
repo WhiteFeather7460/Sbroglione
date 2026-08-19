@@ -199,6 +199,8 @@ public class CopyPairsViewModel : ViewModelBase
     /// </summary>
     public async Task SaveProfileAsync()
     {
+        await ProfilesLoad;
+
         string? name = await InputDialogHelper.ShowAsync(
             "Salva profilo", "Nome del profilo di copia:", SelectedProfile?.Name);
         if (string.IsNullOrWhiteSpace(name))
@@ -269,6 +271,8 @@ public class CopyPairsViewModel : ViewModelBase
     /// <summary>Elimina il profilo selezionato previa conferma.</summary>
     public async Task DeleteProfileAsync()
     {
+        await ProfilesLoad;
+
         if (SelectedProfile is not { } profile)
             return;
 

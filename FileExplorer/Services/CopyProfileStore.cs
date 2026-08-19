@@ -44,6 +44,7 @@ public static class CopyProfileStore
                 await JsonSerializer.DeserializeAsync<List<CopyProfile>>(stream, Options).ConfigureAwait(false)
                 ?? new List<CopyProfile>();
 
+            profiles.RemoveAll(p => p is null);
             foreach (var profile in profiles)
                 Sanitize(profile);
 
@@ -88,7 +89,10 @@ public static class CopyProfileStore
         if (string.IsNullOrWhiteSpace(profile.Name))
             profile.Name = "Profilo senza nome";
 
-        profile.Pairs.RemoveAll(pair =>
-            string.IsNullOrWhiteSpace(pair.SourcePath) && string.IsNullOrWhiteSpace(pair.DestinationPath));
+        profile.Pairs ??= new List<CopyProfilePair>();
+        profile.Pairs.RemoveAll(pair => pair is null ||
+            (string.IsNullOrWhiteSpace(pair.SourcePath) && string.IsNullOrWhiteSpace(pair.DestinationPath)));
+        foreach (var pair in profile.Pairs)
+            pair.ExtraDestinations ??= new List<string>();
     }
 }
