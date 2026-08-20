@@ -271,14 +271,19 @@ public static class FileCopyService
     /// True se la destinazione esiste con la stessa dimensione della sorgente e
     /// LastWriteTimeUtc entro 2 secondi (tolleranza per filesystem a granularità grossa).
     /// </summary>
-    internal static bool IsUnchanged(string sourceFile, string destinationFile)
+    internal static bool IsUnchanged(string sourceFile, string destinationFile) =>
+        IsUnchanged(new FileInfo(sourceFile), new FileInfo(destinationFile));
+
+    /// <summary>
+    /// Overload su <see cref="FileInfo"/>: evita di ricostruirli quando il chiamante li ha già
+    /// (es. la simulazione a passata unica), stessa regola dell'overload string-based.
+    /// </summary>
+    internal static bool IsUnchanged(FileInfo source, FileInfo destination)
     {
-        var destinationInfo = new FileInfo(destinationFile);
-        if (!destinationInfo.Exists)
+        if (!destination.Exists)
             return false;
 
-        var sourceInfo = new FileInfo(sourceFile);
-        return destinationInfo.Length == sourceInfo.Length
-               && Math.Abs((destinationInfo.LastWriteTimeUtc - sourceInfo.LastWriteTimeUtc).TotalSeconds) < 2;
+        return destination.Length == source.Length
+               && Math.Abs((destination.LastWriteTimeUtc - source.LastWriteTimeUtc).TotalSeconds) < 2;
     }
 }
