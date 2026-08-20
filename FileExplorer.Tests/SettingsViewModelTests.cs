@@ -109,4 +109,17 @@ public sealed class SettingsViewModelTests : IDisposable
         viewModel.ThrottleEnabled = true;
         Assert.True(AppSettingsStore.Current.ThrottleEnabled);
     }
+
+    [Fact]
+    public void Dispose_UnsubscribesFromThrottleChanged()
+    {
+        var vm = new SettingsViewModel();
+        vm.Dispose();
+
+        bool raised = false;
+        vm.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(SettingsViewModel.ThrottleEnabled);
+        AppSettingsStore.RaiseThrottleChanged();
+
+        Assert.False(raised);
+    }
 }

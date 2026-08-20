@@ -18,8 +18,10 @@ namespace FileExplorer.ViewModels;
 /// Scheda "Copia file": gestisce la lista di coppie sorgente/destinazione e
 /// avvia/annulla le copie con verifica checksum.
 /// </summary>
-public class CopyPairsViewModel : ViewModelBase
+public class CopyPairsViewModel : ViewModelBase, IDisposable
 {
+    private readonly Action _throttleChangedHandler;
+
     public ObservableCollection<FolderFilePairViewModel> PathPairs { get; } = new();
 
     /// <summary>True se c'è almeno una coppia in lista (pilota l'empty state).</summary>
@@ -74,14 +76,25 @@ public class CopyPairsViewModel : ViewModelBase
         ApplyProfileCommand = ReactiveCommand.Create(ApplyProfile);
         DeleteProfileCommand = ReactiveCommand.CreateFromTask(DeleteProfileAsync);
 
-        AppSettingsStore.ThrottleChanged += () =>
+        _throttleChangedHandler = () =>
         {
             this.RaisePropertyChanged(nameof(ThrottleEnabled));
             this.RaisePropertyChanged(nameof(ThrottleMBps));
         };
+        AppSettingsStore.ThrottleChanged += _throttleChangedHandler;
 
         JournalRestore = RestoreInterruptedJobsAsync();
         ProfilesLoad = LoadProfilesAsync();
+    }
+
+    /// <summary>
+    /// Rimuove l'handler dall'evento statico <see cref="AppSettingsStore.ThrottleChanged"/>:
+    /// senza questo, ogni istanza resterebbe rootata per sempre (leak).
+    /// </summary>
+    public void Dispose()
+    {
+        AppSettingsStore.ThrottleChanged -= _throttleChangedHandler;
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

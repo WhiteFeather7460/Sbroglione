@@ -304,6 +304,19 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Dispose_UnsubscribesFromThrottleChanged()
+    {
+        var vm = new CopyPairsViewModel();
+        vm.Dispose();
+
+        bool raised = false;
+        vm.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(CopyPairsViewModel.ThrottleEnabled);
+        AppSettingsStore.RaiseThrottleChanged();
+
+        Assert.False(raised);
+    }
+
+    [Fact]
     public void ThrottleChangedFromSettings_RaisesPropertyChangedOnCopyPairs()
     {
         var copyViewModel = new CopyPairsViewModel();

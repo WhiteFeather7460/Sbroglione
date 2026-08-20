@@ -38,8 +38,8 @@ public static class DiskTypeService
             linuxMountsContent = null;
         }
 
-        if (Cache.TryGetValue(cacheKey, out var cached) && DateTime.UtcNow - cached.CachedAt < CacheTtl)
-            return cached.Type;
+        if (TryGetFreshCached(cacheKey, out DiskType cachedType))
+            return cachedType;
 
         DiskType type;
         try
@@ -54,6 +54,37 @@ public static class DiskTypeService
         Cache[cacheKey] = (type, DateTime.UtcNow);
         return type;
     }
+
+    /// <summary>
+    /// Ritorna true col tipo cachato se la entry esiste e non è scaduta. Se la entry esiste
+    /// ma è scaduta, la rimuove dal dizionario statico invece di lasciarla lì indefinitamente
+    /// (senza questo, le entry scadute di chiavi non più interrogate non verrebbero mai
+    /// rimosse: su macOS la chiave è il percorso completo, quindi la cache crescerebbe senza
+    /// limite man mano che si esplorano percorsi diversi).
+    /// </summary>
+    internal static bool TryGetFreshCached(string cacheKey, out DiskType type)
+    {
+        if (Cache.TryGetValue(cacheKey, out var cached))
+        {
+            if (DateTime.UtcNow - cached.CachedAt < CacheTtl)
+            {
+                type = cached.Type;
+                return true;
+            }
+
+            Cache.TryRemove(cacheKey, out _);
+        }
+
+        type = default;
+        return false;
+    }
+
+    /// <summary>Inserisce/sovrascrive una entry di cache. Solo per i test.</summary>
+    internal static void SeedCacheForTest(string cacheKey, DiskType type, DateTime cachedAtUtc) =>
+        Cache[cacheKey] = (type, cachedAtUtc);
+
+    /// <summary>Solo per i test: verifica se una chiave è ancora presente in cache.</summary>
+    internal static bool CacheContainsKeyForTest(string cacheKey) => Cache.ContainsKey(cacheKey);
 
     /// <summary>
     /// Risolve la chiave di cache per un percorso in base al sistema operativo. Su Windows la
