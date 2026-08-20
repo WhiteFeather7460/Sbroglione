@@ -58,6 +58,8 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 21. `[ ]` **Selettore lingua (localizzazione UI)** — picker della lingua nelle Impostazioni (es. Italiano/English) con stringhe estratte in file di risorse (`.resx` o JSON) e cambio a caldo senza riavvio dove possibile. Oggi la UI è monolingua; prerequisito per distribuire l'app a un pubblico più ampio. *(M)*
 
+22. `[x]` **Menu hamburger laterale (navigazione a sinistra)** — sostituire la barra tab orizzontale in alto con un menu hamburger a sinistra: pannello laterale collassabile (icone sole ↔ icone + etichette) con le voci di navigazione (Copia, Esplora, Sync auto, ecc.), stato espanso/collassato persistito nelle Impostazioni. Libera spazio verticale e scala meglio all'aumentare delle sezioni. *(M)* *(implementata: TabControl verticale con etichette collassabili, stato in Impostazioni/settings.json)*
+
 ---
 
 ## Note di priorità

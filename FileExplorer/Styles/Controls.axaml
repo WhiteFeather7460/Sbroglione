@@ -141,4 +141,16 @@
     <Setter Property="Fill" Value="{DynamicResource Brush.ProgressBg}" />
     <Setter Property="Opacity" Value="1" />
   </Style>
+
+  <!-- Navigazione laterale (MainWindow) -->
+  <Style Selector="TabControl.nav TabItem">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="Padding" Value="14 8" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+  </Style>
+  <Style Selector="TabControl.nav TabItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+  </Style>
 </Styles>
