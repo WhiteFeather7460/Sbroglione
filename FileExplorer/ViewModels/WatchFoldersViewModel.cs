@@ -145,6 +145,9 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         if (!ManageRunners)
             return;
 
+        // Stop e Start della stessa regola vanno nello stesso Task.Run sequenziale:
+        // se eseguissero in task indipendenti, il threadpool potrebbe farli out-of-order,
+        // e uno Stop arrivato dopo Start ucciderebbe il runner appena avviato.
         _ = Task.Run(() =>
         {
             try
@@ -153,14 +156,13 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
             }
             catch (Exception)
             {
+                // Difesa in profondità: Stop non è garantito lanciare se il runner
+                // non esiste già. Una regola disabilitata è OK.
             }
-        });
 
-        if (rule.Model.Enabled
-            && !string.IsNullOrWhiteSpace(rule.Model.SourcePath)
-            && !string.IsNullOrWhiteSpace(rule.Model.DestinationPath))
-        {
-            _ = Task.Run(() =>
+            if (rule.Model.Enabled
+                && !string.IsNullOrWhiteSpace(rule.Model.SourcePath)
+                && !string.IsNullOrWhiteSpace(rule.Model.DestinationPath))
             {
                 try
                 {
@@ -168,9 +170,11 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
                 }
                 catch (Exception)
                 {
+                    // Difesa in profondità: Start non lancia più, ma una singola regola
+                    // malata non deve fermare l'arresto della precedente.
                 }
-            });
-        }
+            }
+        });
     }
 
     private void SaveRules()
