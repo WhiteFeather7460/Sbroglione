@@ -52,9 +52,10 @@ public class FolderFilePairViewModel : ReactiveObject
         get => _isFilesExpanded;
         set
         {
+            bool changed = _isFilesExpanded != value;
             this.RaiseAndSetIfChanged(ref _isFilesExpanded, value);
-            if (value)
-                FilesLoad = LoadFilesToProcessAsync();
+            if (changed && value)
+                FilesLoad = TriggerFilesLoad();
         }
     }
 
@@ -63,6 +64,17 @@ public class FolderFilePairViewModel : ReactiveObject
     /// quando lo swap in blocco è completato (avviato solo con Expander aperto).
     /// </summary>
     public Task FilesLoad { get; private set; } = Task.CompletedTask;
+
+    // Incrementato a ogni set di SourcePath (anche a parità di valore) e confrontato con
+    // _filesLoadGeneration per evitare un doppio listing quando SourcePath e IsFilesExpanded
+    // scattano entrambi in rapida sequenza (es. object initializer) o quando IsFilesExpanded
+    // resta true ma RefreshSourceStateAsync prova comunque a ri-avviare il load: il primo dei
+    // due trigger "vince" la generazione corrente, l'altro la trova già marcata e non duplica.
+    private int _sourceGeneration;
+    private int _filesLoadGeneration = -1;
+
+    /// <summary>Numero di listing effettivamente avviati; solo per verifica nei test (anti doppio-trigger).</summary>
+    internal int FilesLoadStartCountForTests { get; private set; }
 
     private bool _sourceExists;
 
@@ -94,6 +106,7 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _sourcePath, value);
             this.RaisePropertyChanged(nameof(CanStart));
+            _sourceGeneration++;
             SourceStateRefresh = RefreshSourceStateAsync();
         }
     }
@@ -116,7 +129,23 @@ public class FolderFilePairViewModel : ReactiveObject
         FilesToProcess = Array.Empty<FileSystemItem>();
 
         if (IsFilesExpanded)
-            FilesLoad = LoadFilesToProcessAsync();
+            FilesLoad = TriggerFilesLoad();
+    }
+
+    /// <summary>
+    /// Avvia <see cref="LoadFilesToProcessAsync"/> per la generazione corrente di
+    /// <see cref="SourcePath"/>, a meno che non sia già stato avviato un load per la stessa
+    /// generazione: evita il doppio listing quando <see cref="IsFilesExpanded"/> e
+    /// <see cref="RefreshSourceStateAsync"/> scattano entrambi per lo stesso set di SourcePath.
+    /// </summary>
+    private Task TriggerFilesLoad()
+    {
+        if (_filesLoadGeneration == _sourceGeneration)
+            return FilesLoad;
+
+        _filesLoadGeneration = _sourceGeneration;
+        FilesLoadStartCountForTests++;
+        return LoadFilesToProcessAsync();
     }
 
     /// <summary>

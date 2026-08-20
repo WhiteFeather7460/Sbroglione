@@ -106,6 +106,45 @@ public sealed class FolderFilePairViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task SettingSourcePathAndIsFilesExpandedTogether_StartsOnlyOneLoad()
+    {
+        // Object initializer: SourcePath (che scatena RefreshSourceStateAsync) e
+        // IsFilesExpanded=true (che scatena il proprio load) partono nella stessa
+        // sequenza sincrona. Devono coordinarsi su un solo listing per lo stesso path,
+        // non su due task concorrenti che fanno lo stesso I/O ricorsivo.
+        string dir = Path.Combine(_root, "src4");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "a.txt"), "x");
+
+        var pair = new FolderFilePairViewModel { SourcePath = dir, IsFilesExpanded = true };
+        await pair.SourceStateRefresh;
+        await pair.FilesLoad;
+
+        Assert.Equal(1, pair.FilesLoadStartCountForTests);
+        Assert.Single(pair.FilesToProcess);
+    }
+
+    [Fact]
+    public async Task RedundantIsFilesExpandedSet_DoesNotStartAnotherLoad()
+    {
+        // Il binding TwoWay su Expander.IsExpanded può ri-alzare true→true (es. sul
+        // redraw). Non deve ripartire un secondo listing per lo stesso SourcePath.
+        string dir = Path.Combine(_root, "src5");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "a.txt"), "x");
+
+        var pair = new FolderFilePairViewModel { SourcePath = dir, IsFilesExpanded = true };
+        await pair.SourceStateRefresh;
+        await pair.FilesLoad;
+
+        pair.IsFilesExpanded = true; // redundant re-raise
+        await pair.FilesLoad;
+
+        Assert.Equal(1, pair.FilesLoadStartCountForTests);
+        Assert.Single(pair.FilesToProcess);
+    }
+
+    [Fact]
     public async Task SameSourceAndDestination_DisablesCanStart()
     {
         string file = Path.Combine(_root, "a.txt");
