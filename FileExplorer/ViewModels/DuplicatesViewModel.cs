@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -53,7 +54,21 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
 {
     private CancellationTokenSource? _scanCts;
 
-    public ObservableCollection<DuplicateGroupViewModel> Groups { get; } = new();
+    private ObservableCollection<DuplicateGroupViewModel> _groups = new();
+    public ObservableCollection<DuplicateGroupViewModel> Groups
+    {
+        get => _groups;
+        set
+        {
+            _groups.CollectionChanged -= OnGroupsChanged;
+            this.RaiseAndSetIfChanged(ref _groups, value);
+            _groups.CollectionChanged += OnGroupsChanged;
+            this.RaisePropertyChanged(nameof(HasGroups));
+        }
+    }
+
+    private void OnGroupsChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
+        this.RaisePropertyChanged(nameof(HasGroups));
 
     public bool HasGroups => Groups.Count > 0;
 
@@ -86,7 +101,7 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
 
     public DuplicatesViewModel()
     {
-        Groups.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasGroups));
+        Groups.CollectionChanged += OnGroupsChanged;
 
         BrowseRootCommand = ReactiveCommand.CreateFromTask(BrowseRootAsync);
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
@@ -111,7 +126,7 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
         }
 
         _scanCts = new CancellationTokenSource();
-        Groups.Clear();
+        Groups = new ObservableCollection<DuplicateGroupViewModel>();
         IsScanning = true;
         StatusText = "Analisi…";
 
@@ -141,8 +156,9 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
                 },
                 _scanCts.Token);
 
-            foreach (var group in found)
-                Groups.Add(new DuplicateGroupViewModel(group));
+            var groups = new ObservableCollection<DuplicateGroupViewModel>(
+                found.Select(group => new DuplicateGroupViewModel(group)));
+            Groups = groups; // un solo reset per la UI
 
             StatusText = found.Count == 0
                 ? "Nessun duplicato trovato"
