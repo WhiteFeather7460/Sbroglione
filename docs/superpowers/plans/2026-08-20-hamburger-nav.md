@@ -33,7 +33,7 @@
 - Consumes: `AppSettings`, `AppSettingsStore` esistenti.
 - Produces: `bool AppSettings.NavExpanded { get; set; }` (default `true`) — usato da Task 2.
 
-- [ ] **Step 1: Test fallente** — in `AppSettingsStoreTests.cs` aggiungere:
+- [x] **Step 1: Test fallente** — in `AppSettingsStoreTests.cs` aggiungere:
 
 ```csharp
 [Fact]
@@ -55,18 +55,18 @@ public async Task LoadAsync_MissingFile_NavExpandedDefaultsTrue()
 }
 ```
 
-- [ ] **Step 2: Verifica FAIL** — `dotnet test --filter NavExpanded` → errore di compilazione (proprietà inesistente), atteso.
+- [x] **Step 2: Verifica FAIL** — `dotnet test --filter NavExpanded` → errore di compilazione (proprietà inesistente), atteso.
 
-- [ ] **Step 3: Implementazione** — in `AppSettings.cs`, dopo `CustomThemeId`:
+- [x] **Step 3: Implementazione** — in `AppSettings.cs`, dopo `CustomThemeId`:
 
 ```csharp
     /// <summary>Pannello di navigazione laterale espanso (icone + etichette) o collassato (solo icone).</summary>
     public bool NavExpanded { get; set; } = true;
 ```
 
-- [ ] **Step 4: Verifica PASS** — `dotnet test --filter NavExpanded` → 2 PASS.
+- [x] **Step 4: Verifica PASS** — `dotnet test --filter NavExpanded` → 2 PASS.
 
-- [ ] **Step 5: Commit** — `git add` dei due file, `git commit -m "feat(nav): persist NavExpanded in AppSettings"`.
+- [x] **Step 5: Commit** — `git add` dei due file, `git commit -m "feat(nav): persist NavExpanded in AppSettings"`.
 
 ---
 
@@ -82,7 +82,7 @@ public async Task LoadAsync_MissingFile_NavExpandedDefaultsTrue()
 - Consumes: `AppSettings.NavExpanded` (Task 1), `AppSettingsStore.Current`/`SaveCurrentAsync`, `ViewModelBase` (ReactiveObject).
 - Produces: `bool IsNavExpanded { get; }` (notifica via ReactiveUI), `ReactiveCommand<Unit, Unit> ToggleNavCommand`, `Task ToggleNavAsync()` — usati da Task 3 (binding XAML).
 
-- [ ] **Step 1: Test fallente** — creare `MainWindowViewModelTests.cs`:
+- [x] **Step 1: Test fallente** — creare `MainWindowViewModelTests.cs`:
 
 ```csharp
 using FileExplorer.Models;
@@ -150,9 +150,9 @@ public sealed class MainWindowViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Verifica FAIL** — `dotnet test --filter MainWindowViewModel` → errore di compilazione (membri inesistenti), atteso.
+- [x] **Step 2: Verifica FAIL** — `dotnet test --filter MainWindowViewModel` → errore di compilazione (membri inesistenti), atteso.
 
-- [ ] **Step 3: Implementazione** — sostituire `MainWindowViewModel.cs`:
+- [x] **Step 3: Implementazione** — sostituire `MainWindowViewModel.cs`:
 
 ```csharp
 using System.Reactive;
@@ -190,9 +190,9 @@ public class MainWindowViewModel : ViewModelBase
 }
 ```
 
-- [ ] **Step 4: Verifica PASS** — `dotnet test --filter MainWindowViewModel` → 3 PASS; poi `dotnet test` completo → PASS.
+- [x] **Step 4: Verifica PASS** — `dotnet test --filter MainWindowViewModel` → 3 PASS; poi `dotnet test` completo → PASS.
 
-- [ ] **Step 5: Commit** — `git commit -m "feat(nav): toggle e persistenza pannello laterale in MainWindowViewModel"`.
+- [x] **Step 5: Commit** — `git commit -m "feat(nav): toggle e persistenza pannello laterale in MainWindowViewModel"`.
 
 ---
 
@@ -209,7 +209,7 @@ public class MainWindowViewModel : ViewModelBase
 - Consumes: `IsNavExpanded`, `ToggleNavCommand` (Task 2). DataContext della finestra è `MainWindowViewModel` (già impostato in `App.OnFrameworkInitializationCompleted`); i `TabItem.Header` ereditano quel DataContext (le view figlie sovrascrivono il proprio solo nel loro sottoalbero).
 - Produces: layout finale; nessuna API per task successivi.
 
-- [ ] **Step 1: Ristrutturare `MainWindow.axaml`** — griglia a due righe: hamburger in alto a sinistra, `TabControl` con `TabStripPlacement="Left"` sotto. Ogni etichetta lega `IsVisible` a `IsNavExpanded`; tooltip fisso su ogni `TabItem` (utile da collassato). Contenuto completo:
+- [x] **Step 1: Ristrutturare `MainWindow.axaml`** — griglia a due righe: hamburger in alto a sinistra, `TabControl` con `TabStripPlacement="Left"` sotto. Ogni etichetta lega `IsVisible` a `IsNavExpanded`; tooltip fisso su ogni `TabItem` (utile da collassato). Contenuto completo:
 
 ```xml
 <Window xmlns="https://github.com/avaloniaui"
@@ -306,7 +306,7 @@ public class MainWindowViewModel : ViewModelBase
 
 Nota: se `x:DataType` causa errori di binding in compilazione (il progetto potrebbe non usare compiled bindings altrove), rimuovere `x:DataType` e `xmlns:vm` e usare binding classici — verificare com'è fatto nelle altre view e restare coerenti.
 
-- [ ] **Step 2: Stili nav in `Controls.axaml`** — in fondo al file, dimensioni/allineamento voci verticali (nessun colore hardcoded; i colori restano quelli del tema Fluent + brush esistenti):
+- [x] **Step 2: Stili nav in `Controls.axaml`** — in fondo al file, dimensioni/allineamento voci verticali (nessun colore hardcoded; i colori restano quelli del tema Fluent + brush esistenti):
 
 ```xml
   <!-- Navigazione laterale (MainWindow) -->
@@ -322,13 +322,13 @@ Nota: se `x:DataType` causa errori di binding in compilazione (il progetto potre
   </Style>
 ```
 
-- [ ] **Step 3: Build + test** — `dotnet build FileExplorer.sln` → 0 errori; `dotnet test` → PASS.
+- [x] **Step 3: Build + test** — `dotnet build FileExplorer.sln` → 0 errori; `dotnet test` → PASS.
 
-- [ ] **Step 4: Smoke run (best effort)** — `dotnet run --project FileExplorer.Desktop` se c'è display disponibile: verificare rail a sinistra, toggle hamburger, tooltip da collassato, persistenza dopo riavvio. In ambiente headless saltare e annotarlo nel report.
+- [x] **Step 4: Smoke run (best effort)** — `dotnet run --project FileExplorer.Desktop` se c'è display disponibile: verificare rail a sinistra, toggle hamburger, tooltip da collassato, persistenza dopo riavvio. In ambiente headless saltare e annotarlo nel report.
 
-- [ ] **Step 5: Aggiornare `IDEE.md`** — voce 22: `[ ]` → `[x]`, e aggiungere in coda alla voce: *(implementata: TabControl verticale con etichette collassabili, stato in Impostazioni/settings.json)*.
+- [x] **Step 5: Aggiornare `IDEE.md`** — voce 22: `[ ]` → `[x]`, e aggiungere in coda alla voce: *(implementata: TabControl verticale con etichette collassabili, stato in Impostazioni/settings.json)*.
 
-- [ ] **Step 6: Commit** — `git commit -m "feat(nav): menu hamburger laterale al posto della tab bar (IDEA 22)"`.
+- [x] **Step 6: Commit** — `git commit -m "feat(nav): menu hamburger laterale al posto della tab bar (IDEA 22)"`.
 
 ---
 

@@ -1,3 +1,4 @@
+using System;
 using System.Reactive;
 using System.Threading.Tasks;
 using FileExplorer.Services;
@@ -24,10 +25,17 @@ public class MainWindowViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> ToggleNavCommand { get; }
 
-    public async Task ToggleNavAsync()
+    internal async Task ToggleNavAsync()
     {
         IsNavExpanded = !IsNavExpanded;
         AppSettingsStore.Current.NavExpanded = IsNavExpanded;
-        await AppSettingsStore.SaveCurrentAsync().ConfigureAwait(false);
+        try
+        {
+            await AppSettingsStore.SaveCurrentAsync().ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Best effort: lo stato resta valido in memoria anche se il salvataggio su disco fallisce.
+        }
     }
 }
