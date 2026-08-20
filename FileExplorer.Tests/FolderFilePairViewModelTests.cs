@@ -63,10 +63,46 @@ public sealed class FolderFilePairViewModelTests : IDisposable
         File.WriteAllText(Path.Combine(dir, "a.txt"), "a");
         File.WriteAllText(Path.Combine(dir, "b.txt"), "b");
 
-        var pair = new FolderFilePairViewModel { SourcePath = dir };
+        var pair = new FolderFilePairViewModel { SourcePath = dir, IsFilesExpanded = true };
         await pair.SourceStateRefresh;
+        await pair.FilesLoad;
 
         Assert.Equal(2, pair.FilesToProcess.Count);
+    }
+
+    [Fact]
+    public async Task FilesToProcess_NotLoadedUntilExpanded()
+    {
+        string dir = Path.Combine(_root, "src1");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "a.txt"), "x");
+
+        var pair = new FolderFilePairViewModel { SourcePath = dir };
+        await pair.SourceStateRefresh;
+        Assert.Empty(pair.FilesToProcess);             // niente listing finché l'Expander è chiuso
+
+        pair.IsFilesExpanded = true;
+        await pair.FilesLoad;
+        Assert.Single(pair.FilesToProcess);
+    }
+
+    [Fact]
+    public async Task FilesToProcess_ReloadsOnSourceChangeWhileExpanded()
+    {
+        string dir1 = Path.Combine(_root, "src2");
+        string dir2 = Path.Combine(_root, "src3");
+        Directory.CreateDirectory(dir1);
+        Directory.CreateDirectory(dir2);
+        File.WriteAllText(Path.Combine(dir2, "b.txt"), "x");
+
+        var pair = new FolderFilePairViewModel { SourcePath = dir1, IsFilesExpanded = true };
+        await pair.SourceStateRefresh;
+        await pair.FilesLoad;
+
+        pair.SourcePath = dir2;
+        await pair.SourceStateRefresh;
+        await pair.FilesLoad;
+        Assert.Single(pair.FilesToProcess);
     }
 
     [Fact]

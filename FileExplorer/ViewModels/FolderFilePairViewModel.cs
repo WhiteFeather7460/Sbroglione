@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -27,13 +28,41 @@ public class ExtraDestinationViewModel
 /// </summary>
 public class FolderFilePairViewModel : ReactiveObject
 {
-    private readonly ObservableCollection<FileSystemItem> _filesToProcess = new();
+    private IReadOnlyList<FileSystemItem> _filesToProcess = Array.Empty<FileSystemItem>();
 
     /// <summary>
-    /// Elenco dei file che verranno elaborati; ricaricato in background
-    /// quando cambia <see cref="SourcePath"/>.
+    /// Elenco dei file che verranno elaborati; caricato con un listing ricorsivo
+    /// solo alla prima apertura dell'Expander (<see cref="IsFilesExpanded"/>) e
+    /// ricaricato in blocco quando cambia <see cref="SourcePath"/> a Expander aperto.
     /// </summary>
-    public ObservableCollection<FileSystemItem> FilesToProcess => _filesToProcess;
+    public IReadOnlyList<FileSystemItem> FilesToProcess
+    {
+        get => _filesToProcess;
+        private set => this.RaiseAndSetIfChanged(ref _filesToProcess, value);
+    }
+
+    private bool _isFilesExpanded;
+
+    /// <summary>
+    /// True quando l'utente ha aperto l'Expander "Mostra file da elaborare";
+    /// alla prima apertura avvia il listing ricorsivo (<see cref="FilesLoad"/>).
+    /// </summary>
+    public bool IsFilesExpanded
+    {
+        get => _isFilesExpanded;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isFilesExpanded, value);
+            if (value)
+                FilesLoad = LoadFilesToProcessAsync();
+        }
+    }
+
+    /// <summary>
+    /// Task dell'ultimo listing di <see cref="FilesToProcess"/>; attendibile per sapere
+    /// quando lo swap in blocco è completato (avviato solo con Expander aperto).
+    /// </summary>
+    public Task FilesLoad { get; private set; } = Task.CompletedTask;
 
     private bool _sourceExists;
 
@@ -70,7 +99,9 @@ public class FolderFilePairViewModel : ReactiveObject
     }
 
     /// <summary>
-    /// Verifica l'esistenza della sorgente e ricarica <see cref="FilesToProcess"/>.
+    /// Verifica l'esistenza della sorgente. Il listing di <see cref="FilesToProcess"/> non
+    /// parte più qui: si azzera subito e riparte solo se l'Expander è già aperto
+    /// (<see cref="IsFilesExpanded"/>), evitando I/O ricorsivo quando la griglia è chiusa.
     /// Se nel frattempo <see cref="SourcePath"/> cambia di nuovo, l'esito viene scartato.
     /// </summary>
     private async Task RefreshSourceStateAsync()
@@ -82,19 +113,32 @@ public class FolderFilePairViewModel : ReactiveObject
             return;
 
         SourceExists = type != PathType.Unknown;
-        _filesToProcess.Clear();
+        FilesToProcess = Array.Empty<FileSystemItem>();
 
-        if (type != PathType.Directory)
-            return;
+        if (IsFilesExpanded)
+            FilesLoad = LoadFilesToProcessAsync();
+    }
 
-        var listing = await FileSystemService.ListFilesRecursiveAsync(path!);
-        if (path != _sourcePath)
-            return;
-
-        foreach (var item in listing.Items)
+    /// <summary>
+    /// Esegue il listing ricorsivo della sorgente e pubblica il risultato con un unico
+    /// swap (<see cref="FilesToProcess"/>), invece di un Add per item. Se <see cref="SourcePath"/>
+    /// cambia nel frattempo, l'esito viene scartato.
+    /// </summary>
+    private async Task LoadFilesToProcessAsync()
+    {
+        string? path = _sourcePath;
+        if (path is null || await FileSystemService.GetPathTypeAsync(path) != PathType.Directory)
         {
-            _filesToProcess.Add(item);
+            if (path == _sourcePath)
+                FilesToProcess = Array.Empty<FileSystemItem>();
+            return;
         }
+
+        var listing = await FileSystemService.ListFilesRecursiveAsync(path);
+        if (path != _sourcePath)
+            return;                                   // sorgente cambiata nel frattempo: esito scartato
+
+        FilesToProcess = listing.Items;               // swap unico: un solo PropertyChanged
     }
 
     private string? _destinationPath;
