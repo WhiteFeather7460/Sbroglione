@@ -1072,13 +1072,13 @@ Semantica (vincolante, i test la codificano):
 - Oltre `maxRanges` intervalli: `RangesTruncated = true`, gli intervalli successivi non vengono accumulati ma `IdenticalBytes` e `FirstDifferenceOffset` restano esatti.
 - Cancellazione: `ct.ThrowIfCancellationRequested()` a ogni blocco, `ct` passato alle letture.
 
-- [ ] **Step 1: Branch da main aggiornato**
+- [x] **Step 1: Branch da main aggiornato**
 
 ```bash
 git checkout main && git pull && git checkout -b feature/file-byte-compare
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/FileByteCompareServiceTests.cs
@@ -1248,12 +1248,12 @@ public sealed class FileByteCompareServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 3: Run tests, verify they fail**
+- [x] **Step 3: Run tests, verify they fail**
 
 Run: `dotnet test --filter FileByteCompareServiceTests`
 Expected: FAIL (tipi `FileByteCompareService`/`ByteRangeDiff`/`FileCompareResult` non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 4: Implement `FileByteCompareService`**
+- [x] **Step 4: Implement `FileByteCompareService`**
 
 ```csharp
 // FileExplorer/Services/FileByteCompareService.cs
@@ -1415,12 +1415,12 @@ public static class FileByteCompareService
 }
 ```
 
-- [ ] **Step 5: Run tests, verify they pass**
+- [x] **Step 5: Run tests, verify they pass**
 
 Run: `dotnet test --filter FileByteCompareServiceTests`
 Expected: PASS (9 test).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/Services/FileByteCompareService.cs FileExplorer.Tests/FileByteCompareServiceTests.cs
@@ -1451,7 +1451,7 @@ git commit -m "feat(compare): FileByteCompareService per confronto binario a int
 
 Nota formattazione: le stringhe derivate usano `CultureInfo.GetCultureInfo("it-IT")` esplicita (offset con separatore migliaia "1.048.576", percentuale `0.##`), così i test sono deterministici su qualunque culture di macchina.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Contenuto completo aggiornato di `FileExplorer.Tests/ComparisonViewModelTests.cs` (i primi 4 test sono quelli esistenti, invariati):
 
@@ -1613,12 +1613,12 @@ public sealed class ComparisonViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter ComparisonViewModelTests`
 Expected: FAIL (proprietà `LeftFilePath`/`CompareFilesAsync` non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement ViewModel**
+- [x] **Step 3: Implement ViewModel**
 
 Contenuto completo aggiornato di `FileExplorer/ViewModels/ComparisonViewModel.cs`:
 
@@ -1971,12 +1971,12 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
 Nota su `FirstDiffText`: il pattern `{ FirstDifferenceOffset: long offset }` matcha solo quando l'offset non è null; per un risultato identico (offset null) cade nel ramo `_` → "Nessuna differenza".
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter ComparisonViewModelTests`
 Expected: PASS (7 test: 4 esistenti + 3 nuovi).
 
-- [ ] **Step 5: Update view**
+- [x] **Step 5: Update view**
 
 Contenuto completo aggiornato di `FileExplorer/Views/ComparisonView.axaml` (nuova card in fondo):
 
@@ -2127,21 +2127,21 @@ Contenuto completo aggiornato di `FileExplorer/Views/ComparisonView.axaml` (nuov
 </UserControl>
 ```
 
-- [ ] **Step 6: Build e verifica manuale minima**
+- [x] **Step 6: Build e verifica manuale minima**
 
 Run: `dotnet build FileExplorer.sln`
 Expected: Build succeeded, 0 errori. (Facoltativo, se DISPLAY disponibile: `DOTNET_ROLL_FORWARD=LatestMajor dotnet run --project FileExplorer.Desktop` e verifica visiva della card nella scheda Confronto.)
 
-- [ ] **Step 7: Update IDEE.md**
+- [x] **Step 7: Update IDEE.md**
 
 In `IDEE.md`, riga del punto 11: `11. \`[ ]\`` → `11. \`[x]\``.
 
-- [ ] **Step 8: Run full test suite**
+- [x] **Step 8: Run full test suite**
 
 Run: `dotnet test`
 Expected: PASS, nessun test rotto (316 preesistenti + 12 nuovi della fase).
 
-- [ ] **Step 9: Commit, push e PR**
+- [x] **Step 9: Commit, push e PR**
 
 ```bash
 git add FileExplorer/ViewModels/ComparisonViewModel.cs FileExplorer/Views/ComparisonView.axaml FileExplorer.Tests/ComparisonViewModelTests.cs IDEE.md
@@ -3025,13 +3025,13 @@ gh pr create --title "Delta-copy a blocchi (IDEE punto 5)" --body "Sync in-place
   - `public static Task WatchRuleStore.SaveAsync(IReadOnlyList<WatchRule> rules)`
   - `internal static List<WatchRule> WatchRuleStore.Sanitize(IEnumerable<WatchRule> rules)`
 
-- [ ] **Step 0: Branch di lavoro da main aggiornato**
+- [x] **Step 0: Branch di lavoro da main aggiornato**
 
 ```bash
 git checkout main && git pull && git checkout -b feature/watch-folders
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/WatchRuleStoreTests.cs
@@ -3148,12 +3148,12 @@ public sealed class WatchRuleStoreTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter WatchRuleStoreTests`
 Expected: FAIL (tipi `WatchRule`/`WatchRuleStore` non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement `WatchRule` e `WatchRuleStore`**
+- [x] **Step 3: Implement `WatchRule` e `WatchRuleStore`**
 
 ```csharp
 // FileExplorer/Models/WatchRule.cs
@@ -3306,12 +3306,12 @@ public static class WatchRuleStore
 }
 ```
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter WatchRuleStoreTests`
 Expected: PASS (7 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FileExplorer/Models/WatchRule.cs FileExplorer/Services/WatchRuleStore.cs FileExplorer.Tests/WatchRuleStoreTests.cs
@@ -3339,7 +3339,7 @@ git commit -m "feat(watch): modello WatchRule e store persistente watch-rules.js
   - `public static IReadOnlyCollection<string> WatchFolderService.ActiveRuleIds`
   - Seam interni per test: `internal static TimeSpan DebounceDelay { get; set; }` (default 3 s), `internal static Func<WatchRule, TimeSpan>? IntervalOverride { get; set; }`, `internal static Func<WatchRule, CancellationToken, Task>? SyncOverride { get; set; }`, `internal static void RaiseStatus(WatchStatus status)`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/WatchFolderServiceTests.cs
@@ -3537,12 +3537,12 @@ public sealed class WatchFolderServiceTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter WatchFolderServiceTests`
 Expected: FAIL (tipi `WatchFolderService`/`WatchStatus` non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement `WatchFolderService`**
+- [x] **Step 3: Implement `WatchFolderService`**
 
 ```csharp
 // FileExplorer/Services/WatchFolderService.cs
@@ -3841,17 +3841,17 @@ public static class WatchFolderService
 }
 ```
 
-- [ ] **Step 4: Run tests, verify they pass**
+- [x] **Step 4: Run tests, verify they pass**
 
 Run: `dotnet test --filter WatchFolderServiceTests`
 Expected: PASS (9 test).
 
-- [ ] **Step 5: Run full suite (regressioni)**
+- [x] **Step 5: Run full suite (regressioni)**
 
 Run: `dotnet test`
 Expected: PASS (tutti i test, nessuna regressione).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/Services/WatchFolderService.cs FileExplorer.Tests/WatchFolderServiceTests.cs
@@ -3875,7 +3875,7 @@ git commit -m "feat(watch): WatchFolderService con debounce, intervallo e sync i
   - `public class WatchRuleViewModel : ReactiveObject` — ctor `(WatchRule model, WatchFoldersViewModel? owner)`; proprietà `Model : WatchRule`, `Owner : WatchFoldersViewModel?`, `SourcePath`/`DestinationPath : string`, `Enabled : bool`, `IsOnChange`/`IsInterval : bool` (adapter radio), `IntervalMinutes : int` (clamp 1..1440), `StatusText`/`LastRunText : string?`
   - `public class WatchFoldersViewModel : ViewModelBase, IDisposable` — `Rules : ObservableCollection<WatchRuleViewModel>`, `HasRules : bool`, `RulesLoad : Task`, `internal LastSaveTask : Task?`, `internal ManageRunners : bool = true`, comandi `AddRuleCommand`, `RemoveRuleCommand`, `BrowseSourceCommand`, `BrowseDestinationCommand`, `RunNowCommand`, `internal void OnRuleChanged(WatchRuleViewModel)`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // FileExplorer.Tests/WatchFoldersViewModelTests.cs
@@ -4024,12 +4024,12 @@ public sealed class WatchFoldersViewModelTests : IDisposable
 }
 ```
 
-- [ ] **Step 2: Run tests, verify they fail**
+- [x] **Step 2: Run tests, verify they fail**
 
 Run: `dotnet test --filter WatchFoldersViewModelTests`
 Expected: FAIL (tipi `WatchFoldersViewModel`/`WatchRuleViewModel` non esistenti → errore di compilazione del progetto test).
 
-- [ ] **Step 3: Implement `WatchRuleViewModel`**
+- [x] **Step 3: Implement `WatchRuleViewModel`**
 
 ```csharp
 // FileExplorer/ViewModels/WatchRuleViewModel.cs
@@ -4157,7 +4157,7 @@ public class WatchRuleViewModel : ReactiveObject
 }
 ```
 
-- [ ] **Step 4: Implement `WatchFoldersViewModel`**
+- [x] **Step 4: Implement `WatchFoldersViewModel`**
 
 ```csharp
 // FileExplorer/ViewModels/WatchFoldersViewModel.cs
@@ -4335,12 +4335,12 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
 }
 ```
 
-- [ ] **Step 5: Run tests, verify they pass**
+- [x] **Step 5: Run tests, verify they pass**
 
 Run: `dotnet test --filter WatchFoldersViewModelTests`
 Expected: PASS (7 test).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add FileExplorer/ViewModels/WatchRuleViewModel.cs FileExplorer/ViewModels/WatchFoldersViewModel.cs FileExplorer.Tests/WatchFoldersViewModelTests.cs
@@ -4366,7 +4366,7 @@ git commit -m "feat(watch): WatchFoldersViewModel con persistenza e riallineamen
 - Consumes: `WatchFoldersViewModel` (Task 10); `WatchRuleStore.Load()` (Task 8); `WatchFolderService.Start(WatchRule)` (Task 9).
 - Produces: nessuna nuova API (solo UI + avvio).
 
-- [ ] **Step 1: Create `WatchFoldersView.axaml`**
+- [x] **Step 1: Create `WatchFoldersView.axaml`**
 
 ```xml
 <!-- FileExplorer/Views/WatchFoldersView.axaml -->
@@ -4513,7 +4513,7 @@ public partial class WatchFoldersView : UserControl
 }
 ```
 
-- [ ] **Step 2: Add the tab in `MainWindow.axaml`**
+- [x] **Step 2: Add the tab in `MainWindow.axaml`**
 
 Inserire dopo la `TabItem` "Confronto" (riga 38, dopo `</TabItem>` di `views:ComparisonView`) e prima di quella "Duplicati":
 
@@ -4529,7 +4529,7 @@ Inserire dopo la `TabItem` "Confronto" (riga 38, dopo `</TabItem>` di `views:Com
     </TabItem>
 ```
 
-- [ ] **Step 3: Start runners in `App.axaml.cs`**
+- [x] **Step 3: Start runners in `App.axaml.cs`**
 
 Contenuto completo del file dopo la modifica (aggiunta del blocco `foreach` dopo il tema, prima di `desktop.MainWindow`):
 
@@ -4592,12 +4592,12 @@ public partial class App : Application
 }
 ```
 
-- [ ] **Step 4: Build + full test suite**
+- [x] **Step 4: Build + full test suite**
 
 Run: `dotnet build FileExplorer.sln && dotnet test`
 Expected: build OK, PASS (tutti i test).
 
-- [ ] **Step 5: Smoke test manuale**
+- [x] **Step 5: Smoke test manuale**
 
 Run: `DOTNET_ROLL_FORWARD=LatestMajor dotnet run --project FileExplorer.Desktop`
 Verifiche a mano (il sandbox non ha il runtime .NET 8: serve il roll-forward):
@@ -4607,7 +4607,7 @@ Verifiche a mano (il sandbox non ha il runtime .NET 8: serve il roll-forward):
 4. "Esegui ora" forza una sync immediata.
 5. Riavviare l'app → la regola ricompare e la sync automatica riparte (file nuovo nella sorgente → copiato).
 
-- [ ] **Step 6: Update docs (IDEE, CLAUDE.md, piano)**
+- [x] **Step 6: Update docs (IDEE, CLAUDE.md, piano)**
 
 In `IDEE.md`, riga del punto 8, sostituire:
 
@@ -4629,7 +4629,7 @@ Watch-folder: la tab "Sync auto" (`WatchFoldersView`) gestisce regole di sincron
 
 Spuntare i checkbox dei Task 8–11 in questo piano.
 
-- [ ] **Step 7: Commit, push e PR**
+- [x] **Step 7: Commit, push e PR**
 
 ```bash
 git add FileExplorer/Views/WatchFoldersView.axaml FileExplorer/Views/WatchFoldersView.axaml.cs FileExplorer/Views/MainWindow.axaml FileExplorer/App.axaml.cs IDEE.md CLAUDE.md docs/superpowers/plans/
