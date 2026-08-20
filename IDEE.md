@@ -22,7 +22,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 7. `[x]` **Profili di copia salvabili** — preset nominati (es. "Backup foto", "Sync progetti") che memorizzano coppie sorgente/destinazione, filtri, opzioni di verifica e parallelismo. Un click per rieseguire. *(M)* *(filtri non esistenti nell'app; opzioni di verifica/parallelismo restano globali in Impostazioni)*
 
-8. `[ ]` **Copia programmata / watch-folder** — monitor di una cartella (FileSystemWatcher) con sincronizzazione automatica verso la destinazione al cambiamento, o a orario fisso. È il cuore di GoodSync/SyncBackPro (a pagamento). *(A)*
+8. `[x]` **Copia programmata / watch-folder** — monitor di una cartella (FileSystemWatcher) con sincronizzazione automatica verso la destinazione al cambiamento, o a intervallo di minuti (l'orario fisso resta da fare). È il cuore di GoodSync/SyncBackPro (a pagamento). *(A)*
 
 ## Confronto & sincronizzazione
 

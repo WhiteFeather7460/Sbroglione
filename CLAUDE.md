@@ -12,6 +12,8 @@ Avalonia UI (.NET 8, MVVM/ReactiveUI) desktop app — a dual-pane file explorer/
 
 Layering: `Views` (axaml + code-behind) → `ViewModels` (ReactiveUI) → `Services` (static: file system queries, copy, checksum) → `Models` (plain data). Tab views (`CopyPairsView`, `FileBrowserView`) create their own ViewModel in the constructor; `MainWindow` receives `MainWindowViewModel` from `App.OnFrameworkInitializationCompleted`, and `SelectPathDialog` receives a parameterized `SelectPathDialogViewModel` from its caller. There is no DI container.
 
+Watch-folder: la tab "Sync auto" (`WatchFoldersView`) gestisce regole di sincronizzazione automatica (`WatchRule`/`WatchRuleStore`); i runner (`WatchFolderService`) delle regole attive partono in `App.OnFrameworkInitializationCompleted` e muoiono col processo (nessun handler di shutdown).
+
 Styling: `Styles/Palette.axaml` holds all theme-aware brushes (`Brush.*`, light/dark via ThemeDictionaries); `Styles/Controls.axaml` holds class-based styles (`Button.primary/.secondary/.iconbtn/.onaccent`, `Border.card`, `Border.badge.*`, `TextBox.error`). Never hardcode colors in views — always `{DynamicResource Brush.*}`. Icons via Projektanker.Icons.Avalonia (`fa-*` FontAwesome).
 
 Temi custom: `ThemeService` registra un ResourceDictionary per-tema come `ThemeVariant("Custom", base)` in `Application.Resources.ThemeDictionaries`; i valori built-in restano in `Palette.axaml` e fanno da fallback. Nuove chiavi colore vanno aggiunte in TUTTI e tre i posti: `Palette.axaml` (entrambe le varianti), `ThemeColorKeys`, `BuiltInThemes`.
