@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 using FileExplorer.Models;
 using FileExplorer.Services;
@@ -10,13 +11,14 @@ namespace FileExplorer.ViewModels;
 /// <summary>Riga reattiva di una regola watch-folder; inoltra ogni modifica al parent.</summary>
 public class WatchRuleViewModel : ReactiveObject
 {
-    private string? _statusText = "In attesa";
+    private string? _statusText;
     private string? _lastRunText;
 
     public WatchRuleViewModel(WatchRule model, WatchFoldersViewModel? owner)
     {
         Model = model;
         Owner = owner;
+        _statusText = BaselineStatus();
     }
 
     /// <summary>Modello persistito sottostante.</summary>
@@ -60,7 +62,15 @@ public class WatchRuleViewModel : ReactiveObject
                 return;
             Model.Enabled = value;
             this.RaisePropertyChanged();
+
+            string? statusBefore = _statusText;
             Owner?.OnRuleChanged(this);
+
+            // Il badge deve seguire l'interruttore. Se però il riallineamento dei runner
+            // ha già emesso uno stato (tipicamente un avvio rifiutato), quello vince:
+            // sostituirlo con la baseline nasconderebbe l'errore appena mostrato.
+            if (_statusText == statusBefore)
+                StatusText = BaselineStatus();
         }
     }
 
@@ -118,5 +128,18 @@ public class WatchRuleViewModel : ReactiveObject
     {
         get => _lastRunText;
         set => this.RaiseAndSetIfChanged(ref _lastRunText, value);
+    }
+
+    /// <summary>
+    /// Stato di partenza dedotto dai runner realmente attivi: gli stati emessi prima che
+    /// la scheda esistesse (regole avviate da App all'apertura) sono persi per sempre,
+    /// quindi il badge non può basarsi solo sulle notifiche live.
+    /// </summary>
+    private string BaselineStatus()
+    {
+        if (!Model.Enabled)
+            return "Disattivata";
+
+        return WatchFolderService.ActiveRuleIds.Contains(Model.Id) ? "In ascolto" : "In attesa";
     }
 }

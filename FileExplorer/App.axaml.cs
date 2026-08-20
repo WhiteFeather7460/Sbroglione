@@ -1,3 +1,5 @@
+using System;
+
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -34,8 +36,18 @@ public partial class App : Application
             // shutdown nell'app: i runner muoiono col processo (limite dichiarato).
             foreach (WatchRule rule in WatchRuleStore.Load())
             {
-                if (rule.Enabled)
+                if (!rule.Enabled)
+                    continue;
+
+                try
+                {
                     WatchFolderService.Start(rule);
+                }
+                catch (Exception)
+                {
+                    // Difesa in profondità: Start non lancia più, ma una singola regola
+                    // malata non deve comunque impedire l'apertura della finestra.
+                }
             }
 
             desktop.MainWindow = new MainWindow

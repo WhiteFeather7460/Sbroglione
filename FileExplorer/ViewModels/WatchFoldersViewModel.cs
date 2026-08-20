@@ -95,15 +95,33 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     private async Task BrowseSourceAsync(WatchRuleViewModel rule)
     {
         string? selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, rule.SourcePath);
-        if (selected is not null)
-            rule.SourcePath = selected;
+        if (selected is null || IsSelfFeeding(rule, selected, rule.DestinationPath))
+            return;
+
+        rule.SourcePath = selected;
     }
 
     private async Task BrowseDestinationAsync(WatchRuleViewModel rule)
     {
         string? selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, rule.DestinationPath);
-        if (selected is not null)
-            rule.DestinationPath = selected;
+        if (selected is null || IsSelfFeeding(rule, rule.SourcePath, selected))
+            return;
+
+        rule.DestinationPath = selected;
+    }
+
+    /// <summary>
+    /// Rifiuta una combinazione che si autoalimenta (destinazione dentro la sorgente):
+    /// il percorso non viene assegnato, quindi non viene né persistito né dato a un runner.
+    /// La riga non ha un'altra superficie d'errore: il motivo va nel badge di stato.
+    /// </summary>
+    private static bool IsSelfFeeding(WatchRuleViewModel rule, string source, string destination)
+    {
+        if (!WatchFolderService.IsDestinationInsideSource(source, destination))
+            return false;
+
+        rule.StatusText = $"{WatchFolderService.SelfFeedingMessagePrefix}: scegli un'altra cartella";
+        return true;
     }
 
     /// <summary>Pubblico per i test.</summary>
@@ -159,10 +177,10 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         List<WatchRule> rules = await WatchRuleStore.LoadAsync();
         foreach (WatchRule rule in rules)
         {
-            var row = new WatchRuleViewModel(rule, this)
-            {
-                StatusText = rule.Enabled ? "In attesa" : "Disattivata"
-            };
+            // StatusText nasce dalla baseline della riga (regola attiva → runner già
+            // avviato da App), non da un valore fisso: gli stati emessi prima di questa
+            // sottoscrizione sono persi.
+            var row = new WatchRuleViewModel(rule, this);
             Rules.Add(row);
             _ruleIndex[rule.Id] = row;
         }

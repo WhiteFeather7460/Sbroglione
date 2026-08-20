@@ -28,6 +28,9 @@ public static class WatchFolderService
     private static readonly object Gate = new();
     private static readonly Dictionary<string, RuleRunner> Runners = new();
 
+    /// <summary>Prefisso dello stato emesso quando una regola si autoalimenta.</summary>
+    internal const string SelfFeedingMessagePrefix = "Destinazione dentro la sorgente";
+
     /// <summary>
     /// Notifica di stato. Invocato su thread di background: i ViewModel assegnano
     /// proprietà reactive direttamente, come per i callback di progresso della copia.
@@ -36,6 +39,16 @@ public static class WatchFolderService
 
     /// <summary>Finestra di quiete dopo l'ultimo evento prima di sincronizzare. Ridotta nei test.</summary>
     internal static TimeSpan DebounceDelay { get; set; } = TimeSpan.FromSeconds(3);
+
+    /// <summary>
+    /// Tetto complessivo del debounce: su una cartella sempre in movimento la finestra
+    /// di quiete non scadrebbe mai (starvation), quindi si sincronizza comunque una
+    /// volta trascorso questo tempo dal primo segnale della raffica. Ridotto nei test.
+    /// </summary>
+    internal static TimeSpan MaxDebounceWindow { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>Factory del FileSystemWatcher (test): permette di simulare un avvio fallito.</summary>
+    internal static Func<string, FileSystemWatcher>? WatcherFactory { get; set; }
 
     /// <summary>Override dell'intervallo (test). Default: IntervalMinutes della regola.</summary>
     internal static Func<WatchRule, TimeSpan>? IntervalOverride { get; set; }
@@ -54,13 +67,21 @@ public static class WatchFolderService
     }
 
     /// <summary>
-    /// Avvia (o riavvia) il runner della regola. Idempotente per Id.
+    /// Avvia (o riavvia) il runner della regola. Idempotente per Id. Non lancia mai:
+    /// ogni fallimento (sorgente assente, regola autoalimentante, watcher non attivabile)
+    /// diventa uno stato di errore.
     /// Limite dichiarato: se la sorgente non esiste il runner non parte
-    /// (nessun retry automatico); viene emesso uno stato di errore.
+    /// (nessun retry automatico).
     /// </summary>
     public static void Start(WatchRule rule)
     {
         Stop(rule.Id);
+
+        if (IsDestinationInsideSource(rule.SourcePath, rule.DestinationPath))
+        {
+            RaiseStatus(new WatchStatus(rule.Id, false, null, $"{SelfFeedingMessagePrefix}: {rule.DestinationPath}"));
+            return;
+        }
 
         if (!Directory.Exists(rule.SourcePath))
         {
@@ -71,8 +92,58 @@ public static class WatchFolderService
         var runner = new RuleRunner(rule);
         lock (Gate)
             Runners[rule.Id] = runner;
-        runner.Start();
+
+        try
+        {
+            runner.Start();
+        }
+        catch (Exception ex)
+        {
+            // EnableRaisingEvents può fallire (limiti inotify, percorso ostile): il runner
+            // registrato resterebbe uno zombie sordo, mostrato come attivo nella UI.
+            lock (Gate)
+            {
+                if (Runners.TryGetValue(rule.Id, out RuleRunner? registered) && ReferenceEquals(registered, runner))
+                    Runners.Remove(rule.Id);
+            }
+
+            runner.Dispose();
+            RaiseStatus(new WatchStatus(rule.Id, false, null, $"Avvio non riuscito: {ex.Message}"));
+        }
     }
+
+    /// <summary>
+    /// True se la destinazione coincide con la sorgente o è contenuta in essa: la copia
+    /// finirebbe dentro l'albero osservato, rialimentando il watcher a ogni passata
+    /// (ricorsione che cresce fino a riempire il disco).
+    /// Confronto case-insensitive su Windows/macOS, byte-exact altrove (come
+    /// <see cref="DirectoryComparisonService.DefaultPathComparer"/>).
+    /// </summary>
+    internal static bool IsDestinationInsideSource(string sourcePath, string destinationPath)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath) || string.IsNullOrWhiteSpace(destinationPath))
+            return false;
+
+        try
+        {
+            string source = WithTrailingSeparator(Path.GetFullPath(sourcePath));
+            string destination = WithTrailingSeparator(Path.GetFullPath(destinationPath));
+            StringComparison comparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+            return destination.StartsWith(source, comparison);
+        }
+        catch (Exception)
+        {
+            // Percorso non normalizzabile: non è questo il posto dove segnalarlo,
+            // ci pensa il controllo di esistenza o la sync stessa.
+            return false;
+        }
+    }
+
+    /// <summary>Aggiunge il separatore finale: senza, "/a/bc" risulterebbe dentro "/a/b".</summary>
+    private static string WithTrailingSeparator(string fullPath) =>
+        fullPath.EndsWith(Path.DirectorySeparatorChar) ? fullPath : fullPath + Path.DirectorySeparatorChar;
 
     /// <summary>Ferma il runner della regola (no-op se assente).</summary>
     public static void Stop(string ruleId)
@@ -104,6 +175,12 @@ public static class WatchFolderService
     /// </summary>
     public static async Task RunNowAsync(WatchRule rule)
     {
+        if (IsDestinationInsideSource(rule.SourcePath, rule.DestinationPath))
+        {
+            RaiseStatus(new WatchStatus(rule.Id, false, null, $"{SelfFeedingMessagePrefix}: {rule.DestinationPath}"));
+            return;
+        }
+
         RuleRunner? runner;
         lock (Gate)
             Runners.TryGetValue(rule.Id, out runner);
@@ -120,6 +197,13 @@ public static class WatchFolderService
     /// <summary>Sync reale: copia incrementale directory → directory con parallelismo adattivo.</summary>
     internal static async Task DefaultSyncAsync(WatchRule rule, CancellationToken ct)
     {
+        // La destinazione deve esistere già: se il disco di backup è smontato, ricrearla
+        // riempirebbe il mount point locale invece del volume previsto. L'eccezione
+        // diventa uno stato di errore e la passata viene saltata: il segnale (o il tick)
+        // successivo riprova.
+        if (!Directory.Exists(rule.DestinationPath))
+            throw new DirectoryNotFoundException($"Destinazione non trovata: {rule.DestinationPath}");
+
         // Snapshot: l'utente può cambiare le impostazioni mentre la sync è in corso.
         AppSettings settings = AppSettingsStore.Current;
 
@@ -227,15 +311,21 @@ public static class WatchFolderService
             }
         }
 
-        /// <summary>Crea e attiva un watcher sulla sorgente. Da chiamare sotto <see cref="_lifecycle"/>.</summary>
+        /// <summary>
+        /// Crea e attiva un watcher sulla sorgente. Da chiamare sotto <see cref="_lifecycle"/>.
+        /// Può lanciare (percorso non valido, limiti del sistema): il chiamante decide.
+        /// </summary>
         private FileSystemWatcher CreateWatcher()
         {
-            var watcher = new FileSystemWatcher(_rule.SourcePath)
-            {
-                IncludeSubdirectories = true,
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName
-                             | NotifyFilters.LastWrite | NotifyFilters.Size
-            };
+            FileSystemWatcher watcher = WatcherFactory?.Invoke(_rule.SourcePath)
+                                        ?? new FileSystemWatcher(_rule.SourcePath);
+            watcher.IncludeSubdirectories = true;
+            watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName
+                                 | NotifyFilters.LastWrite | NotifyFilters.Size;
+
+            // Buffer interno più ampio del default (8 KB): con IncludeSubdirectories le
+            // raffiche grosse lo saturano facilmente e ogni overflow perde eventi.
+            watcher.InternalBufferSize = 65536;
             watcher.Created += (_, _) => Signal();
             watcher.Changed += (_, _) => Signal();
             watcher.Renamed += (_, _) => Signal();
@@ -287,12 +377,17 @@ public static class WatchFolderService
 
         /// <summary>
         /// Segnala un cambiamento. Il coalescing lo fa il semaforo stesso (capacità 1):
-        /// se un segnale è già pendente, Release lancia e l'eccezione viene ignorata.
+        /// il caso comune "segnale già pendente" si riconosce da CurrentCount, ma il
+        /// controllo non è atomico rispetto al Release, quindi la SemaphoreFullException
+        /// resta come rete di sicurezza per le raffiche concorrenti.
         /// Nessun flag affiancato al semaforo: due stati da tenere coerenti senza un
         /// lock comune si disallineerebbero, lasciando il runner sordo per sempre.
         /// </summary>
         private void Signal()
         {
+            if (_wake.CurrentCount > 0)
+                return;
+
             try
             {
                 _wake.Release();
@@ -312,11 +407,21 @@ public static class WatchFolderService
                     // Primo evento della raffica: attesa senza timeout.
                     await _wake.WaitAsync(ct).ConfigureAwait(false);
 
-                    // Debounce: ogni segnale consumato riapre la finestra di quiete.
-                    // Esce quando per DebounceDelay non arriva più nulla.
-                    while (await _wake.WaitAsync(DebounceDelay, ct).ConfigureAwait(false))
+                    // Debounce: ogni segnale consumato riapre la finestra di quiete, ma
+                    // l'attesa complessiva è limitata a MaxDebounceWindow dal primo
+                    // segnale. Senza il tetto una cartella sempre in movimento non
+                    // verrebbe mai sincronizzata.
+                    long windowStart = Environment.TickCount64;
+                    long windowMs = (long)MaxDebounceWindow.TotalMilliseconds;
+                    while (true)
                     {
-                        // raffica ancora in corso
+                        long remainingMs = windowMs - (Environment.TickCount64 - windowStart);
+                        if (remainingMs <= 0)
+                            break;
+
+                        TimeSpan wait = TimeSpan.FromMilliseconds(Math.Min(DebounceDelay.TotalMilliseconds, remainingMs));
+                        if (!await _wake.WaitAsync(wait, ct).ConfigureAwait(false))
+                            break; // quiete raggiunta (o finestra esaurita)
                     }
 
                     await RunSyncAsync(ct).ConfigureAwait(false);
