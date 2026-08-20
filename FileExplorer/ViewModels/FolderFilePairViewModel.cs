@@ -44,8 +44,10 @@ public class FolderFilePairViewModel : ReactiveObject
     private bool _isFilesExpanded;
 
     /// <summary>
-    /// True quando l'utente ha aperto l'Expander "Mostra file da elaborare";
-    /// alla prima apertura avvia il listing ricorsivo (<see cref="FilesLoad"/>).
+    /// True quando l'utente ha aperto l'Expander "Mostra file da elaborare". Ogni transizione
+    /// REALE false→true rifà il listing ricorsivo (<see cref="FilesLoad"/>), anche se
+    /// <see cref="SourcePath"/> non è cambiato: il contenuto della cartella può essere
+    /// cambiato su disco (watch rule, modifica esterna) mentre l'Expander era chiuso.
     /// </summary>
     public bool IsFilesExpanded
     {
@@ -55,7 +57,12 @@ public class FolderFilePairViewModel : ReactiveObject
             bool changed = _isFilesExpanded != value;
             this.RaiseAndSetIfChanged(ref _isFilesExpanded, value);
             if (changed && value)
+            {
+                // Invalida la generazione dell'ultimo load: ogni apertura reale deve rifare il
+                // listing, anche se SourcePath non è cambiato dall'ultima chiusura.
+                _filesLoadGeneration = -1;
                 FilesLoad = TriggerFilesLoad();
+            }
         }
     }
 
@@ -70,6 +77,9 @@ public class FolderFilePairViewModel : ReactiveObject
     // scattano entrambi in rapida sequenza (es. object initializer) o quando IsFilesExpanded
     // resta true ma RefreshSourceStateAsync prova comunque a ri-avviare il load: il primo dei
     // due trigger "vince" la generazione corrente, l'altro la trova già marcata e non duplica.
+    // Il gate NON deduplica tra un'apertura e la successiva: il setter di IsFilesExpanded
+    // invalida esplicitamente _filesLoadGeneration a ogni transizione reale false→true, quindi
+    // riaprire l'Expander rifà sempre il listing.
     private int _sourceGeneration;
     private int _filesLoadGeneration = -1;
 

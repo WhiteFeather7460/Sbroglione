@@ -145,6 +145,33 @@ public sealed class FolderFilePairViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Reopening_AfterExternalChange_RefreshesFilesToProcess()
+    {
+        // Expand -> collapse -> il contenuto della dir cambia su disco (watch rule, modifica
+        // esterna) mentre l'Expander è chiuso -> re-expand: la griglia deve riflettere il nuovo
+        // contenuto, non quello cacheato dalla prima apertura (il gate a generazioni deduplica
+        // solo i trigger concorrenti dello stesso ciclo di apertura, non tra un'apertura e la
+        // successiva).
+        string dir = Path.Combine(_root, "src6");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "a.txt"), "x");
+
+        var pair = new FolderFilePairViewModel { SourcePath = dir, IsFilesExpanded = true };
+        await pair.SourceStateRefresh;
+        await pair.FilesLoad;
+        Assert.Single(pair.FilesToProcess);
+
+        pair.IsFilesExpanded = false;
+        File.WriteAllText(Path.Combine(dir, "b.txt"), "y"); // modifica esterna a Expander chiuso
+
+        pair.IsFilesExpanded = true;
+        await pair.FilesLoad;
+
+        Assert.Equal(2, pair.FilesToProcess.Count);
+        Assert.Equal(2, pair.FilesLoadStartCountForTests);
+    }
+
+    [Fact]
     public async Task SameSourceAndDestination_DisablesCanStart()
     {
         string file = Path.Combine(_root, "a.txt");
