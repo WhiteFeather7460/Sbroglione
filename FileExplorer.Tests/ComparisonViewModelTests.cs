@@ -21,10 +21,13 @@ public sealed class ComparisonViewModelTests : IDisposable
         _right = Path.Combine(_tempDir, "right");
         Directory.CreateDirectory(_left);
         Directory.CreateDirectory(_right);
+        // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
+        UiDispatch.Override = action => action();
     }
 
     public void Dispose()
     {
+        UiDispatch.Override = null;
         try { Directory.Delete(_tempDir, recursive: true); } catch (IOException) { }
     }
 

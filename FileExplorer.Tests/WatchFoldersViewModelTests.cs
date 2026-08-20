@@ -24,10 +24,13 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         _originalStorePath = WatchRuleStore.CurrentPath;
         WatchRuleStore.CurrentPath = Path.Combine(_root, "watch-rules.json");
         _originalConfirm = ConfirmDialogHelper.Override;
+        // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
+        UiDispatch.Override = action => action();
     }
 
     public void Dispose()
     {
+        UiDispatch.Override = null;
         // Dispose() è idempotente (-= su handler già rimosso è un no-op): sicuro anche
         // per i test che chiamano vm.Dispose() esplicitamente prima di questo cleanup.
         foreach (WatchFoldersViewModel vm in _createdVms)

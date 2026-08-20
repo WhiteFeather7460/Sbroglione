@@ -234,9 +234,25 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
             string right = RightPath;
 
             int parallelism = Math.Max(2, Environment.ProcessorCount - 1);
+            // Il callback arriva da threadpool e in parallelo: throttle sulla frequenza,
+            // set su thread UI e clamp monotono sul contatore pubblicato.
+            var progressThrottle = new UiProgressThrottle();
+            var progressGate = new MonotonicProgressGate();
             var result = await DirectoryComparisonService.CompareAsync(
                 left, right, parallelism,
-                progress => StatusText = $"Confronto in corso… ({progress.Processed}/{progress.Total})",
+                progress =>
+                {
+                    if (!progressThrottle.ShouldPublish())
+                        return;
+
+                    int processed = progress.Processed;
+                    int total = progress.Total;
+                    UiDispatch.Post(() =>
+                    {
+                        if (progressGate.TryAdvance(processed))
+                            StatusText = $"Confronto in corso… ({processed}/{total})";
+                    });
+                },
                 ct);
 
             Result = result;
@@ -286,9 +302,25 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
             string left = LeftFilePath;
             string right = RightFilePath;
 
+            // Come sopra: il callback (uno per blocco) arriva da threadpool. Sequenziale,
+            // quindi basta throttle + marshaling; il clamp resta per simmetria a costo nullo.
+            var blockThrottle = new UiProgressThrottle();
+            var blockGate = new MonotonicProgressGate();
             var result = await FileByteCompareService.CompareAsync(
                 left, right,
-                progress => FileCompareStatus = $"Confronto in corso… ({progress.Processed}/{progress.Total})",
+                progress =>
+                {
+                    if (!blockThrottle.ShouldPublish())
+                        return;
+
+                    int processed = progress.Processed;
+                    int total = progress.Total;
+                    UiDispatch.Post(() =>
+                    {
+                        if (blockGate.TryAdvance(processed))
+                            FileCompareStatus = $"Confronto in corso… ({processed}/{total})";
+                    });
+                },
                 ct);
 
             FileResult = result;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -116,10 +117,28 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
 
         try
         {
+            // Il callback arriva da threadpool e in parallelo: throttle sulla frequenza,
+            // set su thread UI e clamp monotono sul contatore pubblicato. Il gate è per
+            // fase ("Hash parziale"/"Hash completo"): ogni fase riparte da 1.
+            var progressThrottle = new UiProgressThrottle();
+            var progressGates = new ConcurrentDictionary<string, MonotonicProgressGate>(StringComparer.Ordinal);
             var found = await DuplicateFinderService.FindDuplicatesAsync(
                 RootPath,
                 Math.Max(2, Environment.ProcessorCount - 1),
-                progress => StatusText = $"{progress.Stage}: {progress.Processed}/{progress.Total}",
+                progress =>
+                {
+                    if (!progressThrottle.ShouldPublish())
+                        return;
+
+                    string stage = progress.Stage;
+                    int processed = progress.Processed;
+                    int total = progress.Total;
+                    UiDispatch.Post(() =>
+                    {
+                        if (progressGates.GetOrAdd(stage, _ => new MonotonicProgressGate()).TryAdvance(processed))
+                            StatusText = $"{stage}: {processed}/{total}";
+                    });
+                },
                 _scanCts.Token);
 
             foreach (var group in found)

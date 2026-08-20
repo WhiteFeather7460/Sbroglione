@@ -191,14 +191,17 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
 
     private void OnStatusChanged(WatchStatus status)
     {
-        // Thread di background: lookup via _ruleIndex (thread-safe), assegnazioni dirette
-        // sulla riga trovata come per i progressi di copia.
+        // Thread di background: lookup via _ruleIndex (thread-safe), assegnazioni sulla
+        // riga trovata marshalate sul thread UI come per i progressi di copia.
         if (!_ruleIndex.TryGetValue(status.RuleId, out WatchRuleViewModel? row))
             return;
 
-        row.StatusText = status.Message;
-        if (status.LastRunUtc is { } lastRun)
-            row.LastRunText = $"Ultima sync: {lastRun.ToLocalTime():HH:mm:ss}";
+        UiDispatch.Post(() =>
+        {
+            row.StatusText = status.Message;
+            if (status.LastRunUtc is { } lastRun)
+                row.LastRunText = $"Ultima sync: {lastRun.ToLocalTime():HH:mm:ss}";
+        });
     }
 
     public void Dispose() => WatchFolderService.StatusChanged -= _statusHandler;

@@ -24,10 +24,13 @@ public sealed class CopyPairsViewModelTests : IDisposable
         CopyJournalStore.CurrentPath = Path.Combine(_root, "copy-journal.json");
         _originalProfilesPath = CopyProfileStore.CurrentPath;
         CopyProfileStore.CurrentPath = Path.Combine(_root, "copy-profiles.json");
+        // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
+        UiDispatch.Override = action => action();
     }
 
     public void Dispose()
     {
+        UiDispatch.Override = null;
         AppSettingsStore.Current = _originalCurrent;
         AppSettingsStore.CurrentPath = _originalCurrentPath;
         CopyJournalStore.CurrentPath = _originalJournalPath;

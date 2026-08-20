@@ -1,3 +1,4 @@
+using FileExplorer.Services;
 using FileExplorer.ViewModels;
 
 namespace FileExplorer.Tests;
@@ -10,10 +11,13 @@ public sealed class DiskUsageViewModelTests : IDisposable
     {
         _root = Path.Combine(Path.GetTempPath(), "fe-usagevm-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
+        UiDispatch.Override = action => action();
     }
 
     public void Dispose()
     {
+        UiDispatch.Override = null;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
