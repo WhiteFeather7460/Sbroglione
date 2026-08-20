@@ -160,6 +160,9 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
                 // non esiste già. Una regola disabilitata è OK.
             }
 
+            // Il check di Enabled qui dentro è sicuro: letture atomiche, stato più fresco
+            // al momento dello Start, e auto-correttivo (il prossimo OnRuleChanged ferma
+            // se l'utente disabilita intanto).
             if (rule.Model.Enabled
                 && !string.IsNullOrWhiteSpace(rule.Model.SourcePath)
                 && !string.IsNullOrWhiteSpace(rule.Model.DestinationPath))

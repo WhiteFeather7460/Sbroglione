@@ -49,12 +49,41 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         return vm;
     }
 
+    private WatchFoldersViewModel CreateVmWithRunners()
+    {
+        var vm = new WatchFoldersViewModel { ManageRunners = true };
+        _createdVms.Add(vm);
+        return vm;
+    }
+
     private static async Task<WatchRuleViewModel> AddCompleteRuleAsync(WatchFoldersViewModel vm)
     {
         vm.AddRule();
         WatchRuleViewModel rule = vm.Rules[^1];
         rule.SourcePath = "/tmp/src";
         rule.DestinationPath = "/tmp/dst";
+        await vm.LastSaveTask!;
+        return rule;
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 5000)
+    {
+        long start = Environment.TickCount64;
+        while (!condition() && Environment.TickCount64 - start < timeoutMs)
+            await Task.Delay(10);
+        Assert.True(condition(), $"condizione non raggiunta entro {timeoutMs}ms");
+    }
+
+    private async Task<WatchRuleViewModel> AddValidRuleAsync(WatchFoldersViewModel vm)
+    {
+        vm.AddRule();
+        WatchRuleViewModel rule = vm.Rules[^1];
+        // Crea directory reali per il test (come in WatchFolderServiceTests)
+        string source = Path.Combine(_root, "src-" + Guid.NewGuid().ToString("N"));
+        string destination = Path.Combine(_root, "dst-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(source);
+        rule.SourcePath = source;
+        rule.DestinationPath = destination;
         await vm.LastSaveTask!;
         return rule;
     }
@@ -160,5 +189,27 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         WatchFolderService.RaiseStatus(new WatchStatus(rule.Model.Id, true, null, "Sincronizzazione…"));
 
         Assert.Equal(before, rule.StatusText);
+    }
+
+    [Fact]
+    public async Task OnRuleChanged_EnabledRuleEdit_StartsRunner()
+    {
+        // Test che OnRuleChanged con ManageRunners=true avvia il runner correttamente
+        // (verifica che Stop e Start siano sequenziali senza race condition).
+        var vm = CreateVmWithRunners();
+        await vm.RulesLoad;
+        WatchRuleViewModel rule = await AddValidRuleAsync(vm);
+
+        // Abilita la regola
+        rule.Model.Enabled = true;
+        vm.OnRuleChanged(rule);
+
+        // Attendi che il runner si avvii (Task.Run fire-and-forget)
+        await WaitUntilAsync(() => WatchFolderService.ActiveRuleIds.Contains(rule.Model.Id));
+
+        // Verifica che il runner sia attivo
+        Assert.Contains(rule.Model.Id, WatchFolderService.ActiveRuleIds);
+
+        vm.Dispose();
     }
 }
