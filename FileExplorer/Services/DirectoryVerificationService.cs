@@ -47,7 +47,16 @@ public static class DirectoryVerificationService
         Action<VerifyProgress>? onProgress,
         CancellationToken ct)
     {
-        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration).ToList();
+        List<string> files = await Task.Run(() =>
+        {
+            var list = new List<string>();
+            foreach (string file in Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration))
+            {
+                ct.ThrowIfCancellationRequested();
+                list.Add(file);
+            }
+            return list;
+        }, ct).ConfigureAwait(false);
 
         var mismatched = new ConcurrentBag<string>();
         var missing = new ConcurrentBag<string>();
@@ -58,7 +67,7 @@ public static class DirectoryVerificationService
         var tasks = files.Select(async sourceFile =>
         {
             ct.ThrowIfCancellationRequested();
-            await semaphore.WaitAsync(ct);
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 string relative = Path.GetRelativePath(sourceRoot, sourceFile);
@@ -70,8 +79,8 @@ public static class DirectoryVerificationService
                 }
                 else
                 {
-                    string sourceHash = await ChecksumService.ComputeSha256Async(sourceFile, ct);
-                    string destinationHash = await ChecksumService.ComputeSha256Async(destinationFile, ct);
+                    string sourceHash = await ChecksumService.ComputeSha256Async(sourceFile, ct).ConfigureAwait(false);
+                    string destinationHash = await ChecksumService.ComputeSha256Async(destinationFile, ct).ConfigureAwait(false);
                     if (!string.Equals(sourceHash, destinationHash, StringComparison.OrdinalIgnoreCase))
                         mismatched.Add(relative);
                 }
@@ -83,7 +92,7 @@ public static class DirectoryVerificationService
             }
         });
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         return new DirectoryVerifyResult(
             files.Count,

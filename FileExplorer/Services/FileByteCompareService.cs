@@ -52,10 +52,12 @@ public static class FileByteCompareService
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var left = new FileStream(
+        var left = new FileStream(
             leftPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, useAsync: true);
-        await using var right = new FileStream(
+        await using var leftScope = left.ConfigureAwait(false);
+        var right = new FileStream(
             rightPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, useAsync: true);
+        await using var rightScope = right.ConfigureAwait(false);
 
         long leftLength = left.Length;
         long rightLength = right.Length;
@@ -81,8 +83,10 @@ public static class FileByteCompareService
             ct.ThrowIfCancellationRequested();
 
             int toRead = (int)Math.Min(bufferSize, minLength - position);
-            await left.ReadAtLeastAsync(leftBuffer.AsMemory(0, toRead), toRead, throwOnEndOfStream: true, ct);
-            await right.ReadAtLeastAsync(rightBuffer.AsMemory(0, toRead), toRead, throwOnEndOfStream: true, ct);
+            await left.ReadAtLeastAsync(leftBuffer.AsMemory(0, toRead), toRead, throwOnEndOfStream: true, ct)
+                .ConfigureAwait(false);
+            await right.ReadAtLeastAsync(rightBuffer.AsMemory(0, toRead), toRead, throwOnEndOfStream: true, ct)
+                .ConfigureAwait(false);
 
             if (openRangeStart < 0 && leftBuffer.AsSpan(0, toRead).SequenceEqual(rightBuffer.AsSpan(0, toRead)))
             {
