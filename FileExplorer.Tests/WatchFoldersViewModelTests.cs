@@ -11,6 +11,8 @@ public sealed class WatchFoldersViewModelTests : IDisposable
     private readonly string _root;
     private readonly string _originalStorePath;
     private readonly Func<string, string, string, Task<bool>>? _originalConfirm;
+    private readonly Func<WatchRule, TimeSpan>? _originalInterval;
+    private readonly Func<WatchRule, CancellationToken, Task>? _originalSync;
 
     // VM create dai singoli test tramite CreateVm(): disposte tutte a fine test, così
     // _statusHandler non resta iscritto a WatchFolderService.StatusChanged (evento statico,
@@ -24,6 +26,8 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         _originalStorePath = WatchRuleStore.CurrentPath;
         WatchRuleStore.CurrentPath = Path.Combine(_root, "watch-rules.json");
         _originalConfirm = ConfirmDialogHelper.Override;
+        _originalInterval = WatchFolderService.IntervalOverride;
+        _originalSync = WatchFolderService.SyncOverride;
         // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
         UiDispatch.Override = action => action();
     }
@@ -39,6 +43,8 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         ConfirmDialogHelper.Override = _originalConfirm;
         WatchRuleStore.CurrentPath = _originalStorePath;
         WatchFolderService.StopAll();
+        WatchFolderService.IntervalOverride = _originalInterval;
+        WatchFolderService.SyncOverride = _originalSync;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
@@ -209,6 +215,55 @@ public sealed class WatchFoldersViewModelTests : IDisposable
 
         // Verifica che il runner sia attivo
         Assert.Contains(rule.Model.Id, WatchFolderService.ActiveRuleIds);
+
+        vm.Dispose();
+    }
+
+    /// <summary>
+    /// OnRuleChanged scatta a ogni set di proprietà della riga: una raffica sulla stessa
+    /// regola produceva riallineamenti concorrenti, con il rischio di due runner sulla
+    /// stessa regola (uno registrato, uno zombie che continua a copiare anche dopo il
+    /// disable). Deve restare esattamente un runner, e nessuno dopo il disable.
+    /// </summary>
+    [Fact]
+    public async Task OnRuleChanged_BurstOnSameRule_LeavesOneRunner_AndNoneAfterDisable()
+    {
+        // Modalità Interval con tick brevissimo e sync finta: un runner zombie si
+        // riconosce dal contatore che continua a salire dopo il disable.
+        WatchFolderService.IntervalOverride = _ => TimeSpan.FromMilliseconds(20);
+        int syncCount = 0;
+        WatchFolderService.SyncOverride = (_, _) =>
+        {
+            Interlocked.Increment(ref syncCount);
+            return Task.CompletedTask;
+        };
+
+        var vm = CreateVmWithRunners();
+        await vm.RulesLoad;
+        WatchRuleViewModel rule = await AddValidRuleAsync(vm);
+        rule.Model.Mode = WatchMode.Interval;
+        rule.Model.Enabled = true;
+
+        for (int i = 0; i < 8; i++)
+            vm.OnRuleChanged(rule);
+
+        // La catena per regola garantisce che l'ultima operazione accodata sia anche
+        // l'ultima eseguita: attenderla significa attendere tutta la raffica.
+        await vm.LastRunnerOpTask!;
+
+        Assert.Equal(rule.Model.Id, Assert.Single(WatchFolderService.ActiveRuleIds));
+        await WaitUntilAsync(() => Volatile.Read(ref syncCount) >= 1);
+
+        rule.Model.Enabled = false;
+        vm.OnRuleChanged(rule);
+        await vm.LastRunnerOpTask!;
+
+        Assert.DoesNotContain(rule.Model.Id, WatchFolderService.ActiveRuleIds);
+
+        await Task.Delay(100);
+        int afterDisable = Volatile.Read(ref syncCount);
+        await Task.Delay(400);
+        Assert.Equal(afterDisable, Volatile.Read(ref syncCount));
 
         vm.Dispose();
     }

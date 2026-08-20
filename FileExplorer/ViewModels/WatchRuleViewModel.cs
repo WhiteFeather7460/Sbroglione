@@ -63,14 +63,14 @@ public class WatchRuleViewModel : ReactiveObject
             Model.Enabled = value;
             this.RaisePropertyChanged();
 
-            string? statusBefore = _statusText;
             Owner?.OnRuleChanged(this);
 
-            // Il badge deve seguire l'interruttore. Se però il riallineamento dei runner
-            // ha già emesso uno stato (tipicamente un avvio rifiutato), quello vince:
-            // sostituirlo con la baseline nasconderebbe l'errore appena mostrato.
-            if (_statusText == statusBefore)
-                StatusText = BaselineStatus();
+            // Il badge segue subito l'interruttore ("Disattivata" / "In attesa"): il
+            // riallineamento dei runner è accodato su un altro thread e non ha ancora
+            // emesso nulla quando si arriva qui, quindi non c'è nessuno stato più
+            // informativo da preservare. Gli stati reali (avvio rifiutato, sync in corso,
+            // errore) arrivano dopo via StatusChanged e sovrascrivono questa baseline.
+            StatusText = BaselineStatus();
         }
     }
 

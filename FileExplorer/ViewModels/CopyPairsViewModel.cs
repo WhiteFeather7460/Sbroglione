@@ -578,11 +578,8 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
     private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
-        int knownFileCount = -1;
         var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
-        var uiThrottle = new UiProgressThrottle();
-        var trackerGate = new MonotonicProgressGate();
-        var uiGate = new MonotonicProgressGate();
+        var publisher = new DirectoryCopyProgressPublisher(pair, tracker);
 
         var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
         int parallelism = int.MaxValue;
@@ -598,43 +595,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             pair.SourcePath!,
             destinations,
             maxDegreeOfParallelism: parallelism,
-            onProgress: progress =>
-            {
-                // I callback arrivano da threadpool e in parallelo: il first-report deve
-                // vincere una sola volta (altrimenti tracker.Start girerebbe più volte).
-                bool firstReport = Interlocked.CompareExchange(ref knownFileCount, progress.TotalFiles, -1) == -1;
-                if (firstReport)
-                    tracker.Start(progress.TotalBytes);
-
-                // Cumulativi fuori ordine (Interlocked.Add e Invoke non sono atomici tra
-                // loro nel servizio): scartati, così il tracker non torna indietro.
-                bool advanced = trackerGate.TryAdvance(progress.CopiedBytes);
-                if (advanced)
-                    tracker.Report(progress.CopiedBytes);
-
-                SpeedSnapshot snapshot = default;
-                bool haveSnapshot = advanced && tracker.TryTakeSnapshot(out snapshot);
-                if (!firstReport && !haveSnapshot && (!advanced || !uiThrottle.ShouldPublish()))
-                    return;
-
-                double fraction = progress.Fraction;
-                int totalFiles = progress.TotalFiles;
-                UiDispatch.Post(() =>
-                {
-                    if (firstReport)
-                        pair.Status = totalFiles == 0
-                            ? "Nessun file da copiare"
-                            : $"Copia cartella… ({totalFiles} file)";
-                    if (advanced && uiGate.TryAdvance(fraction))
-                        pair.Progress = fraction;
-                    if (haveSnapshot)
-                        PublishSpeed(pair, snapshot);
-                });
-            },
+            onProgress: publisher.Report,
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
             skipUnchanged: pair.SkipUnchanged);
 
+        int knownFileCount = publisher.KnownFileCount;
         if (knownFileCount > 0)
             pair.SpeedText = $"media {FormatSpeed(tracker.AverageBytesPerSecond)} · picco {FormatSpeed(tracker.PeakBytesPerSecond)}";
 
@@ -701,6 +667,80 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         {
             pair.Status = $"Verifica fallita: {mismatchedTotal} file diversi, {missingTotal} mancanti";
             pair.StateKind = CopyStateKind.Warning;
+        }
+    }
+
+    /// <summary>
+    /// Contabilità e pubblicazione del progresso di una copia cartella: clamp monotono,
+    /// tracker di velocità, throttle e marshaling sul thread UI in un punto solo.
+    /// Classe (e non lambda) per avere un seam testabile: i callback del servizio arrivano
+    /// da threadpool e in parallelo, quindi i cumulativi possono presentarsi fuori ordine
+    /// (prima 6, poi 5) — condizione impossibile da provocare in modo deterministico
+    /// passando da una copia reale.
+    /// Un'istanza per copia.
+    /// </summary>
+    internal sealed class DirectoryCopyProgressPublisher
+    {
+        private readonly FolderFilePairViewModel _pair;
+        private readonly SpeedTracker _tracker;
+        private readonly UiProgressThrottle _uiThrottle;
+        private readonly MonotonicProgressGate _trackerGate = new();
+        private readonly MonotonicProgressGate _uiGate = new();
+        private int _knownFileCount = -1;
+
+        /// <param name="uiThrottle">
+        /// Solo per i test: un throttle senza attesa fa passare ogni report, così le
+        /// asserzioni riguardano il clamp e non la finestra temporale del throttle.
+        /// </param>
+        public DirectoryCopyProgressPublisher(
+            FolderFilePairViewModel pair,
+            SpeedTracker tracker,
+            UiProgressThrottle? uiThrottle = null)
+        {
+            _pair = pair;
+            _tracker = tracker;
+            _uiThrottle = uiThrottle ?? new UiProgressThrottle();
+        }
+
+        /// <summary>Numero di file annunciato dal primo report; -1 se non è ancora arrivato.</summary>
+        public int KnownFileCount => Volatile.Read(ref _knownFileCount);
+
+        public void Report(CopyProgress progress)
+        {
+            // I callback arrivano da threadpool e in parallelo: il first-report deve
+            // vincere una sola volta (altrimenti tracker.Start girerebbe più volte).
+            bool firstReport = Interlocked.CompareExchange(ref _knownFileCount, progress.TotalFiles, -1) == -1;
+            if (firstReport)
+                _tracker.Start(progress.TotalBytes);
+
+            // Cumulativi fuori ordine (Interlocked.Add e Invoke non sono atomici tra
+            // loro nel servizio): scartati, così il tracker non torna indietro.
+            bool advanced = _trackerGate.TryAdvance(progress.CopiedBytes);
+            if (advanced)
+                _tracker.Report(progress.CopiedBytes);
+
+            SpeedSnapshot snapshot = default;
+            bool haveSnapshot = advanced && _tracker.TryTakeSnapshot(out snapshot);
+            if (!firstReport && !haveSnapshot && (!advanced || !_uiThrottle.ShouldPublish()))
+                return;
+
+            double fraction = progress.Fraction;
+            int totalFiles = progress.TotalFiles;
+            FolderFilePairViewModel pair = _pair;
+            MonotonicProgressGate uiGate = _uiGate;
+            UiDispatch.Post(() =>
+            {
+                if (firstReport)
+                    pair.Status = totalFiles == 0
+                        ? "Nessun file da copiare"
+                        : $"Copia cartella… ({totalFiles} file)";
+                // Secondo clamp lato UI: anche due Post partiti in ordine possono essere
+                // eseguiti fuori ordine dal dispatcher.
+                if (advanced && uiGate.TryAdvance(fraction))
+                    pair.Progress = fraction;
+                if (haveSnapshot)
+                    PublishSpeed(pair, snapshot);
+            });
         }
     }
 }

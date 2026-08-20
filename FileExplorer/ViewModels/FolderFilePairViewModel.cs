@@ -117,15 +117,25 @@ public class FolderFilePairViewModel : ReactiveObject
             this.RaiseAndSetIfChanged(ref _sourcePath, value);
             this.RaisePropertyChanged(nameof(CanStart));
             _sourceGeneration++;
+
+            // Azzeramento qui, in modo sincrono con il bump della generazione: la lista
+            // appartiene alla sorgente precedente e non deve restare visibile. Farlo dopo
+            // l'await di RefreshSourceStateAsync era una race: il load avviato dal setter
+            // di IsFilesExpanded per la STESSA generazione poteva completare prima, e la
+            // continuation del refresh cancellava la lista appena popolata senza che
+            // TriggerFilesLoad — generazione già marcata — ne riavviasse un altro.
+            FilesToProcess = Array.Empty<FileSystemItem>();
             SourceStateRefresh = RefreshSourceStateAsync();
         }
     }
 
     /// <summary>
     /// Verifica l'esistenza della sorgente. Il listing di <see cref="FilesToProcess"/> non
-    /// parte più qui: si azzera subito e riparte solo se l'Expander è già aperto
-    /// (<see cref="IsFilesExpanded"/>), evitando I/O ricorsivo quando la griglia è chiusa.
-    /// Se nel frattempo <see cref="SourcePath"/> cambia di nuovo, l'esito viene scartato.
+    /// parte più qui: la lista è già stata azzerata dal setter di <see cref="SourcePath"/>
+    /// e riparte solo se l'Expander è già aperto (<see cref="IsFilesExpanded"/>), evitando
+    /// I/O ricorsivo quando la griglia è chiusa.
+    /// Se nel frattempo <see cref="SourcePath"/> cambia di nuovo, l'esito viene scartato:
+    /// niente scritture su stato appartenente a una generazione più recente.
     /// </summary>
     private async Task RefreshSourceStateAsync()
     {
@@ -136,7 +146,6 @@ public class FolderFilePairViewModel : ReactiveObject
             return;
 
         SourceExists = type != PathType.Unknown;
-        FilesToProcess = Array.Empty<FileSystemItem>();
 
         if (IsFilesExpanded)
             FilesLoad = TriggerFilesLoad();

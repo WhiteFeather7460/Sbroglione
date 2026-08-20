@@ -172,6 +172,52 @@ public sealed class FolderFilePairViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task SourcePathChange_ClearsPreviousListingImmediately()
+    {
+        // Il clear della lista appartenente alla sorgente precedente è sincrono con il set
+        // di SourcePath, non dopo l'await della verifica: fatto dopo, poteva cancellare il
+        // listing appena pubblicato dal load della stessa generazione (griglia vuota a
+        // Expander aperto, senza nessuno che ricaricasse).
+        string dir1 = Path.Combine(_root, "src7");
+        string dir2 = Path.Combine(_root, "src8");
+        Directory.CreateDirectory(dir1);
+        Directory.CreateDirectory(dir2);
+        File.WriteAllText(Path.Combine(dir1, "a.txt"), "x");
+        File.WriteAllText(Path.Combine(dir2, "b.txt"), "y");
+        File.WriteAllText(Path.Combine(dir2, "c.txt"), "z");
+
+        var pair = new FolderFilePairViewModel { SourcePath = dir1, IsFilesExpanded = true };
+        await pair.SourceStateRefresh;
+        await pair.FilesLoad;
+        Assert.Single(pair.FilesToProcess);
+
+        pair.SourcePath = dir2;
+        Assert.Empty(pair.FilesToProcess);   // subito, senza attendere I/O
+
+        await pair.SourceStateRefresh;
+        await pair.FilesLoad;
+        Assert.Equal(2, pair.FilesToProcess.Count);
+    }
+
+    [Fact]
+    public async Task ListingCompletedBeforeSourceCheck_IsNotCleared()
+    {
+        // L'ordine di completamento tra la verifica della sorgente e il listing non è
+        // garantito (path locale vs share lenta): quando il listing arriva per primo, la
+        // continuation della verifica non deve azzerare la lista già pubblicata.
+        string dir = Path.Combine(_root, "src9");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "a.txt"), "x");
+
+        var pair = new FolderFilePairViewModel { SourcePath = dir, IsFilesExpanded = true };
+        await pair.FilesLoad;
+        await pair.SourceStateRefresh;
+
+        Assert.Single(pair.FilesToProcess);
+        Assert.True(pair.SourceExists);
+    }
+
+    [Fact]
     public async Task SameSourceAndDestination_DisablesCanStart()
     {
         string file = Path.Combine(_root, "a.txt");
