@@ -169,10 +169,14 @@ public class RemoteBrowserViewModel : ViewModelBase
     }
 
     private bool _onlyMissing;
+
+    // Niente ScheduleRebuild qui: DownloadFilter.Matches non legge OnlyMissing (è gestito a parte
+    // da DownloadService), quindi un rebuild sarebbe un no-op sul contenuto di VisibleItems ma
+    // azzererebbe comunque la selezione della griglia 200ms dopo il toggle.
     public bool OnlyMissing
     {
         get => _onlyMissing;
-        set { this.RaiseAndSetIfChanged(ref _onlyMissing, value); ScheduleRebuild(); }
+        set => this.RaiseAndSetIfChanged(ref _onlyMissing, value);
     }
 
     private bool _includeSubfolders;
@@ -202,11 +206,20 @@ public class RemoteBrowserViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref _destinationFolder, value);
             if (SelectedProfile is not null)
                 SelectedProfile.LastDestinationFolder = value;
-            // Il setter non può essere async: fire-and-forget, coerente con l'esecuzione su
-            // threadpool di RefreshLocalStatusesAsync (nessuna urgenza di completamento sincrono).
-            _ = RefreshLocalStatusesAsync();
+            // Il setter non può essere async: fire-and-forget con handle su LocalStatusRefresh
+            // (attendibile nei test) e guardia di generazione dentro RefreshLocalStatusesAsync,
+            // così un secondo set ravvicinato non si fa scavalcare da un risultato stantio.
+            LocalStatusRefresh = RefreshLocalStatusesAsync();
         }
     }
+
+    /// <summary>Task dell'ultimo refresh di "Su disco" programmato; attendibile nei test.</summary>
+    public Task LocalStatusRefresh { get; private set; } = Task.CompletedTask;
+
+    // Incrementato a ogni avvio di RefreshLocalStatusesAsync: un refresh che completa dopo che
+    // un altro più recente è già partito scarta il proprio risultato invece di sovrascrivere
+    // LocalStatus con dati stantii (es. due DestinationFolder ravvicinati).
+    private int _localStatusGeneration;
 
     private bool _isDownloading;
     public bool IsDownloading
@@ -623,7 +636,7 @@ public class RemoteBrowserViewModel : ViewModelBase
             DownloadProgressValue = 0;
             _downloadCts.Dispose();
             _downloadCts = null;
-            await RefreshLocalStatusesAsync();
+            await (LocalStatusRefresh = RefreshLocalStatusesAsync());
             // Persiste la destinazione appena usata (LastDestinationFolder del profilo).
             await ProfileStore.SaveAsync(_profilesFilePath, Profiles.ToList());
         }
@@ -823,7 +836,7 @@ public class RemoteBrowserViewModel : ViewModelBase
             Items.Add(new RemoteEntryViewModel(item));
         }
 
-        await RefreshLocalStatusesAsync();
+        await (LocalStatusRefresh = RefreshLocalStatusesAsync());
         StatusMessage = $"{Items.Count} elementi in {CurrentPath}";
         RebuildVisibleItems();
     }
@@ -836,6 +849,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// </summary>
     private async Task RefreshLocalStatusesAsync()
     {
+        int generation = ++_localStatusGeneration;
         string? destination = DestinationFolder;
         var entries = Items.ToList();                  // snapshot sul thread UI
 
@@ -844,6 +858,11 @@ public class RemoteBrowserViewModel : ViewModelBase
                 ? (LocalFileStatus?)null
                 : DownloadService.GetLocalStatus(entry.Item, Path.Combine(destination, entry.Name)))
             .ToList());
+
+        // Un refresh più recente è partito nel frattempo (es. due DestinationFolder ravvicinati):
+        // questo risultato è stantio, scartarlo invece di sovrascrivere quello vincente.
+        if (generation != _localStatusGeneration)
+            return;
 
         for (int i = 0; i < entries.Count; i++)        // continuation: di nuovo sul thread UI
             entries[i].LocalStatus = statuses[i];

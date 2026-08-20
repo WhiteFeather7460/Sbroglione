@@ -88,6 +88,25 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
     }
 
     [Fact]
+    public async Task DestinationFolder_Setter_RefreshesLocalStatuses()
+    {
+        // Copre il path del setter di DestinationFolder (fire-and-forget su threadpool): Items è
+        // già popolata da CreateConnectedAsync, poi il setter riassegna DestinationFolder = _dest
+        // e LocalStatusRefresh dà un handle attendibile sul refresh che ne consegue.
+        var modified = new DateTime(2026, 6, 1, 12, 0, 0);
+        _client.AddFile("/a.txt", "AAA", modified);
+        string local = Path.Combine(_dest, "a.txt");
+        await File.WriteAllTextAsync(local, "AAA");
+        File.SetLastWriteTime(local, modified);
+
+        var vm = await CreateConnectedAsync();
+        await vm.LocalStatusRefresh;
+
+        var entry = vm.Items.Single(i => i.Name == "a.txt");
+        Assert.Equal(LocalFileStatus.Present, entry.LocalStatus);
+    }
+
+    [Fact]
     public async Task DownloadSelected_DownloadsOnlySelection()
     {
         _client.AddFile("/a.txt", "AAA");
