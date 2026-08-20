@@ -145,12 +145,31 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         if (!ManageRunners)
             return;
 
-        WatchFolderService.Stop(rule.Model.Id);
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                WatchFolderService.Stop(rule.Model.Id);
+            }
+            catch (Exception)
+            {
+            }
+        });
+
         if (rule.Model.Enabled
             && !string.IsNullOrWhiteSpace(rule.Model.SourcePath)
             && !string.IsNullOrWhiteSpace(rule.Model.DestinationPath))
         {
-            WatchFolderService.Start(rule.Model);
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    WatchFolderService.Start(rule.Model);
+                }
+                catch (Exception)
+                {
+                }
+            });
         }
     }
 
