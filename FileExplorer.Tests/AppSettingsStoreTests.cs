@@ -217,4 +217,22 @@ public sealed class AppSettingsStoreTests : IDisposable
 
         Assert.Equal(1000, settings.ThrottleMBps);
     }
+
+    [Fact]
+    public async Task SaveAsync_ThenLoad_RoundTripsNavExpanded()
+    {
+        var settings = new AppSettings { NavExpanded = false };
+
+        await AppSettingsStore.SaveAsync(StorePath, settings);
+        var loaded = await AppSettingsStore.LoadAsync(StorePath);
+
+        Assert.False(loaded.NavExpanded);
+    }
+
+    [Fact]
+    public async Task LoadAsync_MissingFile_NavExpandedDefaultsTrue()
+    {
+        var settings = await AppSettingsStore.LoadAsync(StorePath);
+        Assert.True(settings.NavExpanded);
+    }
 }
