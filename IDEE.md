@@ -30,7 +30,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 10. `[ ]` **Sync bidirezionale con rilevamento conflitti** — merge a due vie tra i pannelli: rileva file modificati da entrambi i lati dall'ultima sync (stato salvato) e chiede risoluzione per i conflitti invece di sovrascrivere alla cieca. *(A)*
 
-11. `[ ]` **Confronto byte-range di due file** — selezione di un file per pannello e confronto binario con indicazione degli intervalli di byte differenti (primo offset diverso, % identica). Più leggero di un diff visuale completo, quasi mai presente nei file manager. *(M)*
+11. `[x]` **Confronto byte-range di due file** — selezione di un file per pannello e confronto binario con indicazione degli intervalli di byte differenti (primo offset diverso, % identica). Più leggero di un diff visuale completo, quasi mai presente nei file manager. *(M)*
 
 12. `[ ]` **Database integrità / rilevamento bit-rot** — snapshot degli hash di una cartella salvato su disco; una verifica successiva segnala file corrotti silenziosamente (bit-rot) o modificati senza cambio di data. Nessun file manager mainstream lo offre; esiste solo in tool dedicati (SnapRAID, chkbit). *(M)*
 
