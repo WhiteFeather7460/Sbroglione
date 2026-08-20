@@ -35,6 +35,21 @@ public class CopyPairsViewModel : ViewModelBase
     public ReactiveCommand<FolderFilePairViewModel, Unit> AddExtraDestinationCommand { get; }
     public ReactiveCommand<ExtraDestinationViewModel, Unit> RemoveExtraDestinationCommand { get; }
     public ReactiveCommand<FolderFilePairViewModel, Unit> SimulateCommand { get; }
+    public ReactiveCommand<Unit, Unit> SaveProfileCommand { get; }
+    public ReactiveCommand<Unit, Unit> ApplyProfileCommand { get; }
+    public ReactiveCommand<Unit, Unit> DeleteProfileCommand { get; }
+
+    /// <summary>Profili di copia salvati, ordinati per nome.</summary>
+    public ObservableCollection<CopyProfile> Profiles { get; } = new();
+
+    private CopyProfile? _selectedProfile;
+
+    /// <summary>Profilo selezionato nella barra profili (null se nessuno).</summary>
+    public CopyProfile? SelectedProfile
+    {
+        get => _selectedProfile;
+        set => this.RaiseAndSetIfChanged(ref _selectedProfile, value);
+    }
 
     public CopyPairsViewModel()
     {
@@ -55,6 +70,10 @@ public class CopyPairsViewModel : ViewModelBase
 
         SimulateCommand = ReactiveCommand.CreateFromTask<FolderFilePairViewModel>(SimulatePairAsync);
 
+        SaveProfileCommand = ReactiveCommand.CreateFromTask(SaveProfileAsync);
+        ApplyProfileCommand = ReactiveCommand.Create(ApplyProfile);
+        DeleteProfileCommand = ReactiveCommand.CreateFromTask(DeleteProfileAsync);
+
         AppSettingsStore.ThrottleChanged += () =>
         {
             this.RaisePropertyChanged(nameof(ThrottleEnabled));
@@ -62,6 +81,7 @@ public class CopyPairsViewModel : ViewModelBase
         };
 
         JournalRestore = RestoreInterruptedJobsAsync();
+        ProfilesLoad = LoadProfilesAsync();
     }
 
     /// <summary>
@@ -69,6 +89,15 @@ public class CopyPairsViewModel : ViewModelBase
     /// I test lo attendono; la UI non ne ha bisogno.
     /// </summary>
     public Task JournalRestore { get; }
+
+    /// <summary>
+    /// Task del caricamento profili, avviato dal costruttore.
+    /// I test lo attendono; la UI non ne ha bisogno.
+    /// </summary>
+    public Task ProfilesLoad { get; }
+
+    /// <summary>Task dell'ultimo salvataggio profili. Solo per i test.</summary>
+    internal Task? LastProfilesSaveTask { get; private set; }
 
     /// <summary>Toggle rapido del limite di banda (scrive le impostazioni, effetto immediato sulle copie in corso).</summary>
     public bool ThrottleEnabled
@@ -154,6 +183,122 @@ public class CopyPairsViewModel : ViewModelBase
         catch (Exception)
         {
             // best effort.
+        }
+    }
+
+    private async Task LoadProfilesAsync()
+    {
+        List<CopyProfile> profiles = await CopyProfileStore.LoadAsync();
+        foreach (var profile in profiles)
+            Profiles.Add(profile);
+    }
+
+    /// <summary>
+    /// Salva le coppie correnti come profilo: chiede il nome; se coincide (case-insensitive)
+    /// con un profilo esistente lo sovrascrive, altrimenti lo inserisce mantenendo l'ordine.
+    /// </summary>
+    public async Task SaveProfileAsync()
+    {
+        await ProfilesLoad;
+
+        string? name = await InputDialogHelper.ShowAsync(
+            "Salva profilo", "Nome del profilo di copia:", SelectedProfile?.Name);
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+        name = name.Trim();
+
+        List<CopyProfilePair> pairs = PathPairs
+            .Where(p => !string.IsNullOrWhiteSpace(p.SourcePath) || !string.IsNullOrWhiteSpace(p.DestinationPath))
+            .Select(p => new CopyProfilePair
+            {
+                SourcePath = p.SourcePath ?? string.Empty,
+                DestinationPath = p.DestinationPath ?? string.Empty,
+                ExtraDestinations = p.ExtraDestinations.Select(e => e.Path).ToList(),
+                SkipUnchanged = p.SkipUnchanged
+            })
+            .ToList();
+
+        CopyProfile? existing = Profiles.FirstOrDefault(
+            p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+        {
+            existing.Pairs = pairs;
+            SelectedProfile = existing;
+        }
+        else
+        {
+            var profile = new CopyProfile { Name = name, Pairs = pairs };
+            int index = 0;
+            while (index < Profiles.Count &&
+                   StringComparer.OrdinalIgnoreCase.Compare(Profiles[index].Name, profile.Name) < 0)
+                index++;
+            Profiles.Insert(index, profile);
+            SelectedProfile = profile;
+        }
+
+        LastProfilesSaveTask = SaveProfilesBestEffortAsync();
+        await LastProfilesSaveTask;
+    }
+
+    /// <summary>
+    /// Sostituisce le coppie correnti con quelle del profilo selezionato.
+    /// No-op se nessun profilo è selezionato o se una copia è in corso.
+    /// </summary>
+    public void ApplyProfile()
+    {
+        if (SelectedProfile is not { } profile)
+            return;
+
+        if (PathPairs.Any(p => p.IsCopying))
+            return; // nessuna sostituzione mentre una copia è in corso.
+
+        PathPairs.Clear();
+        foreach (var stored in profile.Pairs)
+        {
+            var pair = new FolderFilePairViewModel
+            {
+                SourcePath = stored.SourcePath,
+                DestinationPath = stored.DestinationPath,
+                SkipUnchanged = stored.SkipUnchanged
+            };
+            foreach (var extra in stored.ExtraDestinations)
+                pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
+            PathPairs.Add(pair);
+        }
+    }
+
+    /// <summary>Elimina il profilo selezionato previa conferma.</summary>
+    public async Task DeleteProfileAsync()
+    {
+        await ProfilesLoad;
+
+        if (SelectedProfile is not { } profile)
+            return;
+
+        bool confirmed = await ConfirmDialogHelper.ShowAsync(
+            "Elimina profilo",
+            $"Eliminare il profilo \"{profile.Name}\"?",
+            "Elimina");
+        if (!confirmed)
+            return;
+
+        Profiles.Remove(profile);
+        SelectedProfile = null;
+
+        LastProfilesSaveTask = SaveProfilesBestEffortAsync();
+        await LastProfilesSaveTask;
+    }
+
+    private async Task SaveProfilesBestEffortAsync()
+    {
+        try
+        {
+            await CopyProfileStore.SaveAsync(Profiles.ToList());
+        }
+        catch (Exception)
+        {
+            // best effort: i profili restano in memoria anche se il salvataggio fallisce.
         }
     }
 
