@@ -33,4 +33,44 @@ public sealed class TreemapControlTests
         Assert.Equal(0, hiddenCount);
         Assert.Equal(0, hiddenBytes);
     }
+
+    [Fact]
+    public void CapNodes_EmptyList_ReturnsEmptyWithoutAggregation()
+    {
+        var children = new List<DiskUsageNode>();
+
+        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+
+        Assert.Empty(visible);
+        Assert.Equal(0, hiddenCount);
+        Assert.Equal(0, hiddenBytes);
+    }
+
+    [Fact]
+    public void CapNodes_ExactlyAtLimit_ReturnsAllWithoutAggregation()
+    {
+        var children = Enumerable.Range(1, 400)
+            .Select(i => new DiskUsageNode { Name = $"f{i}", SizeBytes = i })
+            .ToList();
+
+        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+
+        Assert.Equal(400, visible.Count);
+        Assert.Equal(0, hiddenCount);
+        Assert.Equal(0, hiddenBytes);
+    }
+
+    [Fact]
+    public void CapNodes_OneOverLimit_AggregatesSmallestSingleElement()
+    {
+        var children = Enumerable.Range(1, 401)
+            .Select(i => new DiskUsageNode { Name = $"f{i}", SizeBytes = i })
+            .ToList();
+
+        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+
+        Assert.Equal(400, visible.Count);
+        Assert.Equal(1, hiddenCount);
+        Assert.Equal(1, hiddenBytes); // il più piccolo (SizeBytes = 1)
+    }
 }
