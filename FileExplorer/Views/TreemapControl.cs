@@ -93,7 +93,7 @@ public class TreemapControl : Canvas
 
             if (isAggregate)
             {
-                ToolTip.SetTip(border, $"altri {hiddenCount} elementi — {SizeFormatter.Format(hiddenBytes)}");
+                ToolTip.SetTip(border, string.Format(LocalizationService.Tr("Str.DiskUsage.MoreItemsTooltipFormat"), hiddenCount, SizeFormatter.Format(hiddenBytes)));
             }
             else
             {
@@ -111,7 +111,7 @@ public class TreemapControl : Canvas
                     };
                 }
 
-                ToolTip.SetTip(border, $"{node.Name} — {SizeFormatter.Format(node.SizeBytes)}");
+                ToolTip.SetTip(border, string.Format(LocalizationService.Tr("Str.DiskUsage.NodeTooltipFormat"), node.Name, SizeFormatter.Format(node.SizeBytes)));
                 border.PointerPressed += (_, _) => NodeActivated?.Invoke(node);
             }
 

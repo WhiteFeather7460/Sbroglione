@@ -10,7 +10,7 @@
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
       <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
         <i:Icon Value="fa-solid fa-clone" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
-        <TextBlock Text="Ricerca duplicati" FontSize="18" FontWeight="Bold"
+        <TextBlock Text="{DynamicResource Str.Duplicates.Title}" FontSize="18" FontWeight="Bold"
                    Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
       </StackPanel>
     </Border>
@@ -19,13 +19,13 @@
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,12">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto">
         <TextBox Grid.Column="0" Text="{Binding RootPath}" IsReadOnly="True"
-                 Watermark="Cartella da analizzare…" />
+                 Watermark="{DynamicResource Str.Common.AnalyzeFolderWatermark}" />
         <Button Grid.Column="1" Classes="iconbtn" Margin="8,0,0,0"
                 i:Attached.Icon="fa-solid fa-magnifying-glass"
                 Command="{Binding BrowseRootCommand}" />
-        <Button Grid.Column="2" Classes="primary" Content="Analizza" Margin="8,0,0,0"
+        <Button Grid.Column="2" Classes="primary" Content="{DynamicResource Str.Common.Analyze}" Margin="8,0,0,0"
                 Command="{Binding ScanCommand}" IsEnabled="{Binding !IsScanning}" />
-        <Button Grid.Column="3" Classes="secondary" Content="Annulla" Margin="8,0,0,0"
+        <Button Grid.Column="3" Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="8,0,0,0"
                 Command="{Binding CancelScanCommand}" IsEnabled="{Binding IsScanning}" />
       </Grid>
     </Border>
@@ -39,7 +39,7 @@
     <Panel Background="{DynamicResource Brush.Surface}">
       <StackPanel IsVisible="{Binding !HasGroups}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
         <i:Icon Value="fa-regular fa-clone" FontSize="52" Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
-        <TextBlock Text="Nessun gruppo di duplicati"
+        <TextBlock Text="{DynamicResource Str.Duplicates.EmptyTitle}"
                    FontSize="16" Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
       </StackPanel>
 
@@ -53,7 +53,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Grid.Column="0" Text="{Binding Header}" FontWeight="Bold"
                              Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
-                  <Button Grid.Column="1" Classes="secondary" Content="Tieni solo il primo"
+                  <Button Grid.Column="1" Classes="secondary" Content="{DynamicResource Str.Duplicates.KeepFirst}"
                           Command="{Binding DataContext.KeepFirstCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                           CommandParameter="{Binding}" />
                 </Grid>

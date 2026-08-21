@@ -60,7 +60,7 @@ public static class DuplicateFinderService
         // Fase 2: hash parziale dei candidati.
         var partialHashes = await HashAllAsync(
             partialCandidates, PartialHashBytes, maxDegreeOfParallelism,
-            processed => onProgress?.Invoke(new DuplicateScanProgress("Hash parziale", processed, partialCandidates.Count)),
+            processed => onProgress?.Invoke(new DuplicateScanProgress(LocalizationService.Tr("Str.Duplicates.PartialHash"), processed, partialCandidates.Count)),
             ct).ConfigureAwait(false);
 
         var partialGroups = partialHashes
@@ -85,7 +85,7 @@ public static class DuplicateFinderService
 
         var fullHashes = await HashAllAsync(
             fullCandidates, long.MaxValue, maxDegreeOfParallelism,
-            processed => onProgress?.Invoke(new DuplicateScanProgress("Hash completo", processed, fullCandidates.Count)),
+            processed => onProgress?.Invoke(new DuplicateScanProgress(LocalizationService.Tr("Str.Duplicates.FullHash"), processed, fullCandidates.Count)),
             ct).ConfigureAwait(false);
 
         results.AddRange(fullHashes
