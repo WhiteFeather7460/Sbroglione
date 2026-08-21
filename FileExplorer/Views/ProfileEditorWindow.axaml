@@ -3,7 +3,7 @@
         xmlns:i="https://github.com/projektanker/icons.avalonia"
         xmlns:models="clr-namespace:FileExplorer.Models"
         x:Class="FileExplorer.Views.ProfileEditorWindow"
-        Title="Profilo server"
+        Title="{DynamicResource Str.ProfileEditor.Title}"
         Width="420" SizeToContent="Height"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
@@ -11,10 +11,10 @@
 
   <StackPanel Margin="20" Spacing="10">
 
-    <TextBlock Text="Nome profilo" Foreground="{DynamicResource Brush.TextMuted}" />
-    <TextBox Text="{Binding Name}" Watermark="Es. NAS di casa" />
+    <TextBlock Text="{DynamicResource Str.ProfileEditor.NameLabel}" Foreground="{DynamicResource Brush.TextMuted}" />
+    <TextBox Text="{Binding Name}" Watermark="{DynamicResource Str.ProfileEditor.NameWatermark}" />
 
-    <TextBlock Text="Protocollo" Foreground="{DynamicResource Brush.TextMuted}" />
+    <TextBlock Text="{DynamicResource Str.ProfileEditor.ProtocolLabel}" Foreground="{DynamicResource Brush.TextMuted}" />
     <ComboBox SelectedItem="{Binding Protocol}" HorizontalAlignment="Stretch">
       <ComboBox.Items>
         <models:RemoteProtocol>Sftp</models:RemoteProtocol>
@@ -24,28 +24,28 @@
     </ComboBox>
 
     <Border Classes="badge warning" IsVisible="{Binding ShowFtpWarning}" HorizontalAlignment="Stretch">
-      <TextBlock Text="FTP trasmette la password in chiaro: preferire FTPS se il server lo supporta."
+      <TextBlock Text="{DynamicResource Str.ProfileEditor.FtpWarning}"
                  TextWrapping="Wrap" />
     </Border>
 
     <Grid ColumnDefinitions="*,10,120">
       <StackPanel Grid.Column="0" Spacing="10">
-        <TextBlock Text="Host" Foreground="{DynamicResource Brush.TextMuted}" />
-        <TextBox Text="{Binding Host}" Watermark="es. nas.local" />
+        <TextBlock Text="{DynamicResource Str.ProfileEditor.HostLabel}" Foreground="{DynamicResource Brush.TextMuted}" />
+        <TextBox Text="{Binding Host}" Watermark="{DynamicResource Str.ProfileEditor.HostWatermark}" />
       </StackPanel>
       <StackPanel Grid.Column="2" Spacing="10">
-        <TextBlock Text="Porta" Foreground="{DynamicResource Brush.TextMuted}" />
+        <TextBlock Text="{DynamicResource Str.ProfileEditor.PortLabel}" Foreground="{DynamicResource Brush.TextMuted}" />
         <TextBox Text="{Binding PortText}" />
       </StackPanel>
     </Grid>
 
-    <TextBlock Text="Utente" Foreground="{DynamicResource Brush.TextMuted}" />
+    <TextBlock Text="{DynamicResource Str.ProfileEditor.UserLabel}" Foreground="{DynamicResource Brush.TextMuted}" />
     <TextBox Text="{Binding Username}" />
 
-    <TextBlock Text="Password" Foreground="{DynamicResource Brush.TextMuted}" />
+    <TextBlock Text="{DynamicResource Str.ProfileEditor.PasswordLabel}" Foreground="{DynamicResource Brush.TextMuted}" />
     <TextBox Text="{Binding Password}" PasswordChar="●"
-             Watermark="Lascia vuoto per non modificarla" />
-    <TextBlock Text="Il keyring di sistema non è disponibile: la password verrà chiesta a ogni connessione."
+             Watermark="{DynamicResource Str.ProfileEditor.PasswordWatermark}" />
+    <TextBlock Text="{DynamicResource Str.ProfileEditor.NoKeyringWarning}"
                IsVisible="{Binding !CanSavePassword}"
                Foreground="{DynamicResource Brush.TextMuted}"
                TextWrapping="Wrap" FontSize="12" />
@@ -56,8 +56,8 @@
     </Border>
 
     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,10,0,0">
-      <Button Classes="secondary" Content="Annulla" Click="OnCancelClick" />
-      <Button Classes="primary" Content="Salva" Click="OnSaveClick" />
+      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Click="OnCancelClick" />
+      <Button Classes="primary" Content="{DynamicResource Str.Common.Save}" Click="OnSaveClick" />
     </StackPanel>
 
   </StackPanel>

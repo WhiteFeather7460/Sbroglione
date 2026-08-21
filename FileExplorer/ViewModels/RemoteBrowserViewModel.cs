@@ -341,8 +341,8 @@ public class RemoteBrowserViewModel : ViewModelBase
             {
                 IsPasswordPromptVisible = true;
                 StatusMessage = _credentialStore.IsAvailable
-                    ? "Inserire la password."
-                    : "Keyring di sistema non disponibile: la password va inserita a ogni connessione.";
+                    ? LocalizationService.Tr("Str.RemoteBrowser.EnterPassword")
+                    : LocalizationService.Tr("Str.RemoteBrowser.KeyringUnavailable");
                 return;
             }
 
@@ -365,7 +365,7 @@ public class RemoteBrowserViewModel : ViewModelBase
                     // l'utente non avrebbe alcun modo di reinserirla: vicolo cieco.
                     PasswordInput = null;
                     IsPasswordPromptVisible = true;
-                    StatusMessage = "Autenticazione fallita: reinserisci la password.";
+                    StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.AuthFailed");
                 }
                 return;
             }
@@ -411,8 +411,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         }
         catch (Exception)
         {
-            ErrorMessage = "Connessione riuscita, ma il salvataggio della password nel keyring "
-                           + "è fallito: andrà reinserita alla prossima connessione.";
+            ErrorMessage = LocalizationService.Tr("Str.RemoteBrowser.KeyringSaveFailedAfterConnect");
         }
     }
 
@@ -427,7 +426,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         IsConnected = false;
         Items.Clear();
         VisibleItems.Clear();   // è la collezione mostrata dalla lista: senza questo resterebbe a video
-        StatusMessage = "Disconnesso.";
+        StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.DisconnectedStatus");
     }
 
     public async Task OpenDirectoryAsync(RemoteEntryViewModel entry)
@@ -475,7 +474,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     public void RejectFingerprint()
     {
         ClearPendingFingerprint();
-        StatusMessage = "Connessione rifiutata: host key non accettata.";
+        StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.HostKeyRejected");
     }
 
     /// <summary>
@@ -510,7 +509,7 @@ public class RemoteBrowserViewModel : ViewModelBase
             // per fallire l'operazione (e l'handler chiamante è async void).
         }
 
-        StatusMessage = $"Profilo \"{profile.Name}\" eliminato.";
+        StatusMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.ProfileDeletedFormat"), profile.Name);
     }
 
     /// <summary>
@@ -602,7 +601,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
         if (string.IsNullOrWhiteSpace(DestinationFolder))
         {
-            ErrorMessage = "Scegliere una cartella di destinazione prima di scaricare.";
+            ErrorMessage = LocalizationService.Tr("Str.RemoteBrowser.ChooseDestinationBeforeDownload");
             return;
         }
 
@@ -612,7 +611,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         var progress = new Progress<DownloadProgress>(p =>
         {
             DownloadProgressValue = p.TotalFiles == 0 ? 0 : (double)p.FileIndex / p.TotalFiles;
-            DownloadStatusText = $"{p.FileIndex}/{p.TotalFiles} — {p.CurrentFile}";
+            DownloadStatusText = string.Format(LocalizationService.Tr("Str.RemoteBrowser.TransferProgressFormat"), p.FileIndex, p.TotalFiles, p.CurrentFile);
         });
 
         try
@@ -622,13 +621,13 @@ public class RemoteBrowserViewModel : ViewModelBase
                 OverwriteAlways, progress, _downloadCts.Token);
 
             StatusMessage =
-                $"Scaricati {report.Downloaded.Count}, saltati {report.Skipped.Count}, falliti {report.Failed.Count}.";
+                string.Format(LocalizationService.Tr("Str.RemoteBrowser.DownloadSummaryFormat"), report.Downloaded.Count, report.Skipped.Count, report.Failed.Count);
             if (report.Failed.Count > 0)
-                ErrorMessage = $"{report.Failed.Count} file falliti. Primo errore: {report.Failed[0].Reason}";
+                ErrorMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"), report.Failed.Count, report.Failed[0].Reason);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Download annullato.";
+            StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.DownloadCancelled");
         }
         finally
         {
@@ -689,7 +688,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         // l'utente (cartella vuota, o senza file al primo livello) e va comunicato.
         if (entries.Count == 0)
         {
-            StatusMessage = "Nessun file da caricare.";
+            StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.NoFilesToUpload");
             return;
         }
 
@@ -700,7 +699,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         var progress = new Progress<UploadProgress>(p =>
         {
             UploadProgressValue = p.TotalFiles == 0 ? 0 : (double)p.FileIndex / p.TotalFiles;
-            UploadStatusText = $"{p.FileIndex}/{p.TotalFiles} — {p.CurrentFile}";
+            UploadStatusText = string.Format(LocalizationService.Tr("Str.RemoteBrowser.TransferProgressFormat"), p.FileIndex, p.TotalFiles, p.CurrentFile);
         });
 
         try
@@ -709,13 +708,13 @@ public class RemoteBrowserViewModel : ViewModelBase
                 _client, entries, remoteBasePath, UploadOverwriteAlways, progress, _uploadCts.Token);
 
             StatusMessage =
-                $"Caricati {report.Uploaded.Count}, saltati {report.Skipped.Count}, falliti {report.Failed.Count}.";
+                string.Format(LocalizationService.Tr("Str.RemoteBrowser.UploadSummaryFormat"), report.Uploaded.Count, report.Skipped.Count, report.Failed.Count);
             if (report.Failed.Count > 0)
-                ErrorMessage = $"{report.Failed.Count} file falliti. Primo errore: {report.Failed[0].Reason}";
+                ErrorMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"), report.Failed.Count, report.Failed[0].Reason);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Caricamento annullato.";
+            StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.UploadCancelled");
         }
         finally
         {
@@ -837,7 +836,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         }
 
         await (LocalStatusRefresh = RefreshLocalStatusesAsync());
-        StatusMessage = $"{Items.Count} elementi in {CurrentPath}";
+        StatusMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.ItemsInPathFormat"), Items.Count, CurrentPath);
         RebuildVisibleItems();
     }
 
