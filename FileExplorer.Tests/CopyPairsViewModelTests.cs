@@ -54,7 +54,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
             pair, tracker, new UiProgressThrottle(TimeSpan.Zero));   // niente throttle nei test
 
         publisher.Report(new CopyProgress(CopiedBytes: 6, TotalBytes: 10, TotalFiles: 3));
-        Assert.Equal("Copia cartella… (3 file)", pair.Status);
+        Assert.Equal(string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), 3), pair.Status);
         Assert.Equal(0.6, pair.Progress, 3);
 
         publisher.Report(new CopyProgress(CopiedBytes: 5, TotalBytes: 10, TotalFiles: 3));
@@ -89,7 +89,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
             action();
 
         Assert.Equal(0.8, pair.Progress, 3);          // mai regredito a 0.4
-        Assert.Equal("Copia cartella… (2 file)", pair.Status);
+        Assert.Equal(string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), 2), pair.Status);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
 
         Assert.Equal(CopyStateKind.Success, pair.StateKind);
         Assert.Null(pair.IsVerified);
-        Assert.Equal("Completato", pair.Status);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.Completed"), pair.Status);
         Assert.Equal("altro contenuto", await File.ReadAllTextAsync(destinationFile));
     }
 
@@ -172,7 +172,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
 
         Assert.Equal(CopyStateKind.Success, pair.StateKind);
         Assert.True(pair.IsVerified);
-        Assert.Equal("Completato e verificato (2 file)", pair.Status);
+        Assert.Equal(string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedVerifiedFormat"), 2), pair.Status);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
 
         Assert.Equal(CopyStateKind.Success, pair.StateKind);
         Assert.Null(pair.IsVerified);
-        Assert.Equal("Completato", pair.Status);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.Completed"), pair.Status);
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
 
         Assert.Equal(CopyStateKind.Success, pair.StateKind);
         Assert.True(pair.IsVerified);
-        Assert.Equal("Completato", pair.Status);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.Completed"), pair.Status);
         Assert.Equal("verifica multi", await File.ReadAllTextAsync(extra));
     }
 
@@ -284,7 +284,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
         var pair = Assert.Single(vm.PathPairs);
         Assert.Equal(sourceDir, pair.SourcePath);
         Assert.Equal(CopyStateKind.Warning, pair.StateKind);
-        Assert.Equal("Interrotto — premere Avvia per riprendere", pair.Status);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.Interrupted"), pair.Status);
         Assert.True(pair.SkipUnchanged);
         Assert.Single(pair.ExtraDestinations);
         Assert.Empty(await CopyJournalStore.LoadAsync()); // journal svuotato dopo il ripristino

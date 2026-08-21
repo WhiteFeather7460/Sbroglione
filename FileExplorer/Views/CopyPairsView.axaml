@@ -24,12 +24,12 @@
           <NumericUpDown Width="110" Minimum="1" Maximum="1000" Increment="5"
                          Value="{Binding ThrottleMBps}" IsEnabled="{Binding ThrottleEnabled}" />
           <TextBlock Text="MB/s" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextMuted}" />
-          <ToggleSwitch IsChecked="{Binding ThrottleEnabled}" ToolTip.Tip="Limita velocità di copia" />
+          <ToggleSwitch IsChecked="{Binding ThrottleEnabled}" ToolTip.Tip="{DynamicResource Str.CopyPairs.ThrottleTooltip}" />
         </StackPanel>
         <Button Grid.Column="2" Classes="primary" Command="{Binding AddPairCommand}">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-plus" />
-            <TextBlock Text="Aggiungi coppia" />
+            <TextBlock Text="{DynamicResource Str.CopyPairs.AddPair}" />
           </StackPanel>
         </Button>
       </Grid>
@@ -40,9 +40,9 @@
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,8">
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
         <i:Icon Value="fa-solid fa-bookmark" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
-        <TextBlock Text="Profilo:" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+        <TextBlock Text="{DynamicResource Str.CopyPairs.ProfileLabel}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
         <ComboBox Width="220" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
-                  PlaceholderText="Nessun profilo">
+                  PlaceholderText="{DynamicResource Str.CopyPairs.NoProfile}">
           <ComboBox.ItemTemplate>
             <DataTemplate>
               <TextBlock Text="{Binding Name}" />
@@ -51,15 +51,15 @@
         </ComboBox>
         <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-floppy-disk"
                 Command="{Binding SaveProfileCommand}"
-                ToolTip.Tip="Salva le coppie correnti come profilo" />
+                ToolTip.Tip="{DynamicResource Str.CopyPairs.SaveProfileTooltip}" />
         <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-folder-open"
                 Command="{Binding ApplyProfileCommand}"
                 IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
-                ToolTip.Tip="Applica il profilo selezionato" />
+                ToolTip.Tip="{DynamicResource Str.CopyPairs.ApplyProfileTooltip}" />
         <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-trash"
                 Command="{Binding DeleteProfileCommand}"
                 IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
-                ToolTip.Tip="Elimina il profilo selezionato" />
+                ToolTip.Tip="{DynamicResource Str.CopyPairs.DeleteProfileTooltip}" />
       </StackPanel>
     </Border>
 
@@ -68,14 +68,14 @@
       <!-- Empty state -->
       <StackPanel IsVisible="{Binding !HasPairs}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
         <i:Icon Value="fa-regular fa-clone" FontSize="52" Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
-        <TextBlock Text="Nessuna coppia di copia"
+        <TextBlock Text="{DynamicResource Str.CopyPairs.EmptyTitle}"
                    FontSize="16"
                    Foreground="{DynamicResource Brush.TextMuted}"
                    HorizontalAlignment="Center" />
         <Button Classes="primary" Command="{Binding AddPairCommand}" HorizontalAlignment="Center">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-plus" />
-            <TextBlock Text="Aggiungi la prima coppia" />
+            <TextBlock Text="{DynamicResource Str.CopyPairs.AddFirstPair}" />
           </StackPanel>
         </Button>
       </StackPanel>
@@ -97,7 +97,7 @@
                     <i:Icon Grid.Column="0" Value="fa-regular fa-folder-open" Width="26"
                             Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
                     <TextBox Grid.Column="1" Text="{Binding SourcePath}" IsReadOnly="True"
-                             Watermark="Sorgente…" Margin="8,0" />
+                             Watermark="{DynamicResource Str.CopyPairs.SourceWatermark}" Margin="8,0" />
                     <Button Grid.Column="2" Classes="iconbtn"
                             i:Attached.Icon="fa-solid fa-magnifying-glass"
                             Command="{Binding DataContext.BrowseSourceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -109,7 +109,7 @@
                     <i:Icon Grid.Column="0" Value="fa-solid fa-folder" Width="26"
                             Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
                     <TextBox Grid.Column="1" Text="{Binding DestinationPath}" IsReadOnly="True"
-                             Watermark="Destinazione…" Margin="8,0" />
+                             Watermark="{DynamicResource Str.CopyPairs.DestinationWatermark}" Margin="8,0" />
                     <Button Grid.Column="2" Classes="iconbtn"
                             i:Attached.Icon="fa-solid fa-magnifying-glass"
                             Command="{Binding DataContext.BrowseDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -140,7 +140,7 @@
                           IsEnabled="{Binding !IsCopying}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <i:Icon Value="fa-solid fa-folder-plus" />
-                      <TextBlock Text="Aggiungi destinazione" />
+                      <TextBlock Text="{DynamicResource Str.CopyPairs.AddDestination}" />
                     </StackPanel>
                   </Button>
 
@@ -162,12 +162,12 @@
                               Command="{Binding DataContext.SimulateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}"
                               IsEnabled="{Binding CanStart}"
-                              ToolTip.Tip="Simula (dry-run): niente viene scritto" />
-                      <Button Classes="primary" Content="Avvia"
+                              ToolTip.Tip="{DynamicResource Str.CopyPairs.SimulateTooltip}" />
+                      <Button Classes="primary" Content="{DynamicResource Str.CopyPairs.Start}"
                               Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}"
                               IsEnabled="{Binding CanStart}" />
-                      <Button Classes="secondary" Content="Annulla"
+                      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}"
                               Command="{Binding DataContext.CancelCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}"
                               IsEnabled="{Binding IsCopying}" />
@@ -193,7 +193,7 @@
                   </Border>
 
                   <!-- File da elaborare -->
-                  <Expander Header="Mostra file da elaborare" IsExpanded="{Binding IsFilesExpanded, Mode=TwoWay}">
+                  <Expander Header="{DynamicResource Str.CopyPairs.ShowFiles}" IsExpanded="{Binding IsFilesExpanded, Mode=TwoWay}">
                     <DataGrid ItemsSource="{Binding FilesToProcess}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
@@ -212,9 +212,9 @@
                             </DataTemplate>
                           </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
-                        <DataGridTextColumn Header="Dimensione" Binding="{Binding Size}" Width="110" />
-                        <DataGridTextColumn Header="Ultima modifica" Binding="{Binding LastModified}" Width="170" />
+                        <DataGridTextColumn Header="{DynamicResource Str.Common.Name}" Binding="{Binding Name}" Width="*" />
+                        <DataGridTextColumn Header="{DynamicResource Str.Common.Size}" Binding="{Binding Size}" Width="110" />
+                        <DataGridTextColumn Header="{DynamicResource Str.Common.Modified}" Binding="{Binding LastModified}" Width="170" />
                       </DataGrid.Columns>
                     </DataGrid>
                   </Expander>

@@ -231,7 +231,7 @@ public class FolderFilePairViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _progress, value);
     }
 
-    private string _status = "Pronto";
+    private string _status = LocalizationService.Tr("Str.Common.Ready");
     public string Status
     {
         get => _status;

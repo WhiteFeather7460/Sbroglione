@@ -177,7 +177,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 SourcePath = job.SourcePath,
                 DestinationPath = job.DestinationPath,
                 SkipUnchanged = true,
-                Status = "Interrotto — premere Avvia per riprendere",
+                Status = LocalizationService.Tr("Str.CopyPairs.Interrupted"),
                 StateKind = CopyStateKind.Warning
             };
 
@@ -215,7 +215,9 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         await ProfilesLoad;
 
         string? name = await InputDialogHelper.ShowAsync(
-            "Salva profilo", "Nome del profilo di copia:", SelectedProfile?.Name);
+            LocalizationService.Tr("Str.CopyPairs.SaveProfileTitle"),
+            LocalizationService.Tr("Str.CopyPairs.SaveProfileMessage"),
+            SelectedProfile?.Name);
         if (string.IsNullOrWhiteSpace(name))
             return;
         name = name.Trim();
@@ -290,9 +292,9 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             return;
 
         bool confirmed = await ConfirmDialogHelper.ShowAsync(
-            "Elimina profilo",
-            $"Eliminare il profilo \"{profile.Name}\"?",
-            "Elimina");
+            LocalizationService.Tr("Str.CopyPairs.DeleteProfileTitle"),
+            string.Format(LocalizationService.Tr("Str.CopyPairs.DeleteProfileMessageFormat"), profile.Name),
+            LocalizationService.Tr("Str.Common.Delete"));
         if (!confirmed)
             return;
 
@@ -340,7 +342,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
     {
         if (!pair.CanStart)
         {
-            pair.Status = "Percorsi non validi";
+            pair.Status = LocalizationService.Tr("Str.CopyPairs.InvalidPaths");
             pair.StateKind = CopyStateKind.Error;
             return;
         }
@@ -379,7 +381,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
             pair.IsCopying = true;
             pair.Progress = 0;
-            pair.Status = "Copia in corso…";
+            pair.Status = LocalizationService.Tr("Str.CopyPairs.CopyInProgress");
             pair.StateKind = CopyStateKind.Copying;
             pair.IsVerified = null;
             pair.SimulationSummary = null;
@@ -397,12 +399,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         }
         catch (OperationCanceledException)
         {
-            pair.Status = "Annullato";
+            pair.Status = LocalizationService.Tr("Str.Common.Cancelled");
             pair.StateKind = CopyStateKind.Cancelled;
         }
         catch (Exception ex)
         {
-            pair.Status = $"Errore: {ex.Message}";
+            pair.Status = string.Format(LocalizationService.Tr("Str.Common.ErrorFormat"), ex.Message);
             pair.StateKind = CopyStateKind.Error;
         }
         finally
@@ -433,13 +435,13 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
     {
         if (!pair.CanStart)
         {
-            pair.Status = "Percorsi non validi";
+            pair.Status = LocalizationService.Tr("Str.CopyPairs.InvalidPaths");
             pair.StateKind = CopyStateKind.Error;
             return;
         }
 
         IReadOnlyList<string> destinations = pair.AllDestinations;
-        pair.Status = "Simulazione…";
+        pair.Status = LocalizationService.Tr("Str.CopyPairs.Simulating");
 
         try
         {
@@ -448,28 +450,30 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
             var lines = new List<string>
             {
-                $"Da copiare: {result.TotalFiles} file, {SizeFormatter.Format(result.TotalBytes)}" +
-                (result.SkippedFiles > 0 ? $" (di cui {result.SkippedFiles} invariati, saltati)" : string.Empty)
+                string.Format(LocalizationService.Tr("Str.CopyPairs.SimulateToCopyFormat"), result.TotalFiles, SizeFormatter.Format(result.TotalBytes)) +
+                (result.SkippedFiles > 0 ? string.Format(LocalizationService.Tr("Str.CopyPairs.SimulateSkippedFormat"), result.SkippedFiles) : string.Empty)
             };
 
             foreach (var destination in result.Destinations)
             {
                 string space = destination.FreeBytes is null
-                    ? "spazio libero sconosciuto"
-                    : $"liberi {SizeFormatter.Format(destination.FreeBytes.Value)}" +
-                      (destination.Fits == false ? " — SPAZIO INSUFFICIENTE" : string.Empty);
-                lines.Add($"{destination.Root}: {destination.OverwriteCount} sovrascritture, {space}");
+                    ? LocalizationService.Tr("Str.CopyPairs.FreeSpaceUnknown")
+                    : string.Format(LocalizationService.Tr("Str.CopyPairs.FreeSpaceFormat"), SizeFormatter.Format(destination.FreeBytes.Value)) +
+                      (destination.Fits == false ? LocalizationService.Tr("Str.CopyPairs.NotEnoughSpace") : string.Empty);
+                lines.Add(string.Format(LocalizationService.Tr("Str.CopyPairs.OverwriteLineFormat"), destination.Root, destination.OverwriteCount, space));
             }
 
             pair.SimulationSummary = string.Join(Environment.NewLine, lines);
 
             bool anyDoesNotFit = result.Destinations.Any(d => d.Fits == false);
-            pair.Status = anyDoesNotFit ? "Simulazione: spazio insufficiente" : "Simulazione completata";
+            pair.Status = anyDoesNotFit
+                ? LocalizationService.Tr("Str.CopyPairs.SimulateNotEnoughSpace")
+                : LocalizationService.Tr("Str.CopyPairs.SimulateComplete");
             pair.StateKind = anyDoesNotFit ? CopyStateKind.Warning : CopyStateKind.Ready;
         }
         catch (Exception ex)
         {
-            pair.Status = $"Errore simulazione: {ex.Message}";
+            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.SimulateErrorFormat"), ex.Message);
             pair.StateKind = CopyStateKind.Error;
         }
     }
@@ -553,13 +557,13 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
-            pair.Status = "Completato";
+            pair.Status = LocalizationService.Tr("Str.CopyPairs.Completed");
             pair.StateKind = CopyStateKind.Success;
             return;
         }
 
         // Verifica checksum di tutte le destinazioni.
-        pair.Status = "Verifica checksum…";
+        pair.Status = LocalizationService.Tr("Str.CopyPairs.VerifyingChecksum");
         pair.SourceChecksum ??= await ChecksumService.ComputeSha256Async(pair.SourcePath!, ct);
 
         bool allMatch = true;
@@ -572,7 +576,9 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
         pair.IsVerified = allMatch;
         pair.Progress = 1;
-        pair.Status = allMatch ? "Completato" : "Completato (checksum non corrisponde)";
+        pair.Status = allMatch
+            ? LocalizationService.Tr("Str.CopyPairs.Completed")
+            : LocalizationService.Tr("Str.CopyPairs.CompletedChecksumMismatch");
         pair.StateKind = allMatch ? CopyStateKind.Success : CopyStateKind.Warning;
     }
 
@@ -614,12 +620,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
-            pair.Status = "Completato";
+            pair.Status = LocalizationService.Tr("Str.CopyPairs.Completed");
             pair.StateKind = CopyStateKind.Success;
             return;
         }
 
-        pair.Status = "Verifica checksum…";
+        pair.Status = LocalizationService.Tr("Str.CopyPairs.VerifyingChecksum");
         int totalVerified = 0;
         int mismatchedTotal = 0;
         int missingTotal = 0;
@@ -645,7 +651,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                     UiDispatch.Post(() =>
                     {
                         if (verifyGate.TryAdvance(verified))
-                            pair.Status = $"Verifica checksum… ({verified}/{total})";
+                            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyingChecksumProgressFormat"), verified, total);
                     });
                 },
                 ct);
@@ -660,12 +666,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
         if (pair.IsVerified == true)
         {
-            pair.Status = $"Completato e verificato ({totalVerified} file)";
+            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedVerifiedFormat"), totalVerified);
             pair.StateKind = CopyStateKind.Success;
         }
         else
         {
-            pair.Status = $"Verifica fallita: {mismatchedTotal} file diversi, {missingTotal} mancanti";
+            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyFailedFormat"), mismatchedTotal, missingTotal);
             pair.StateKind = CopyStateKind.Warning;
         }
     }
@@ -732,8 +738,8 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             {
                 if (firstReport)
                     pair.Status = totalFiles == 0
-                        ? "Nessun file da copiare"
-                        : $"Copia cartella… ({totalFiles} file)";
+                        ? LocalizationService.Tr("Str.CopyPairs.NoFilesToCopy")
+                        : string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), totalFiles);
                 // Secondo clamp lato UI: anche due Post partiti in ordine possono essere
                 // eseguiti fuori ordine dal dispatcher.
                 if (advanced && uiGate.TryAdvance(fraction))
