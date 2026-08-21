@@ -89,9 +89,9 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     public async Task RemoveRuleAsync(WatchRuleViewModel rule)
     {
         bool confirmed = await ConfirmDialogHelper.ShowAsync(
-            "Rimuovere la regola?",
-            $"La sincronizzazione automatica {rule.SourcePath} → {rule.DestinationPath} verrà rimossa.",
-            "Rimuovi");
+            LocalizationService.Tr("Str.WatchFolders.RemoveConfirmTitle"),
+            string.Format(LocalizationService.Tr("Str.WatchFolders.RemoveConfirmMessageFormat"), rule.SourcePath, rule.DestinationPath),
+            LocalizationService.Tr("Str.WatchFolders.Remove"));
         if (!confirmed)
             return;
 
@@ -148,7 +148,7 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         if (!WatchFolderService.IsDestinationInsideSource(source, destination))
             return false;
 
-        rule.StatusText = $"{WatchFolderService.SelfFeedingMessagePrefix}: scegli un'altra cartella";
+        rule.StatusText = string.Format(LocalizationService.Tr("Str.WatchFolders.SelfFeedingFormat"), WatchFolderService.SelfFeedingMessagePrefix);
         return true;
     }
 
@@ -286,7 +286,7 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         {
             row.StatusText = status.Message;
             if (status.LastRunUtc is { } lastRun)
-                row.LastRunText = $"Ultima sync: {lastRun.ToLocalTime():HH:mm:ss}";
+                row.LastRunText = string.Format(LocalizationService.Tr("Str.WatchFolders.LastRunFormat"), lastRun.ToLocalTime());
         });
     }
 

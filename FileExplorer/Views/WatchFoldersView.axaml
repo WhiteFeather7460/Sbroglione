@@ -11,12 +11,12 @@
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <i:Icon Value="fa-solid fa-rotate" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
-          <TextBlock Text="Sync auto" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource Str.Nav.WatchSync}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
         </StackPanel>
         <Button Grid.Column="1" Classes="primary" Command="{Binding AddRuleCommand}">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-plus" />
-            <TextBlock Text="Aggiungi regola" />
+            <TextBlock Text="{DynamicResource Str.WatchFolders.AddRule}" />
           </StackPanel>
         </Button>
       </Grid>
@@ -27,14 +27,14 @@
       <!-- Empty state -->
       <StackPanel IsVisible="{Binding !HasRules}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
         <i:Icon Value="fa-solid fa-rotate" FontSize="52" Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
-        <TextBlock Text="Nessuna regola di sincronizzazione automatica"
+        <TextBlock Text="{DynamicResource Str.WatchFolders.EmptyTitle}"
                    FontSize="16"
                    Foreground="{DynamicResource Brush.TextMuted}"
                    HorizontalAlignment="Center" />
         <Button Classes="primary" Command="{Binding AddRuleCommand}" HorizontalAlignment="Center">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-plus" />
-            <TextBlock Text="Aggiungi la prima regola" />
+            <TextBlock Text="{DynamicResource Str.WatchFolders.AddFirstRule}" />
           </StackPanel>
         </Button>
       </StackPanel>
@@ -52,7 +52,7 @@
                     <i:Icon Grid.Column="0" Value="fa-regular fa-folder-open" Width="26"
                             Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
                     <TextBox Grid.Column="1" Text="{Binding SourcePath}" IsReadOnly="True"
-                             Watermark="Cartella da monitorare…" Margin="8,0" />
+                             Watermark="{DynamicResource Str.WatchFolders.SourceWatermark}" Margin="8,0" />
                     <Button Grid.Column="2" Classes="iconbtn"
                             i:Attached.Icon="fa-solid fa-magnifying-glass"
                             Command="{Binding DataContext.BrowseSourceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -64,7 +64,7 @@
                     <i:Icon Grid.Column="0" Value="fa-solid fa-folder" Width="26"
                             Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
                     <TextBox Grid.Column="1" Text="{Binding DestinationPath}" IsReadOnly="True"
-                             Watermark="Destinazione…" Margin="8,0" />
+                             Watermark="{DynamicResource Str.WatchFolders.DestinationWatermark}" Margin="8,0" />
                     <Button Grid.Column="2" Classes="iconbtn"
                             i:Attached.Icon="fa-solid fa-magnifying-glass"
                             Command="{Binding DataContext.BrowseDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -74,15 +74,15 @@
                   <!-- Modalità + attivazione -->
                   <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                      <RadioButton Content="Al cambiamento" IsChecked="{Binding IsOnChange}" />
-                      <RadioButton Content="Ogni" IsChecked="{Binding IsInterval}" />
+                      <RadioButton Content="{DynamicResource Str.WatchFolders.OnChange}" IsChecked="{Binding IsOnChange}" />
+                      <RadioButton Content="{DynamicResource Str.WatchFolders.Every}" IsChecked="{Binding IsInterval}" />
                       <NumericUpDown Width="120" Minimum="1" Maximum="1440" Increment="5"
                                      Value="{Binding IntervalMinutes}" IsEnabled="{Binding IsInterval}" />
-                      <TextBlock Text="minuti" VerticalAlignment="Center"
+                      <TextBlock Text="{DynamicResource Str.WatchFolders.Minutes}" VerticalAlignment="Center"
                                  Foreground="{DynamicResource Brush.TextMuted}" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                      <TextBlock Text="Attiva" VerticalAlignment="Center"
+                      <TextBlock Text="{DynamicResource Str.WatchFolders.Active}" VerticalAlignment="Center"
                                  Foreground="{DynamicResource Brush.TextPrimary}" />
                       <ToggleSwitch IsChecked="{Binding Enabled}" />
                     </StackPanel>
@@ -98,12 +98,12 @@
                                  Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                      <Button Classes="secondary" Content="Esegui ora"
+                      <Button Classes="secondary" Content="{DynamicResource Str.WatchFolders.RunNow}"
                               Command="{Binding DataContext.RunNowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}" />
                       <Button Classes="iconbtn"
                               i:Attached.Icon="fa-solid fa-trash"
-                              ToolTip.Tip="Rimuovi regola"
+                              ToolTip.Tip="{DynamicResource Str.WatchFolders.RemoveRuleTooltip}"
                               Command="{Binding DataContext.RemoveRuleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}" />
                     </StackPanel>

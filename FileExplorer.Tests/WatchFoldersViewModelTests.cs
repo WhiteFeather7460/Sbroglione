@@ -179,7 +179,8 @@ public sealed class WatchFoldersViewModelTests : IDisposable
 
         Assert.Equal("Completata alle 12:00:00", rule.StatusText);
         Assert.NotNull(rule.LastRunText);
-        Assert.StartsWith("Ultima sync:", rule.LastRunText);
+        string lastRunPrefix = LocalizationService.Tr("Str.WatchFolders.LastRunFormat").Split("{0")[0];
+        Assert.StartsWith(lastRunPrefix, rule.LastRunText);
         vm.Dispose();
     }
 
