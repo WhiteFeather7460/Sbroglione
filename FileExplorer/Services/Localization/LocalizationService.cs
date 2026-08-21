@@ -17,9 +17,9 @@ public static class LocalizationService
     public const string English = "en";
 
     private static ResourceDictionary? _activeDictionary;
-    private static IReadOnlyDictionary<string, string> _active = StringsIt.All;
+    private static IReadOnlyDictionary<string, string> _active = StringsEn.All;
 
-    public static string CurrentLanguage { get; private set; } = Italian;
+    public static string CurrentLanguage { get; private set; } = English;
 
     /// <summary>
     /// Sollevato dopo un cambio lingua: le viewmodel con testo costruito in C# (non da
