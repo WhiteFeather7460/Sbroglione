@@ -17,7 +17,7 @@
       <Grid ColumnDefinitions="*,Auto,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
-          <TextBlock Text="File Explorer" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource Str.Nav.Copy}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,14,0">
           <i:Icon Value="fa-solid fa-gauge-high" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
