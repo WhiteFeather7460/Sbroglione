@@ -1,0 +1,346 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:conv="clr-namespace:Sbroglione.Converters"
+             x:Class="Sbroglione.Views.RemoteBrowserView">
+
+  <UserControl.Resources>
+    <conv:EnumEqualsConverter x:Key="EnumEquals" />
+    <conv:LocalFileStatusConverter x:Key="LocalFileStatusText" />
+    <conv:NotAnyConverter x:Key="NotAny" />
+  </UserControl.Resources>
+
+  <DockPanel>
+
+    <!-- Barra connessione -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
+        <i:Icon Grid.Column="0" Value="fa-solid fa-server" FontSize="20"
+                Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" />
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}"
+                  SelectedItem="{Binding SelectedProfile}"
+                  MaxWidth="280" Margin="10,0,0,0"
+                  HorizontalAlignment="Left" VerticalAlignment="Center">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Grid.Column="2" Classes="iconbtn" Click="OnNewProfileClick" Margin="10,0,0,0"
+                i:Attached.Icon="fa-solid fa-plus" ToolTip.Tip="{DynamicResource Str.RemoteBrowser.NewProfileTooltip}" />
+        <Button Grid.Column="3" Classes="iconbtn" Click="OnManageProfilesClick" Margin="10,0,0,0"
+                i:Attached.Icon="fa-solid fa-gear" ToolTip.Tip="{DynamicResource Str.RemoteBrowser.ManageProfilesTooltip}" />
+        <Button Grid.Column="4" Classes="iconbtn" Click="OnDeleteProfileClick" Margin="10,0,0,0"
+                i:Attached.Icon="fa-solid fa-trash" ToolTip.Tip="{DynamicResource Str.RemoteBrowser.DeleteProfileTooltip}">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="SelectedProfile" Converter="{x:Static ObjectConverters.IsNull}" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+        </Button>
+        <Button Grid.Column="5" Classes="primary" Click="OnConnectClick" Margin="10,0,0,0"
+                IsVisible="{Binding !IsConnected}">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-plug" />
+            <TextBlock Text="{DynamicResource Str.RemoteBrowser.Connect}" />
+          </StackPanel>
+        </Button>
+        <Button Grid.Column="6" Classes="secondary" Click="OnDisconnectClick" Margin="10,0,0,0"
+                IsVisible="{Binding IsConnected}">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-plug-circle-xmark" />
+            <TextBlock Text="{DynamicResource Str.RemoteBrowser.Disconnect}" />
+          </StackPanel>
+        </Button>
+        <Border Grid.Column="7" Classes="badge" Margin="10,0,0,0"
+                Classes.success="{Binding IsConnected}"
+                VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{DynamicResource Str.RemoteBrowser.Connected}" IsVisible="{Binding IsConnected}" />
+            <TextBlock Text="{DynamicResource Str.RemoteBrowser.Disconnected}" IsVisible="{Binding !IsConnected}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- Prompt password -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}" Padding="20,10"
+            IsVisible="{Binding IsPasswordPromptVisible}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <i:Icon Grid.Column="0" Value="fa-solid fa-key" VerticalAlignment="Center"
+                Foreground="{DynamicResource Brush.TextMuted}" />
+        <TextBox Grid.Column="1" Text="{Binding PasswordInput}" PasswordChar="●"
+                 Watermark="{DynamicResource Str.RemoteBrowser.PasswordWatermark}" Margin="10,0,0,0" />
+        <CheckBox Grid.Column="2" Content="{DynamicResource Str.RemoteBrowser.SaveToKeyring}" IsChecked="{Binding SavePassword}"
+                  IsVisible="{Binding CanSavePassword}" VerticalAlignment="Center" Margin="10,0,0,0" />
+        <Button Grid.Column="3" Classes="primary" Content="{DynamicResource Str.RemoteBrowser.LogIn}" Click="OnConnectClick" Margin="10,0,0,0">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+        </Button>
+      </Grid>
+    </Border>
+
+    <!-- Banner host key -->
+    <Border DockPanel.Dock="Top" Classes="badge warning" Margin="20,8" Padding="12,8"
+            HorizontalAlignment="Stretch"
+            IsVisible="{Binding PendingFingerprint, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <StackPanel Spacing="6">
+        <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" FontWeight="Bold" />
+        <SelectableTextBlock Text="{Binding PendingFingerprint}" FontFamily="monospace" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Classes="primary" Content="{DynamicResource Str.RemoteBrowser.AcceptAndConnect}" Click="OnAcceptFingerprintClick">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsBusy" />
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+          </Button>
+          <Button Classes="secondary" Content="{DynamicResource Str.RemoteBrowser.Reject}" Click="OnRejectFingerprintClick" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Banner errore (non host key) -->
+    <Border DockPanel.Dock="Top" Classes="badge error" Margin="20,8" Padding="12,8"
+            HorizontalAlignment="Stretch">
+      <Border.IsVisible>
+        <MultiBinding Converter="{x:Static BoolConverters.And}">
+          <Binding Path="ErrorMessage" Converter="{x:Static ObjectConverters.IsNotNull}" />
+          <Binding Path="PendingFingerprint" Converter="{x:Static ObjectConverters.IsNull}" />
+        </MultiBinding>
+      </Border.IsVisible>
+      <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+    </Border>
+
+    <!-- Barra percorso -->
+    <Border DockPanel.Dock="Top" Padding="20,8" IsVisible="{Binding IsConnected}">
+      <Grid ColumnDefinitions="Auto,Auto,*">
+        <Button Grid.Column="0" Classes="iconbtn" i:Attached.Icon="fa-solid fa-arrow-up"
+                Click="OnNavigateUpClick" ToolTip.Tip="{DynamicResource Str.RemoteBrowser.ParentFolderTooltip}">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+        </Button>
+        <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-rotate"
+                Click="OnRefreshClick" ToolTip.Tip="{DynamicResource Str.RemoteBrowser.RefreshTooltip}" Margin="8,0,0,0">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+        </Button>
+        <TextBox Grid.Column="2" Text="{Binding CurrentPath}" IsReadOnly="True" Margin="8,0,0,0" />
+      </Grid>
+    </Border>
+
+    <!-- Pannello filtri -->
+    <Expander DockPanel.Dock="Top" Header="{DynamicResource Str.RemoteBrowser.Filters}" Margin="20,0"
+              IsVisible="{Binding IsConnected}">
+      <StackPanel Spacing="8" Margin="0,8">
+        <Grid ColumnDefinitions="*,110,110">
+          <TextBox Grid.Column="0" Text="{Binding FilterPattern}"
+                   Watermark="{DynamicResource Str.RemoteBrowser.NamePatternWatermark}" />
+          <TextBox Grid.Column="1" Text="{Binding FilterMinSizeKb}" Watermark="{DynamicResource Str.RemoteBrowser.MinKbWatermark}" Margin="10,0,0,0" />
+          <TextBox Grid.Column="2" Text="{Binding FilterMaxSizeKb}" Watermark="{DynamicResource Str.RemoteBrowser.MaxKbWatermark}" Margin="10,0,0,0" />
+        </Grid>
+        <Grid ColumnDefinitions="Auto,*,Auto,*">
+          <TextBlock Grid.Column="0" Text="{DynamicResource Str.RemoteBrowser.ModifiedAfter}" VerticalAlignment="Center"
+                     Foreground="{DynamicResource Brush.TextMuted}" />
+          <DatePicker Grid.Column="1" SelectedDate="{Binding FilterModifiedAfter}" Margin="10,0,0,0" />
+          <TextBlock Grid.Column="2" Text="{DynamicResource Str.RemoteBrowser.Before}" VerticalAlignment="Center" Margin="10,0,0,0"
+                     Foreground="{DynamicResource Brush.TextMuted}" />
+          <DatePicker Grid.Column="3" SelectedDate="{Binding FilterModifiedBefore}" Margin="10,0,0,0" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <CheckBox Content="{DynamicResource Str.RemoteBrowser.OnlyMissingLocally}" IsChecked="{Binding OnlyMissing}" />
+          <CheckBox Content="{DynamicResource Str.RemoteBrowser.IncludeSubfolders}" IsChecked="{Binding IncludeSubfolders}" />
+          <CheckBox Content="{DynamicResource Str.RemoteBrowser.AlwaysOverwrite}" IsChecked="{Binding OverwriteAlways}" />
+        </StackPanel>
+      </StackPanel>
+    </Expander>
+
+    <!-- Barra download (in basso) -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.Card}" Padding="20,10"
+            IsVisible="{Binding IsConnected}">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <i:Icon Grid.Column="0" Value="fa-solid fa-folder" VerticalAlignment="Center"
+                  Foreground="{DynamicResource Brush.TextMuted}" />
+          <TextBox Grid.Column="1" Text="{Binding DestinationFolder}" IsReadOnly="True" Margin="8,0,0,0"
+                   Watermark="{DynamicResource Str.RemoteBrowser.DestinationFolderWatermark}" />
+          <Button Grid.Column="2" Classes="iconbtn" i:Attached.Icon="fa-solid fa-magnifying-glass"
+                  Click="OnBrowseDestinationClick" ToolTip.Tip="{DynamicResource Str.RemoteBrowser.ChooseDestinationTooltip}" Margin="8,0,0,0" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <ProgressBar Width="220" Minimum="0" Maximum="1" Value="{Binding DownloadProgressValue}"
+                         IsVisible="{Binding IsDownloading}" />
+            <TextBlock Text="{Binding DownloadStatusText}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextMuted}" />
+            <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextMuted}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{StaticResource NotAny}">
+                  <Binding Path="IsDownloading" />
+                  <Binding Path="IsUploading" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
+          </StackPanel>
+          <Button Grid.Column="1" Classes="primary" Click="OnDownloadSelectedClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-download" />
+              <TextBlock Text="{DynamicResource Str.RemoteBrowser.DownloadSelected}" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="2" Classes="primary" Click="OnDownloadDirectoryClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-folder-tree" />
+              <TextBlock Text="{DynamicResource Str.RemoteBrowser.DownloadDirectory}" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="3" Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="8,0,0,0"
+                  Click="OnCancelDownloadClick" IsEnabled="{Binding IsDownloading}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <ProgressBar Width="220" Minimum="0" Maximum="1" Value="{Binding UploadProgressValue}"
+                         IsVisible="{Binding IsUploading}" />
+            <TextBlock Text="{Binding UploadStatusText}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextMuted}" />
+          </StackPanel>
+          <CheckBox Grid.Column="1" Content="{DynamicResource Str.RemoteBrowser.AlwaysOverwrite}" IsChecked="{Binding UploadOverwriteAlways}"
+                     VerticalAlignment="Center" Margin="8,0,0,0" />
+          <Button Grid.Column="2" Classes="primary" Click="OnUploadFilesClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsBusy" />
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-upload" />
+              <TextBlock Text="{DynamicResource Str.RemoteBrowser.UploadFiles}" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="3" Classes="primary" Click="OnUploadFolderClick" Margin="8,0,0,0">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{StaticResource NotAny}">
+                <Binding Path="IsBusy" />
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-folder-plus" />
+              <TextBlock Text="{DynamicResource Str.RemoteBrowser.UploadFolder}" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="4" Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="8,0,0,0"
+                  Click="OnCancelUploadClick" IsEnabled="{Binding IsUploading}" />
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- Lista file -->
+    <Panel Background="{DynamicResource Brush.Surface}">
+      <StackPanel IsVisible="{Binding !IsConnected}" VerticalAlignment="Center"
+                  HorizontalAlignment="Center" Spacing="12">
+        <i:Icon Value="fa-solid fa-server" FontSize="52"
+                Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
+        <TextBlock Text="{DynamicResource Str.RemoteBrowser.NoActiveConnection}"
+                   FontSize="16" Foreground="{DynamicResource Brush.TextMuted}"
+                   HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <ProgressBar IsIndeterminate="True" VerticalAlignment="Top"
+                   IsVisible="{Binding IsBusy}" />
+
+      <DataGrid x:Name="RemoteGrid"
+                ItemsSource="{Binding VisibleItems}"
+                SelectionMode="Extended"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                IsVisible="{Binding IsConnected}"
+                DoubleTapped="OnGridDoubleTapped"
+                Margin="20,4">
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Width="44">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <i:Icon Value="fa-solid fa-folder" IsVisible="{Binding IsDirectory}"
+                          Foreground="{DynamicResource Brush.WarningFg}" />
+                  <i:Icon Value="fa-regular fa-file" IsVisible="{Binding !IsDirectory}"
+                          Foreground="{DynamicResource Brush.TextMuted}" />
+                </Panel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="{DynamicResource Str.Common.Name}" Binding="{Binding Name}" Width="*" />
+          <DataGridTextColumn Header="{DynamicResource Str.Common.Size}" Binding="{Binding SizeDisplay}" Width="110" />
+          <DataGridTextColumn Header="{DynamicResource Str.RemoteBrowser.ColModified}" Binding="{Binding ModifiedDisplay}" Width="150" />
+          <DataGridTemplateColumn Header="{DynamicResource Str.RemoteBrowser.ColOnDisk}" Width="120">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Center"
+                        IsVisible="{Binding LocalStatus, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Classes.success="{Binding LocalStatus, Converter={StaticResource EnumEquals}, ConverterParameter=Present}"
+                        Classes.warning="{Binding LocalStatus, Converter={StaticResource EnumEquals}, ConverterParameter=Different}"
+                        Classes.error="{Binding LocalStatus, Converter={StaticResource EnumEquals}, ConverterParameter=Missing}">
+                  <TextBlock Text="{Binding LocalStatus, Converter={StaticResource LocalFileStatusText}}" />
+                </Border>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Panel>
+
+  </DockPanel>
+</UserControl>

@@ -5,10 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project
 
 Avalonia UI (.NET 8, MVVM/ReactiveUI) desktop app — a dual-pane file explorer/comparator. Two projects:
-- `FileExplorer/` — core project (`Models/`, `Services/`, `ViewModels/`, `Views/`, `Converters/`, `Styles/`)
-- `FileExplorer.Desktop/` — desktop entry point (`WinExe`)
+- `Sbroglione/` — core project (`Models/`, `Services/`, `ViewModels/`, `Views/`, `Converters/`, `Styles/`)
+- `Sbroglione.Desktop/` — desktop entry point (`WinExe`)
 
-`FileExplorer.sln` lives at repo root (not inside `FileExplorer/`).
+`Sbroglione.sln` lives at repo root (not inside `Sbroglione/`).
 
 Layering: `Views` (axaml + code-behind) → `ViewModels` (ReactiveUI) → `Services` (static: file system queries, copy, checksum) → `Models` (plain data). Tab views (`CopyPairsView`, `FileBrowserView`) create their own ViewModel in the constructor; `MainWindow` receives `MainWindowViewModel` from `App.OnFrameworkInitializationCompleted`, and `SelectPathDialog` receives a parameterized `SelectPathDialogViewModel` from its caller. There is no DI container.
 
@@ -21,11 +21,11 @@ Temi custom: `ThemeService` registra un ResourceDictionary per-tema come `ThemeV
 ## Build & run
 
 ```
-dotnet build FileExplorer.sln
-dotnet run --project FileExplorer.Desktop
+dotnet build Sbroglione.sln
+dotnet run --project Sbroglione.Desktop
 ```
 
-Tests: `FileExplorer.Tests` (xunit) — run with `dotnet test`. No CI. `.editorconfig` defines code style; `dotnet format whitespace` runs automatically on edited `.cs`/`.axaml` files via a PostToolUse hook.
+Tests: `Sbroglione.Tests` (xunit) — run with `dotnet test`. No CI. `.editorconfig` defines code style; `dotnet format whitespace` runs automatically on edited `.cs`/`.axaml` files via a PostToolUse hook.
 
 ## Workflow
 

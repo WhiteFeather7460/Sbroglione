@@ -1,0 +1,90 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
+        xmlns:views="clr-namespace:Sbroglione.Views"
+        xmlns:vm="clr-namespace:Sbroglione.ViewModels"
+        x:Class="Sbroglione.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="File Explorer"
+        Width="900" Height="640"
+        MinWidth="640" MinHeight="480"
+        Background="{DynamicResource Brush.Surface}">
+
+  <Grid RowDefinitions="*,Auto">
+    <TabControl Grid.Row="0" Classes="nav" Padding="0" TabStripPlacement="Left">
+      <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Copy}">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-copy" />
+            <TextBlock Text="{DynamicResource Str.Nav.Copy}" IsVisible="{Binding IsNavExpanded}" />
+          </StackPanel>
+        </TabItem.Header>
+        <views:CopyPairsView />
+      </TabItem>
+      <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Remote}">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-server" />
+            <TextBlock Text="{DynamicResource Str.Nav.Remote}" IsVisible="{Binding IsNavExpanded}" />
+          </StackPanel>
+        </TabItem.Header>
+        <views:RemoteBrowserView />
+      </TabItem>
+      <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Compare}">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-code-compare" />
+            <TextBlock Text="{DynamicResource Str.Nav.Compare}" IsVisible="{Binding IsNavExpanded}" />
+          </StackPanel>
+        </TabItem.Header>
+        <views:ComparisonView />
+      </TabItem>
+      <TabItem ToolTip.Tip="{DynamicResource Str.Nav.WatchSync}">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-rotate" />
+            <TextBlock Text="{DynamicResource Str.Nav.WatchSync}" IsVisible="{Binding IsNavExpanded}" />
+          </StackPanel>
+        </TabItem.Header>
+        <views:WatchFoldersView />
+      </TabItem>
+      <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Duplicates}">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-clone" />
+            <TextBlock Text="{DynamicResource Str.Nav.Duplicates}" IsVisible="{Binding IsNavExpanded}" />
+          </StackPanel>
+        </TabItem.Header>
+        <views:DuplicatesView />
+      </TabItem>
+      <TabItem ToolTip.Tip="{DynamicResource Str.Nav.DiskUsage}">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-chart-pie" />
+            <TextBlock Text="{DynamicResource Str.Nav.DiskUsage}" IsVisible="{Binding IsNavExpanded}" />
+          </StackPanel>
+        </TabItem.Header>
+        <views:DiskUsageView />
+      </TabItem>
+      <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Settings}">
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-gear" />
+            <TextBlock Text="{DynamicResource Str.Nav.Settings}" IsVisible="{Binding IsNavExpanded}" />
+          </StackPanel>
+        </TabItem.Header>
+        <views:SettingsView />
+      </TabItem>
+    </TabControl>
+
+    <Button Grid.Row="1"
+            Classes="iconbtn"
+            Margin="8 0 0 8"
+            HorizontalAlignment="Left"
+            ToolTip.Tip="{DynamicResource Str.Nav.ToggleMenu}"
+            Command="{Binding ToggleNavCommand}">
+      <i:Icon Value="fa-solid fa-bars" />
+    </Button>
+  </Grid>
+
+</Window>

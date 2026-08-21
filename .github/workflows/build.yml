@@ -23,41 +23,41 @@ jobs:
 
       - name: Publish Windows (.exe)
         run: >
-          dotnet publish FileExplorer.Desktop -c Release -r win-x64
+          dotnet publish Sbroglione.Desktop -c Release -r win-x64
           --self-contained -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
 
       - name: Publish Linux (self-contained)
         run: >
-          dotnet publish FileExplorer.Desktop -c Release -r linux-x64
+          dotnet publish Sbroglione.Desktop -c Release -r linux-x64
           --self-contained -p:PublishTrimmed=true
 
       - name: Build AppImage
         run: |
           set -euo pipefail
-          APPDIR="FileExplorer.AppDir"
+          APPDIR="Sbroglione.AppDir"
           mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/pixmaps"
 
-          cp -r FileExplorer.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
-          chmod +x "$APPDIR/usr/bin/FileExplorer.Desktop"
+          cp -r Sbroglione.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
+          chmod +x "$APPDIR/usr/bin/Sbroglione.Desktop"
 
-          convert FileExplorer/Assets/avalonia-logo.ico -resize 256x256 "$APPDIR/usr/share/pixmaps/FileExplorer.png"
-          cp "$APPDIR/usr/share/pixmaps/FileExplorer.png" "$APPDIR/FileExplorer.png"
+          convert Sbroglione/Assets/avalonia-logo.ico -resize 256x256 "$APPDIR/usr/share/pixmaps/Sbroglione.png"
+          cp "$APPDIR/usr/share/pixmaps/Sbroglione.png" "$APPDIR/Sbroglione.png"
 
           {
           echo "[Desktop Entry]"
           echo "Type=Application"
-          echo "Name=FileExplorer"
-          echo "Exec=FileExplorer.Desktop"
-          echo "Icon=FileExplorer"
+          echo "Name=Sbroglione"
+          echo "Exec=Sbroglione.Desktop"
+          echo "Icon=Sbroglione"
           echo "Categories=Utility;"
-          } > "$APPDIR/usr/share/applications/FileExplorer.desktop"
-          cp "$APPDIR/usr/share/applications/FileExplorer.desktop" "$APPDIR/FileExplorer.desktop"
+          } > "$APPDIR/usr/share/applications/Sbroglione.desktop"
+          cp "$APPDIR/usr/share/applications/Sbroglione.desktop" "$APPDIR/Sbroglione.desktop"
 
           {
           echo '#!/bin/sh'
           echo 'HERE="$(dirname "$(readlink -f "$0")")"'
-          echo 'exec "$HERE/usr/bin/FileExplorer.Desktop" "$@"'
+          echo 'exec "$HERE/usr/bin/Sbroglione.Desktop" "$@"'
           } > "$APPDIR/AppRun"
           chmod +x "$APPDIR/AppRun"
 
@@ -68,24 +68,24 @@ jobs:
           # update the digest below after verifying the new build out-of-band.
           echo "b90f4a8b18967545fda78a445b27680a1642f1ef9488ced28b65398f2be7add2  appimagetool" | sha256sum -c -
           chmod +x appimagetool
-          ./appimagetool --appimage-extract-and-run "$APPDIR" FileExplorer-x86_64.AppImage
+          ./appimagetool --appimage-extract-and-run "$APPDIR" Sbroglione-x86_64.AppImage
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: FileExplorer-windows-x64
-          path: FileExplorer.Desktop/bin/Release/net10.0/win-x64/publish/FileExplorer.Desktop.exe
+          name: Sbroglione-windows-x64
+          path: Sbroglione.Desktop/bin/Release/net10.0/win-x64/publish/Sbroglione.Desktop.exe
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: FileExplorer-linux-x64
-          path: FileExplorer-x86_64.AppImage
+          name: Sbroglione-linux-x64
+          path: Sbroglione-x86_64.AppImage
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
-            FileExplorer.Desktop/bin/Release/net10.0/win-x64/publish/FileExplorer.Desktop.exe
-            FileExplorer-x86_64.AppImage
+            Sbroglione.Desktop/bin/Release/net10.0/win-x64/publish/Sbroglione.Desktop.exe
+            Sbroglione-x86_64.AppImage

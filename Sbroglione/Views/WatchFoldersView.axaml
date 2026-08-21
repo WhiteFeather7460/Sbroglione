@@ -1,0 +1,122 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             x:Class="Sbroglione.Views.WatchFoldersView">
+
+  <DockPanel>
+
+    <!-- Header piatto -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <i:Icon Value="fa-solid fa-rotate" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
+          <TextBlock Text="{DynamicResource Str.Nav.WatchSync}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="primary" Command="{Binding AddRuleCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-plus" />
+            <TextBlock Text="{DynamicResource Str.WatchFolders.AddRule}" />
+          </StackPanel>
+        </Button>
+      </Grid>
+    </Border>
+
+    <Panel Background="{DynamicResource Brush.Surface}">
+
+      <!-- Empty state -->
+      <StackPanel IsVisible="{Binding !HasRules}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+        <i:Icon Value="fa-solid fa-rotate" FontSize="52" Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
+        <TextBlock Text="{DynamicResource Str.WatchFolders.EmptyTitle}"
+                   FontSize="16"
+                   Foreground="{DynamicResource Brush.TextMuted}"
+                   HorizontalAlignment="Center" />
+        <Button Classes="primary" Command="{Binding AddRuleCommand}" HorizontalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="fa-solid fa-plus" />
+            <TextBlock Text="{DynamicResource Str.WatchFolders.AddFirstRule}" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <!-- Lista card -->
+      <ScrollViewer IsVisible="{Binding HasRules}">
+        <ItemsControl ItemsSource="{Binding Rules}" Margin="20,12">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="card" Classes.progress="{Binding Enabled}">
+                <StackPanel Spacing="8">
+
+                  <!-- Sorgente -->
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <i:Icon Grid.Column="0" Value="fa-regular fa-folder-open" Width="26"
+                            Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="1" Text="{Binding SourcePath}" IsReadOnly="True"
+                             Watermark="{DynamicResource Str.WatchFolders.SourceWatermark}" Margin="8,0" />
+                    <Button Grid.Column="2" Classes="iconbtn"
+                            i:Attached.Icon="fa-solid fa-magnifying-glass"
+                            Command="{Binding DataContext.BrowseSourceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+
+                  <!-- Destinazione -->
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <i:Icon Grid.Column="0" Value="fa-solid fa-folder" Width="26"
+                            Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="1" Text="{Binding DestinationPath}" IsReadOnly="True"
+                             Watermark="{DynamicResource Str.CopyPairs.DestinationWatermark}" Margin="8,0" />
+                    <Button Grid.Column="2" Classes="iconbtn"
+                            i:Attached.Icon="fa-solid fa-magnifying-glass"
+                            Command="{Binding DataContext.BrowseDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+
+                  <!-- Modalità + attivazione -->
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                      <RadioButton Content="{DynamicResource Str.WatchFolders.OnChange}" IsChecked="{Binding IsOnChange}" />
+                      <RadioButton Content="{DynamicResource Str.WatchFolders.Every}" IsChecked="{Binding IsInterval}" />
+                      <NumericUpDown Width="120" Minimum="1" Maximum="1440" Increment="5"
+                                     Value="{Binding IntervalMinutes}" IsEnabled="{Binding IsInterval}" />
+                      <TextBlock Text="{DynamicResource Str.WatchFolders.Minutes}" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource Brush.TextMuted}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <TextBlock Text="{DynamicResource Str.WatchFolders.Active}" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource Brush.TextPrimary}" />
+                      <ToggleSwitch IsChecked="{Binding Enabled}" />
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- Stato + comandi -->
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                      <Border Classes="badge">
+                        <TextBlock Text="{Binding StatusText}" />
+                      </Border>
+                      <TextBlock Text="{Binding LastRunText}" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                      <Button Classes="secondary" Content="{DynamicResource Str.WatchFolders.RunNow}"
+                              Command="{Binding DataContext.RunNowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}" />
+                      <Button Classes="iconbtn"
+                              i:Attached.Icon="fa-solid fa-trash"
+                              ToolTip.Tip="{DynamicResource Str.WatchFolders.RemoveRuleTooltip}"
+                              Command="{Binding DataContext.RemoveRuleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}" />
+                    </StackPanel>
+                  </Grid>
+
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+    </Panel>
+  </DockPanel>
+
+</UserControl>

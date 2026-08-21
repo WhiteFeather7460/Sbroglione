@@ -1,0 +1,60 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Sbroglione.ViewModels"
+        x:Class="Sbroglione.Views.ThemeEditorWindow"
+        x:DataType="vm:ThemeEditorViewModel"
+        Title="{DynamicResource Str.ThemeEditor.Title}"
+        Width="560" Height="680"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Brush.Surface}">
+
+  <DockPanel Margin="16">
+
+    <StackPanel DockPanel.Dock="Top" Spacing="10">
+      <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+        <TextBlock Grid.Column="0" Text="{DynamicResource Str.Common.Name}" VerticalAlignment="Center" Margin="0,0,10,0"
+                   Foreground="{DynamicResource Brush.TextPrimary}" />
+        <TextBox Grid.Column="1" Text="{Binding Name}" />
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" Text="{DynamicResource Str.ThemeEditor.DarkBaseLabel}"
+                   VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+        <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsDarkBase}" />
+      </Grid>
+    </StackPanel>
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                Spacing="10" Margin="0,12,0,0">
+      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Click="OnCancelClick" />
+      <Button Classes="primary" Content="{DynamicResource Str.Common.Save}" Click="OnSaveClick" />
+    </StackPanel>
+
+    <ScrollViewer Margin="0,12,0,0">
+      <ItemsControl ItemsSource="{Binding Groups}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ThemeColorGroupViewModel">
+            <Border Classes="card" Margin="0,0,0,10">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.TextPrimary}" />
+                <ItemsControl ItemsSource="{Binding Entries}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ThemeColorEntryViewModel">
+                      <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                        <TextBlock Grid.Column="0" Text="{Binding Label}" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Brush.TextPrimary}" />
+                        <ColorPicker Grid.Column="1" Width="130" Color="{Binding Color}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+  </DockPanel>
+
+</Window>

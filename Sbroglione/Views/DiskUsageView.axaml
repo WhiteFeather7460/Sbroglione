@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:views="clr-namespace:Sbroglione.Views"
+             x:Class="Sbroglione.Views.DiskUsageView">
+
+  <DockPanel>
+
+    <!-- Header piatto -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <i:Icon Value="fa-solid fa-chart-pie" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock Text="{DynamicResource Str.Nav.DiskUsage}" FontSize="18" FontWeight="Bold"
+                   Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <!-- Barra comandi -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,12">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+        <Button Grid.Column="0" Classes="iconbtn" Margin="0,0,8,0"
+                i:Attached.Icon="fa-solid fa-arrow-up"
+                Command="{Binding NavigateUpCommand}"
+                IsEnabled="{Binding CanNavigateUp}" />
+        <TextBox Grid.Column="1" Text="{Binding RootPath}" IsReadOnly="True"
+                 Watermark="{DynamicResource Str.Common.AnalyzeFolderWatermark}" />
+        <Button Grid.Column="2" Classes="iconbtn" Margin="8,0,0,0"
+                i:Attached.Icon="fa-solid fa-magnifying-glass"
+                Command="{Binding BrowseRootCommand}" />
+        <Button Grid.Column="3" Classes="primary" Content="{DynamicResource Str.Common.Analyze}" Margin="8,0,0,0"
+                Command="{Binding ScanCommand}" IsEnabled="{Binding !IsScanning}" />
+        <Button Grid.Column="4" Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="8,0,0,0"
+                Command="{Binding CancelScanCommand}" IsEnabled="{Binding IsScanning}" />
+      </Grid>
+    </Border>
+
+    <!-- Selettore vista -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,0,20,8">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-chart-pie"
+                ToolTip.Tip="{DynamicResource Str.DiskUsage.ViewTreemap}"
+                Command="{Binding ShowTreemapCommand}"
+                IsEnabled="{Binding IsListView}" />
+        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-list"
+                ToolTip.Tip="{DynamicResource Str.DiskUsage.ViewList}"
+                Command="{Binding ShowListViewCommand}"
+                IsEnabled="{Binding !IsListView}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Stato e percorso corrente -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,0,20,8">
+      <StackPanel Spacing="2">
+        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource Brush.TextMuted}" />
+        <TextBlock Text="{Binding CurrentPathText}" FontSize="11"
+                   Foreground="{DynamicResource Brush.TextMuted}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Treemap / lista gerarchica -->
+    <Border Background="{DynamicResource Brush.Surface}" Padding="20,0,20,20">
+      <Grid>
+        <views:TreemapControl x:Name="Treemap" Node="{Binding CurrentNode}" IsVisible="{Binding !IsListView}" />
+        <views:HierarchyListControl x:Name="HierarchyList" Node="{Binding CurrentNode}" IsVisible="{Binding IsListView}" />
+      </Grid>
+    </Border>
+  </DockPanel>
+
+</UserControl>

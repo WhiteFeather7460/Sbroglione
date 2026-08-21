@@ -1,4 +1,4 @@
-# FileExplorer
+# Sbroglione
 
 Applicazione desktop multipiattaforma (Avalonia UI, .NET 10) per esplorare, confrontare e sincronizzare cartelle. Nata come file explorer a doppio pannello, include copia massiva con verifica checksum, confronto directory, sincronizzazione automatica, ricerca duplicati, analisi dello spazio disco e accesso a server remoti FTP/SFTP.
 
@@ -22,13 +22,13 @@ L'interfaccia è organizzata in schede:
 ## Compilazione
 
 ```bash
-dotnet build FileExplorer.sln
+dotnet build Sbroglione.sln
 ```
 
 ## Avvio
 
 ```bash
-dotnet run --project FileExplorer.Desktop
+dotnet run --project Sbroglione.Desktop
 ```
 
 ## Test
@@ -37,7 +37,7 @@ dotnet run --project FileExplorer.Desktop
 dotnet test
 ```
 
-I test (xunit) vivono in `FileExplorer.Tests`.
+I test (xunit) vivono in `Sbroglione.Tests`.
 
 ## Build distribuibile
 
@@ -45,14 +45,14 @@ I test (xunit) vivono in `FileExplorer.Tests`.
 
 Self-contained executable (include .NET runtime):
 ```bash
-dotnet publish FileExplorer.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish Sbroglione.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
-Output: `FileExplorer.Desktop/bin/Release/net10.0/win-x64/publish/FileExplorer.Desktop.exe`
+Output: `Sbroglione.Desktop/bin/Release/net10.0/win-x64/publish/Sbroglione.Desktop.exe`
 
 Framework-dependent (richiede .NET Runtime installato):
 ```bash
-dotnet publish FileExplorer.Desktop -c Release -r win-x64 -p:PublishSingleFile=true
+dotnet publish Sbroglione.Desktop -c Release -r win-x64 -p:PublishSingleFile=true
 ```
 
 ### Linux (.AppImage)
@@ -61,36 +61,36 @@ Prerequisiti: `appimagetool` installato e `wget`/`curl`.
 
 ```bash
 # 1. Pubblica per Linux
-dotnet publish FileExplorer.Desktop -c Release -r linux-x64 --self-contained -p:PublishTrimmed=true
+dotnet publish Sbroglione.Desktop -c Release -r linux-x64 --self-contained -p:PublishTrimmed=true
 
 # 2. Prepara la struttura AppImage
-APPDIR="FileExplorer.AppDir"
+APPDIR="Sbroglione.AppDir"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/pixmaps"
 
 # 3. Copia l'eseguibile
-cp -r FileExplorer.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
+cp -r Sbroglione.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
 
 # 4. Crea il desktop entry
-cat > "$APPDIR/usr/share/applications/FileExplorer.desktop" <<EOF
+cat > "$APPDIR/usr/share/applications/Sbroglione.desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=FileExplorer
-Exec=FileExplorer.Desktop
-Icon=FileExplorer
+Name=Sbroglione
+Exec=Sbroglione.Desktop
+Icon=Sbroglione
 Categories=Utility;
 EOF
 
 # 5. Crea l'AppImage
-appimagetool "$APPDIR" "FileExplorer-x86_64.AppImage"
-chmod +x FileExplorer-x86_64.AppImage
+appimagetool "$APPDIR" "Sbroglione-x86_64.AppImage"
+chmod +x Sbroglione-x86_64.AppImage
 ```
 
-Output: `FileExplorer-x86_64.AppImage` (portable, eseguibile direttamente)
+Output: `Sbroglione-x86_64.AppImage` (portable, eseguibile direttamente)
 
 ### macOS (.app)
 
 ```bash
-dotnet publish FileExplorer.Desktop -c Release -r osx-x64 --self-contained -p:PublishTrimmed=true
+dotnet publish Sbroglione.Desktop -c Release -r osx-x64 --self-contained -p:PublishTrimmed=true
 ```
 
 Avvolgi l'output in un bundle `.app` usando lo script ufficiale Avalonia (vedi docs).
@@ -98,16 +98,16 @@ Avvolgi l'output in un bundle `.app` usando lo script ufficiale Avalonia (vedi d
 ## Struttura del progetto
 
 ```
-FileExplorer.sln            Soluzione (a livello di root del repo)
-FileExplorer/               Progetto core
+Sbroglione.sln            Soluzione (a livello di root del repo)
+Sbroglione/               Progetto core
   Models/                   Dati semplici (WatchRule, profili, ecc.)
   Services/                 Logica: file system, copia, checksum, FTP/SFTP, temi, watch folder
   ViewModels/               ReactiveUI (un ViewModel per vista)
   Views/                    XAML Avalonia + code-behind
   Converters/               Value converter per il binding
   Styles/                   Palette.axaml (brush a tema) e Controls.axaml (stili per classe)
-FileExplorer.Desktop/       Entry point desktop (WinExe)
-FileExplorer.Tests/         Test xunit
+Sbroglione.Desktop/       Entry point desktop (WinExe)
+Sbroglione.Tests/         Test xunit
 ```
 
 Architettura a livelli: `Views` → `ViewModels` → `Services` (statici) → `Models`. Nessun container DI: le viste dei tab creano il proprio ViewModel nel costruttore.

@@ -1,0 +1,126 @@
+<!-- Sbroglione/Views/SettingsView.axaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:m="using:Sbroglione.Models"
+             x:Class="Sbroglione.Views.SettingsView">
+
+  <DockPanel>
+
+    <!-- Header piatto -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <i:Icon Value="fa-solid fa-gear" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock Text="{DynamicResource Str.Nav.Settings}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Background="{DynamicResource Brush.Surface}">
+      <StackPanel Margin="20" MaxWidth="560" HorizontalAlignment="Left">
+
+        <Border Classes="card">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Str.Nav.Copy}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.AutoParallelism}"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoParallelism}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding !AutoParallelism}">
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.ManualThreads}"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <NumericUpDown Grid.Column="1" Width="120" Minimum="1" Maximum="32" Increment="1"
+                             Value="{Binding ManualParallelism}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.BufferSize}"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <NumericUpDown Grid.Column="1" Width="140" Minimum="256" Maximum="16384" Increment="256"
+                             Value="{Binding BufferSizeKb}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.VerifyChecksum}"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding VerifyChecksumAfterCopy}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.CopyPairs.ThrottleTooltip}"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding ThrottleEnabled}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding ThrottleEnabled}">
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.BandwidthLimit}"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <NumericUpDown Grid.Column="1" Width="140" Minimum="1" Maximum="1000" Increment="5"
+                             Value="{Binding ThrottleMBps}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Str.Settings.Language}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <RadioButton GroupName="Language" Content="{DynamicResource Str.Settings.LanguageItalian}" IsChecked="{Binding IsLanguageItalian}" />
+              <RadioButton GroupName="Language" Content="{DynamicResource Str.Settings.LanguageEnglish}" IsChecked="{Binding IsLanguageEnglish}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Str.Settings.Appearance}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <RadioButton GroupName="Theme" Content="{DynamicResource Str.Settings.ThemeSystem}" IsChecked="{Binding IsThemeDefault}" />
+              <RadioButton GroupName="Theme" Content="{DynamicResource Str.Settings.ThemeLight}" IsChecked="{Binding IsThemeLight}" />
+              <RadioButton GroupName="Theme" Content="{DynamicResource Str.Settings.ThemeDark}" IsChecked="{Binding IsThemeDark}" />
+            </StackPanel>
+
+            <TextBlock Text="{DynamicResource Str.Settings.CustomThemes}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <ItemsControl ItemsSource="{Binding CustomThemes}" IsVisible="{Binding HasCustomThemes}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="m:ColorTheme">
+                  <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,2">
+                    <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextPrimary}" />
+                    <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-check"
+                            ToolTip.Tip="{DynamicResource Str.Settings.ApplyTooltip}" Click="OnApplyThemeClick" />
+                    <Button Grid.Column="2" Classes="iconbtn" i:Attached.Icon="fa-solid fa-pen"
+                            ToolTip.Tip="{DynamicResource Str.Settings.EditTooltip}" Click="OnEditThemeClick" />
+                    <Button Grid.Column="3" Classes="iconbtn" i:Attached.Icon="fa-solid fa-file-export"
+                            ToolTip.Tip="{DynamicResource Str.Settings.ExportTooltip}" Click="OnExportThemeClick" />
+                    <Button Grid.Column="4" Classes="iconbtn" i:Attached.Icon="fa-solid fa-trash"
+                            ToolTip.Tip="{DynamicResource Str.Common.Delete}" Click="OnDeleteThemeClick" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="{DynamicResource Str.Settings.NoCustomThemes}"
+                       IsVisible="{Binding !HasCustomThemes}"
+                       Foreground="{DynamicResource Brush.TextMuted}" TextWrapping="Wrap" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="secondary" Content="{DynamicResource Str.Settings.NewFromLight}" Click="OnNewFromLightClick" />
+              <Button Classes="secondary" Content="{DynamicResource Str.Settings.NewFromDark}" Click="OnNewFromDarkClick" />
+              <Button Classes="secondary" Content="{DynamicResource Str.Settings.Import}" Click="OnImportThemeClick" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </DockPanel>
+
+</UserControl>
