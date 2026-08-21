@@ -5,7 +5,7 @@
         xmlns:vm="clr-namespace:Sbroglione.ViewModels"
         x:Class="Sbroglione.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="File Explorer"
+        Title="Sbroglione"
         Width="900" Height="640"
         MinWidth="640" MinHeight="480"
         Background="{DynamicResource Brush.Surface}">
