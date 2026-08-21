@@ -121,4 +121,40 @@ public sealed class DiskTypeServiceTests
         var result = await DiskTypeService.GetDiskTypeAsync(Path.GetTempPath(), CancellationToken.None);
         Assert.True(Enum.IsDefined(typeof(DiskType), result));
     }
+
+    [Fact]
+    public void TryGetFreshCached_FreshEntry_ReturnsTypeWithoutEvicting()
+    {
+        string key = "fresh-" + Guid.NewGuid();
+        DiskTypeService.SeedCacheForTest(key, DiskType.Ssd, DateTime.UtcNow);
+
+        bool hit = DiskTypeService.TryGetFreshCached(key, out DiskType type);
+
+        Assert.True(hit);
+        Assert.Equal(DiskType.Ssd, type);
+        Assert.True(DiskTypeService.CacheContainsKeyForTest(key));
+    }
+
+    [Fact]
+    public void TryGetFreshCached_ExpiredEntry_EvictsFromCacheAndReturnsFalse()
+    {
+        string key = "expired-" + Guid.NewGuid();
+        // Oltre il TTL (5 minuti): entry già scaduta al momento del lookup.
+        DiskTypeService.SeedCacheForTest(key, DiskType.Hdd, DateTime.UtcNow - TimeSpan.FromMinutes(10));
+
+        bool hit = DiskTypeService.TryGetFreshCached(key, out _);
+
+        Assert.False(hit);
+        Assert.False(DiskTypeService.CacheContainsKeyForTest(key)); // rimossa dal dizionario, non solo ignorata
+    }
+
+    [Fact]
+    public void TryGetFreshCached_MissingEntry_ReturnsFalse()
+    {
+        string key = "missing-" + Guid.NewGuid();
+
+        bool hit = DiskTypeService.TryGetFreshCached(key, out _);
+
+        Assert.False(hit);
+    }
 }

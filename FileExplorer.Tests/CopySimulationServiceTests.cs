@@ -49,6 +49,30 @@ public sealed class CopySimulationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SimulateAsync_DuplicateDestinationRoots_DoesNotThrow_CountsOverwritesPerPosition()
+    {
+        // AddExtraDestinationAsync propone come default lo stesso DestinationPath e non deduplica:
+        // destinationRoots può contenere la stessa radice due volte. Un Dictionary<string,int>
+        // indicizzato sul path lancerebbe ArgumentException("chiave duplicata"); la simulazione
+        // deve invece tollerarlo come fa la copia reale, contando gli overwrite per posizione.
+        string source = Path.Combine(_tempDir, "src-dup");
+        string destination = Path.Combine(_tempDir, "dst-dup");
+        Directory.CreateDirectory(source);
+        Directory.CreateDirectory(destination);
+        await File.WriteAllBytesAsync(Path.Combine(source, "a.bin"), new byte[10]);
+        // "a.bin" esiste già in destinazione: è una sovrascrittura, su entrambe le posizioni.
+        await File.WriteAllBytesAsync(Path.Combine(destination, "a.bin"), new byte[5]);
+
+        string[] destinations = { destination, destination };
+        var result = await CopySimulationService.SimulateAsync(
+            source, destinations, skipUnchanged: false, CancellationToken.None);
+
+        Assert.Equal(1, result.TotalFiles);
+        Assert.Equal(2, result.Destinations.Count);
+        Assert.All(result.Destinations, d => Assert.Equal(1, d.OverwriteCount));
+    }
+
+    [Fact]
     public async Task SimulateAsync_SkipUnchanged_CountsUnchangedAsSkipped()
     {
         string source = Path.Combine(_tempDir, "src2");

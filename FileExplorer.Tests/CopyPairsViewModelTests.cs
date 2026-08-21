@@ -24,10 +24,13 @@ public sealed class CopyPairsViewModelTests : IDisposable
         CopyJournalStore.CurrentPath = Path.Combine(_root, "copy-journal.json");
         _originalProfilesPath = CopyProfileStore.CurrentPath;
         CopyProfileStore.CurrentPath = Path.Combine(_root, "copy-profiles.json");
+        // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
+        UiDispatch.Override = action => action();
     }
 
     public void Dispose()
     {
+        UiDispatch.Override = null;
         AppSettingsStore.Current = _originalCurrent;
         AppSettingsStore.CurrentPath = _originalCurrentPath;
         CopyJournalStore.CurrentPath = _originalJournalPath;
@@ -35,6 +38,58 @@ public sealed class CopyPairsViewModelTests : IDisposable
         InputDialogHelper.Override = null;
         ConfirmDialogHelper.Override = null;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
+    }
+
+    /// <summary>
+    /// I callback di avanzamento arrivano da threadpool e in parallelo: il servizio può
+    /// consegnare cumulativi fuori ordine (prima 6, poi 5). Il clamp lato contabilità deve
+    /// scartare quello stantio, così l'avanzamento pubblicato non torna mai indietro.
+    /// </summary>
+    [Fact]
+    public void DirectoryProgress_StaleCumulativeReport_DoesNotRegressProgress()
+    {
+        var pair = new FolderFilePairViewModel();
+        var tracker = new SpeedTracker(() => 0);      // orologio fermo: fuori scopo qui
+        var publisher = new CopyPairsViewModel.DirectoryCopyProgressPublisher(
+            pair, tracker, new UiProgressThrottle(TimeSpan.Zero));   // niente throttle nei test
+
+        publisher.Report(new CopyProgress(CopiedBytes: 6, TotalBytes: 10, TotalFiles: 3));
+        Assert.Equal("Copia cartella… (3 file)", pair.Status);
+        Assert.Equal(0.6, pair.Progress, 3);
+
+        publisher.Report(new CopyProgress(CopiedBytes: 5, TotalBytes: 10, TotalFiles: 3));
+        Assert.Equal(0.6, pair.Progress, 3);          // cumulativo stantio: ignorato
+
+        publisher.Report(new CopyProgress(CopiedBytes: 9, TotalBytes: 10, TotalFiles: 3));
+        Assert.Equal(0.9, pair.Progress, 3);
+        Assert.Equal(3, publisher.KnownFileCount);
+    }
+
+    /// <summary>
+    /// Anche due Post partiti in ordine possono essere eseguiti fuori ordine dal
+    /// dispatcher: il secondo clamp, quello lato UI, deve tenere il massimo.
+    /// </summary>
+    [Fact]
+    public void DirectoryProgress_UiPostsRunOutOfOrder_KeepHighestProgress()
+    {
+        var posted = new List<Action>();
+        UiDispatch.Override = posted.Add;             // marshaling differito, non inline
+
+        var pair = new FolderFilePairViewModel();
+        var tracker = new SpeedTracker(() => 0);
+        var publisher = new CopyPairsViewModel.DirectoryCopyProgressPublisher(
+            pair, tracker, new UiProgressThrottle(TimeSpan.Zero));
+
+        publisher.Report(new CopyProgress(CopiedBytes: 4, TotalBytes: 10, TotalFiles: 2));
+        publisher.Report(new CopyProgress(CopiedBytes: 8, TotalBytes: 10, TotalFiles: 2));
+        Assert.Equal(0, pair.Progress);               // nulla applicato finché i Post non girano
+
+        posted.Reverse();                             // il dispatcher li esegue al contrario
+        foreach (Action action in posted)
+            action();
+
+        Assert.Equal(0.8, pair.Progress, 3);          // mai regredito a 0.4
+        Assert.Equal("Copia cartella… (2 file)", pair.Status);
     }
 
     [Fact]
@@ -298,6 +353,19 @@ public sealed class CopyPairsViewModelTests : IDisposable
 
         Assert.NotNull(viewModel.LastSaveTask);
         await viewModel.LastSaveTask!;
+    }
+
+    [Fact]
+    public void Dispose_UnsubscribesFromThrottleChanged()
+    {
+        var vm = new CopyPairsViewModel();
+        vm.Dispose();
+
+        bool raised = false;
+        vm.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(CopyPairsViewModel.ThrottleEnabled);
+        AppSettingsStore.RaiseThrottleChanged();
+
+        Assert.False(raised);
     }
 
     [Fact]

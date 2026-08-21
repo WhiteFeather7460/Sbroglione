@@ -50,19 +50,23 @@ public static class FileCopyService
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        await using (var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-        await using (var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using (input.ConfigureAwait(false))
         {
-            var buffer = new byte[bufferSize];
-            int read;
-            while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
+            var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await using (output.ConfigureAwait(false))
             {
-                await IoThrottleService.WaitAsync(read, ct);
-                await output.WriteAsync(buffer.AsMemory(0, read), ct);
-                onBytesCopied?.Invoke(read);
-            }
+                var buffer = new byte[bufferSize];
+                int read;
+                while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct).ConfigureAwait(false)) > 0)
+                {
+                    await IoThrottleService.WaitAsync(read, ct).ConfigureAwait(false);
+                    await output.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+                    onBytesCopied?.Invoke(read);
+                }
 
-            await output.FlushAsync(ct);
+                await output.FlushAsync(ct).ConfigureAwait(false);
+            }
         }
 
         // La ripresa (skipUnchanged) confronta dimensione + mtime: il timestamp va preservato.
@@ -84,7 +88,8 @@ public static class FileCopyService
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        await using var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using var inputScope = input.ConfigureAwait(false);
 
         var outputs = new List<FileStream>(destinationPaths.Count);
         try
@@ -94,22 +99,23 @@ public static class FileCopyService
 
             var buffer = new byte[bufferSize];
             int read;
-            while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
+            while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct).ConfigureAwait(false)) > 0)
             {
                 // Limite sulla lettura della sorgente: i byte sono contati una sola volta per
                 // blocco (non per destinazione), coerente con onBytesCopied.
-                await IoThrottleService.WaitAsync(read, ct);
-                await Task.WhenAll(outputs.Select(o => o.WriteAsync(buffer.AsMemory(0, read), ct).AsTask()));
+                await IoThrottleService.WaitAsync(read, ct).ConfigureAwait(false);
+                await Task.WhenAll(outputs.Select(o => o.WriteAsync(buffer.AsMemory(0, read), ct).AsTask()))
+                    .ConfigureAwait(false);
                 onBytesCopied?.Invoke(read);
             }
 
             foreach (var output in outputs)
-                await output.FlushAsync(ct);
+                await output.FlushAsync(ct).ConfigureAwait(false);
         }
         finally
         {
             foreach (var output in outputs)
-                await output.DisposeAsync();
+                await output.DisposeAsync().ConfigureAwait(false);
         }
 
         // La ripresa (skipUnchanged) confronta dimensione + mtime: il timestamp va preservato
@@ -136,8 +142,18 @@ public static class FileCopyService
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration).ToList();
-        long totalBytes = files.Sum(file => new FileInfo(file).Length);
+        (List<string> files, long totalBytes) = await Task.Run(() =>
+        {
+            var list = new List<string>();
+            long total = 0;
+            foreach (string file in Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration))
+            {
+                ct.ThrowIfCancellationRequested();
+                list.Add(file);
+                total += new FileInfo(file).Length;
+            }
+            return (list, total);
+        }, ct).ConfigureAwait(false);
 
         onProgress?.Invoke(new CopyProgress(0, totalBytes, files.Count));
         if (files.Count == 0)
@@ -149,7 +165,7 @@ public static class FileCopyService
         var tasks = files.Select(async sourceFile =>
         {
             ct.ThrowIfCancellationRequested();
-            await semaphore.WaitAsync(ct);
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 string relative = Path.GetRelativePath(sourceRoot, sourceFile);
@@ -168,7 +184,7 @@ public static class FileCopyService
                 {
                     long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
                     onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
-                }, ct, bufferSize);
+                }, ct, bufferSize).ConfigureAwait(false);
             }
             finally
             {
@@ -176,7 +192,7 @@ public static class FileCopyService
             }
         });
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -195,8 +211,18 @@ public static class FileCopyService
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        List<string> files = Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration).ToList();
-        long totalBytes = files.Sum(file => new FileInfo(file).Length);
+        (List<string> files, long totalBytes) = await Task.Run(() =>
+        {
+            var list = new List<string>();
+            long total = 0;
+            foreach (string file in Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration))
+            {
+                ct.ThrowIfCancellationRequested();
+                list.Add(file);
+                total += new FileInfo(file).Length;
+            }
+            return (list, total);
+        }, ct).ConfigureAwait(false);
 
         onProgress?.Invoke(new CopyProgress(0, totalBytes, files.Count));
         if (files.Count == 0)
@@ -208,7 +234,7 @@ public static class FileCopyService
         var tasks = files.Select(async sourceFile =>
         {
             ct.ThrowIfCancellationRequested();
-            await semaphore.WaitAsync(ct);
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 string relative = Path.GetRelativePath(sourceRoot, sourceFile);
@@ -230,7 +256,7 @@ public static class FileCopyService
                 {
                     long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
                     onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
-                }, ct, bufferSize);
+                }, ct, bufferSize).ConfigureAwait(false);
             }
             finally
             {
@@ -238,21 +264,26 @@ public static class FileCopyService
             }
         });
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     /// <summary>
     /// True se la destinazione esiste con la stessa dimensione della sorgente e
     /// LastWriteTimeUtc entro 2 secondi (tolleranza per filesystem a granularità grossa).
     /// </summary>
-    internal static bool IsUnchanged(string sourceFile, string destinationFile)
+    internal static bool IsUnchanged(string sourceFile, string destinationFile) =>
+        IsUnchanged(new FileInfo(sourceFile), new FileInfo(destinationFile));
+
+    /// <summary>
+    /// Overload su <see cref="FileInfo"/>: evita di ricostruirli quando il chiamante li ha già
+    /// (es. la simulazione a passata unica), stessa regola dell'overload string-based.
+    /// </summary>
+    internal static bool IsUnchanged(FileInfo source, FileInfo destination)
     {
-        var destinationInfo = new FileInfo(destinationFile);
-        if (!destinationInfo.Exists)
+        if (!destination.Exists)
             return false;
 
-        var sourceInfo = new FileInfo(sourceFile);
-        return destinationInfo.Length == sourceInfo.Length
-               && Math.Abs((destinationInfo.LastWriteTimeUtc - sourceInfo.LastWriteTimeUtc).TotalSeconds) < 2;
+        return destination.Length == source.Length
+               && Math.Abs((destination.LastWriteTimeUtc - source.LastWriteTimeUtc).TotalSeconds) < 2;
     }
 }

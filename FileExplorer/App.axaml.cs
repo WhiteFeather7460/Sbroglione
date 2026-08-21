@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -34,21 +36,24 @@ public partial class App : Application
 
             // Avvia i runner watch-folder delle regole attive. Nessun handler di
             // shutdown nell'app: i runner muoiono col processo (limite dichiarato).
-            foreach (WatchRule rule in WatchRuleStore.Load())
+            List<WatchRule> rules = WatchRuleStore.Load();
+            _ = Task.Run(() =>
             {
-                if (!rule.Enabled)
-                    continue;
-
-                try
+                foreach (WatchRule rule in rules)
                 {
-                    WatchFolderService.Start(rule);
+                    if (!rule.Enabled)
+                        continue;
+                    try
+                    {
+                        WatchFolderService.Start(rule);
+                    }
+                    catch (Exception)
+                    {
+                        // Difesa in profondità: Start non lancia più, ma una singola regola
+                        // malata non deve fermare le altre.
+                    }
                 }
-                catch (Exception)
-                {
-                    // Difesa in profondità: Start non lancia più, ma una singola regola
-                    // malata non deve comunque impedire l'apertura della finestra.
-                }
-            }
+            });
 
             desktop.MainWindow = new MainWindow
             {

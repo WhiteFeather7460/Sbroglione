@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using FileExplorer.Services;
 using FileExplorer.ViewModels;
 
@@ -13,10 +14,13 @@ public sealed class DuplicatesViewModelTests : IDisposable
         _root = Path.Combine(Path.GetTempPath(), "fe-dupvm-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         _previousOverride = ConfirmDialogHelper.Override;
+        // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
+        UiDispatch.Override = action => action();
     }
 
     public void Dispose()
     {
+        UiDispatch.Override = null;
         ConfirmDialogHelper.Override = _previousOverride;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
@@ -147,5 +151,19 @@ public sealed class DuplicatesViewModelTests : IDisposable
         Assert.True(File.Exists(file1));
         Assert.False(File.Exists(file2));
         Assert.False(File.Exists(file3));
+    }
+
+    [Fact]
+    public void HasGroups_TracksCollectionSwapAndRemoval()
+    {
+        var vm = new DuplicatesViewModel();
+        Assert.False(vm.HasGroups);
+
+        var group = new DuplicateGroupViewModel(new DuplicateGroup(10, "deadbeef", new[] { "/a/f1", "/b/f1" }));
+        vm.Groups = new ObservableCollection<DuplicateGroupViewModel> { group };
+        Assert.True(vm.HasGroups);
+
+        vm.Groups.Remove(group);
+        Assert.False(vm.HasGroups);          // il CollectionChanged della NUOVA collection è agganciato
     }
 }

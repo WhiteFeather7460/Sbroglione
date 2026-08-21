@@ -94,9 +94,12 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
 
         try
         {
+            // Il callback arriva dal thread di scansione (Task.Run): il set di StatusText
+            // va marshalato sul thread UI. Frequenza già bassa (1 ogni 256 file) e
+            // contatore monotono per costruzione: nessun throttle né clamp necessari.
             var root = await DiskUsageService.BuildTreeAsync(
                 RootPath,
-                scanned => StatusText = $"Analisi… {scanned} file",
+                scanned => UiDispatch.Post(() => StatusText = $"Analisi… {scanned} file"),
                 _scanCts.Token);
 
             CurrentNode = root;

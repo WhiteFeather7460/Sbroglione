@@ -28,6 +28,22 @@ public static class WatchFolderService
     private static readonly object Gate = new();
     private static readonly Dictionary<string, RuleRunner> Runners = new();
 
+    /// <summary>
+    /// Un lock per Id di regola: rende atomica l'intera sequenza di <see cref="Start"/>
+    /// (stop → controlli → registrazione → avvio) rispetto a qualunque altro Start/Stop
+    /// sulla stessa regola. Il solo <see cref="Gate"/> proteggeva il dizionario, non la
+    /// sequenza: due Start ravvicinati (due OnRuleChanged, oppure la UI contro l'avvio
+    /// iniziale di App) potevano interlacciarsi e il più lento nei controlli (es.
+    /// Directory.Exists su una share lenta) registrava il proprio runner sopra quello
+    /// dell'altro — che restava vivo ma non più fermabile: due runner sulla stessa regola
+    /// e uno zombie che continua a copiare anche dopo averla disabilitata.
+    /// I lock non vengono mai rimossi: toglierli in Stop mentre uno Start li tiene
+    /// occupati farebbe creare un oggetto diverso al chiamante successivo, annullando la
+    /// mutua esclusione. Sono uno per Id di regola vista nella sessione: quantità
+    /// trascurabile.
+    /// </summary>
+    private static readonly Dictionary<string, object> RuleGates = new();
+
     /// <summary>Prefisso dello stato emesso quando una regola si autoalimenta.</summary>
     internal const string SelfFeedingMessagePrefix = "Destinazione dentro la sorgente";
 
@@ -75,40 +91,60 @@ public static class WatchFolderService
     /// </summary>
     public static void Start(WatchRule rule)
     {
-        Stop(rule.Id);
-
-        if (IsDestinationInsideSource(rule.SourcePath, rule.DestinationPath))
+        // Tutta la sequenza sotto il lock della regola: lo Stop iniziale è rientrante
+        // (stesso thread, stesso oggetto), quindi non serve una variante "senza lock".
+        lock (RuleGateFor(rule.Id))
         {
-            RaiseStatus(new WatchStatus(rule.Id, false, null, $"{SelfFeedingMessagePrefix}: {rule.DestinationPath}"));
-            return;
-        }
+            Stop(rule.Id);
 
-        if (!Directory.Exists(rule.SourcePath))
-        {
-            RaiseStatus(new WatchStatus(rule.Id, false, null, $"Sorgente non trovata: {rule.SourcePath}"));
-            return;
-        }
-
-        var runner = new RuleRunner(rule);
-        lock (Gate)
-            Runners[rule.Id] = runner;
-
-        try
-        {
-            runner.Start();
-        }
-        catch (Exception ex)
-        {
-            // EnableRaisingEvents può fallire (limiti inotify, percorso ostile): il runner
-            // registrato resterebbe uno zombie sordo, mostrato come attivo nella UI.
-            lock (Gate)
+            if (IsDestinationInsideSource(rule.SourcePath, rule.DestinationPath))
             {
-                if (Runners.TryGetValue(rule.Id, out RuleRunner? registered) && ReferenceEquals(registered, runner))
-                    Runners.Remove(rule.Id);
+                RaiseStatus(new WatchStatus(rule.Id, false, null, $"{SelfFeedingMessagePrefix}: {rule.DestinationPath}"));
+                return;
             }
 
-            runner.Dispose();
-            RaiseStatus(new WatchStatus(rule.Id, false, null, $"Avvio non riuscito: {ex.Message}"));
+            if (!Directory.Exists(rule.SourcePath))
+            {
+                RaiseStatus(new WatchStatus(rule.Id, false, null, $"Sorgente non trovata: {rule.SourcePath}"));
+                return;
+            }
+
+            var runner = new RuleRunner(rule);
+            lock (Gate)
+                Runners[rule.Id] = runner;
+
+            try
+            {
+                runner.Start();
+            }
+            catch (Exception ex)
+            {
+                // EnableRaisingEvents può fallire (limiti inotify, percorso ostile): il runner
+                // registrato resterebbe uno zombie sordo, mostrato come attivo nella UI.
+                lock (Gate)
+                {
+                    if (Runners.TryGetValue(rule.Id, out RuleRunner? registered) && ReferenceEquals(registered, runner))
+                        Runners.Remove(rule.Id);
+                }
+
+                runner.Dispose();
+                RaiseStatus(new WatchStatus(rule.Id, false, null, $"Avvio non riuscito: {ex.Message}"));
+            }
+        }
+    }
+
+    /// <summary>Lock dedicato alla regola, creato al primo uso. Vedi <see cref="RuleGates"/>.</summary>
+    private static object RuleGateFor(string ruleId)
+    {
+        lock (Gate)
+        {
+            if (!RuleGates.TryGetValue(ruleId, out object? gate))
+            {
+                gate = new object();
+                RuleGates[ruleId] = gate;
+            }
+
+            return gate;
         }
     }
 
@@ -145,27 +181,35 @@ public static class WatchFolderService
     private static string WithTrailingSeparator(string fullPath) =>
         fullPath.EndsWith(Path.DirectorySeparatorChar) ? fullPath : fullPath + Path.DirectorySeparatorChar;
 
-    /// <summary>Ferma il runner della regola (no-op se assente).</summary>
+    /// <summary>
+    /// Ferma il runner della regola (no-op se assente). Anche lo stop passa dal lock della
+    /// regola: eseguito a metà di uno <see cref="Start"/> concorrente non troverebbe ancora
+    /// nulla da rimuovere e lascerebbe vivo il runner registrato subito dopo (zombie a
+    /// regola disabilitata).
+    /// </summary>
     public static void Stop(string ruleId)
     {
-        RuleRunner? runner;
-        lock (Gate)
-            Runners.Remove(ruleId, out runner);
-        runner?.Dispose();
+        lock (RuleGateFor(ruleId))
+        {
+            RuleRunner? runner;
+            lock (Gate)
+                Runners.Remove(ruleId, out runner);
+            runner?.Dispose();
+        }
     }
 
     /// <summary>Ferma tutti i runner (test e chiusure future).</summary>
     public static void StopAll()
     {
-        List<RuleRunner> toStop;
+        // Per Id, così ogni stop è serializzato con un eventuale Start in volo sulla stessa
+        // regola: si passa dagli Id di tutte le regole viste, non solo da quelle con un
+        // runner registrato adesso.
+        List<string> ids;
         lock (Gate)
-        {
-            toStop = Runners.Values.ToList();
-            Runners.Clear();
-        }
+            ids = Runners.Keys.Union(RuleGates.Keys, StringComparer.Ordinal).ToList();
 
-        foreach (RuleRunner runner in toStop)
-            runner.Dispose();
+        foreach (string ruleId in ids)
+            Stop(ruleId);
     }
 
     /// <summary>

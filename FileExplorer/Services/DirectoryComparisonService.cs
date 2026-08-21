@@ -60,8 +60,8 @@ public static class DirectoryComparisonService
         StringComparer pathComparer,
         CancellationToken ct)
     {
-        var leftFiles = await Task.Run(() => RelativeFileSet(leftRoot, pathComparer, ct), ct);
-        var rightFiles = await Task.Run(() => RelativeFileSet(rightRoot, pathComparer, ct), ct);
+        var leftFiles = await Task.Run(() => RelativeFileSet(leftRoot, pathComparer, ct), ct).ConfigureAwait(false);
+        var rightFiles = await Task.Run(() => RelativeFileSet(rightRoot, pathComparer, ct), ct).ConfigureAwait(false);
 
         var leftOnly = leftFiles.Keys.Where(k => !rightFiles.ContainsKey(k)).OrderBy(p => p, pathComparer).ToList();
         var rightOnly = rightFiles.Keys.Where(k => !leftFiles.ContainsKey(k)).OrderBy(p => p, pathComparer).ToList();
@@ -76,7 +76,7 @@ public static class DirectoryComparisonService
         var tasks = common.Select(async relative =>
         {
             ct.ThrowIfCancellationRequested();
-            await semaphore.WaitAsync(ct);
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 var leftEntry = leftFiles[relative];
@@ -90,8 +90,8 @@ public static class DirectoryComparisonService
                     return;
                 }
 
-                string leftHash = await ChecksumService.ComputeSha256Async(leftPath, ct);
-                string rightHash = await ChecksumService.ComputeSha256Async(rightPath, ct);
+                string leftHash = await ChecksumService.ComputeSha256Async(leftPath, ct).ConfigureAwait(false);
+                string rightHash = await ChecksumService.ComputeSha256Async(rightPath, ct).ConfigureAwait(false);
                 if (string.Equals(leftHash, rightHash, StringComparison.OrdinalIgnoreCase))
                     identical.Add(relative);
                 else
@@ -104,7 +104,7 @@ public static class DirectoryComparisonService
             }
         });
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         return new DirectoryComparisonResult(
             leftOnly,

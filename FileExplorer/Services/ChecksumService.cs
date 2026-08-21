@@ -16,11 +16,14 @@ public static class ChecksumService
     /// </summary>
     public static async Task<string> ComputeSha256Async(string path, CancellationToken ct = default)
     {
-        await using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var sha256 = SHA256.Create();
+        var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using (stream.ConfigureAwait(false))
+        {
+            using var sha256 = SHA256.Create();
 
-        byte[] hash = await sha256.ComputeHashAsync(stream, ct);
-        return Convert.ToHexString(hash).ToLowerInvariant();
+            byte[] hash = await sha256.ComputeHashAsync(stream, ct).ConfigureAwait(false);
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
     }
 
     /// <summary>
@@ -29,21 +32,24 @@ public static class ChecksumService
     /// </summary>
     public static async Task<string> ComputeSha256Async(string path, long maxBytes, CancellationToken ct = default)
     {
-        await using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var sha256 = SHA256.Create();
-
-        var buffer = new byte[81920];
-        long remaining = maxBytes;
-        int read;
-        while (remaining > 0
-               && (read = await stream.ReadAsync(
-                   buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), ct)) > 0)
+        var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using (stream.ConfigureAwait(false))
         {
-            sha256.TransformBlock(buffer, 0, read, null, 0);
-            remaining -= read;
-        }
+            using var sha256 = SHA256.Create();
 
-        sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-        return Convert.ToHexString(sha256.Hash!).ToLowerInvariant();
+            var buffer = new byte[81920];
+            long remaining = maxBytes;
+            int read;
+            while (remaining > 0
+                   && (read = await stream.ReadAsync(
+                       buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), ct).ConfigureAwait(false)) > 0)
+            {
+                sha256.TransformBlock(buffer, 0, read, null, 0);
+                remaining -= read;
+            }
+
+            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            return Convert.ToHexString(sha256.Hash!).ToLowerInvariant();
+        }
     }
 }

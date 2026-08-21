@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -27,13 +28,63 @@ public class ExtraDestinationViewModel
 /// </summary>
 public class FolderFilePairViewModel : ReactiveObject
 {
-    private readonly ObservableCollection<FileSystemItem> _filesToProcess = new();
+    private IReadOnlyList<FileSystemItem> _filesToProcess = Array.Empty<FileSystemItem>();
 
     /// <summary>
-    /// Elenco dei file che verranno elaborati; ricaricato in background
-    /// quando cambia <see cref="SourcePath"/>.
+    /// Elenco dei file che verranno elaborati; caricato con un listing ricorsivo
+    /// solo alla prima apertura dell'Expander (<see cref="IsFilesExpanded"/>) e
+    /// ricaricato in blocco quando cambia <see cref="SourcePath"/> a Expander aperto.
     /// </summary>
-    public ObservableCollection<FileSystemItem> FilesToProcess => _filesToProcess;
+    public IReadOnlyList<FileSystemItem> FilesToProcess
+    {
+        get => _filesToProcess;
+        private set => this.RaiseAndSetIfChanged(ref _filesToProcess, value);
+    }
+
+    private bool _isFilesExpanded;
+
+    /// <summary>
+    /// True quando l'utente ha aperto l'Expander "Mostra file da elaborare". Ogni transizione
+    /// REALE false→true rifà il listing ricorsivo (<see cref="FilesLoad"/>), anche se
+    /// <see cref="SourcePath"/> non è cambiato: il contenuto della cartella può essere
+    /// cambiato su disco (watch rule, modifica esterna) mentre l'Expander era chiuso.
+    /// </summary>
+    public bool IsFilesExpanded
+    {
+        get => _isFilesExpanded;
+        set
+        {
+            bool changed = _isFilesExpanded != value;
+            this.RaiseAndSetIfChanged(ref _isFilesExpanded, value);
+            if (changed && value)
+            {
+                // Invalida la generazione dell'ultimo load: ogni apertura reale deve rifare il
+                // listing, anche se SourcePath non è cambiato dall'ultima chiusura.
+                _filesLoadGeneration = -1;
+                FilesLoad = TriggerFilesLoad();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Task dell'ultimo listing di <see cref="FilesToProcess"/>; attendibile per sapere
+    /// quando lo swap in blocco è completato (avviato solo con Expander aperto).
+    /// </summary>
+    public Task FilesLoad { get; private set; } = Task.CompletedTask;
+
+    // Incrementato a ogni set di SourcePath (anche a parità di valore) e confrontato con
+    // _filesLoadGeneration per evitare un doppio listing quando SourcePath e IsFilesExpanded
+    // scattano entrambi in rapida sequenza (es. object initializer) o quando IsFilesExpanded
+    // resta true ma RefreshSourceStateAsync prova comunque a ri-avviare il load: il primo dei
+    // due trigger "vince" la generazione corrente, l'altro la trova già marcata e non duplica.
+    // Il gate NON deduplica tra un'apertura e la successiva: il setter di IsFilesExpanded
+    // invalida esplicitamente _filesLoadGeneration a ogni transizione reale false→true, quindi
+    // riaprire l'Expander rifà sempre il listing.
+    private int _sourceGeneration;
+    private int _filesLoadGeneration = -1;
+
+    /// <summary>Numero di listing effettivamente avviati; solo per verifica nei test (anti doppio-trigger).</summary>
+    internal int FilesLoadStartCountForTests { get; private set; }
 
     private bool _sourceExists;
 
@@ -65,13 +116,26 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _sourcePath, value);
             this.RaisePropertyChanged(nameof(CanStart));
+            _sourceGeneration++;
+
+            // Azzeramento qui, in modo sincrono con il bump della generazione: la lista
+            // appartiene alla sorgente precedente e non deve restare visibile. Farlo dopo
+            // l'await di RefreshSourceStateAsync era una race: il load avviato dal setter
+            // di IsFilesExpanded per la STESSA generazione poteva completare prima, e la
+            // continuation del refresh cancellava la lista appena popolata senza che
+            // TriggerFilesLoad — generazione già marcata — ne riavviasse un altro.
+            FilesToProcess = Array.Empty<FileSystemItem>();
             SourceStateRefresh = RefreshSourceStateAsync();
         }
     }
 
     /// <summary>
-    /// Verifica l'esistenza della sorgente e ricarica <see cref="FilesToProcess"/>.
-    /// Se nel frattempo <see cref="SourcePath"/> cambia di nuovo, l'esito viene scartato.
+    /// Verifica l'esistenza della sorgente. Il listing di <see cref="FilesToProcess"/> non
+    /// parte più qui: la lista è già stata azzerata dal setter di <see cref="SourcePath"/>
+    /// e riparte solo se l'Expander è già aperto (<see cref="IsFilesExpanded"/>), evitando
+    /// I/O ricorsivo quando la griglia è chiusa.
+    /// Se nel frattempo <see cref="SourcePath"/> cambia di nuovo, l'esito viene scartato:
+    /// niente scritture su stato appartenente a una generazione più recente.
     /// </summary>
     private async Task RefreshSourceStateAsync()
     {
@@ -82,19 +146,47 @@ public class FolderFilePairViewModel : ReactiveObject
             return;
 
         SourceExists = type != PathType.Unknown;
-        _filesToProcess.Clear();
 
-        if (type != PathType.Directory)
-            return;
+        if (IsFilesExpanded)
+            FilesLoad = TriggerFilesLoad();
+    }
 
-        var listing = await FileSystemService.ListFilesRecursiveAsync(path!);
-        if (path != _sourcePath)
-            return;
+    /// <summary>
+    /// Avvia <see cref="LoadFilesToProcessAsync"/> per la generazione corrente di
+    /// <see cref="SourcePath"/>, a meno che non sia già stato avviato un load per la stessa
+    /// generazione: evita il doppio listing quando <see cref="IsFilesExpanded"/> e
+    /// <see cref="RefreshSourceStateAsync"/> scattano entrambi per lo stesso set di SourcePath.
+    /// </summary>
+    private Task TriggerFilesLoad()
+    {
+        if (_filesLoadGeneration == _sourceGeneration)
+            return FilesLoad;
 
-        foreach (var item in listing.Items)
+        _filesLoadGeneration = _sourceGeneration;
+        FilesLoadStartCountForTests++;
+        return LoadFilesToProcessAsync();
+    }
+
+    /// <summary>
+    /// Esegue il listing ricorsivo della sorgente e pubblica il risultato con un unico
+    /// swap (<see cref="FilesToProcess"/>), invece di un Add per item. Se <see cref="SourcePath"/>
+    /// cambia nel frattempo, l'esito viene scartato.
+    /// </summary>
+    private async Task LoadFilesToProcessAsync()
+    {
+        string? path = _sourcePath;
+        if (path is null || await FileSystemService.GetPathTypeAsync(path) != PathType.Directory)
         {
-            _filesToProcess.Add(item);
+            if (path == _sourcePath)
+                FilesToProcess = Array.Empty<FileSystemItem>();
+            return;
         }
+
+        var listing = await FileSystemService.ListFilesRecursiveAsync(path);
+        if (path != _sourcePath)
+            return;                                   // sorgente cambiata nel frattempo: esito scartato
+
+        FilesToProcess = listing.Items;               // swap unico: un solo PropertyChanged
     }
 
     private string? _destinationPath;

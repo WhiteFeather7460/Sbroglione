@@ -188,7 +188,7 @@
                   </Border>
 
                   <!-- File da elaborare -->
-                  <Expander Header="Mostra file da elaborare">
+                  <Expander Header="Mostra file da elaborare" IsExpanded="{Binding IsFilesExpanded, Mode=TwoWay}">
                     <DataGrid ItemsSource="{Binding FilesToProcess}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"

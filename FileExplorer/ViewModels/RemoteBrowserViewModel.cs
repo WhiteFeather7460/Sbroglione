@@ -19,7 +19,10 @@ namespace FileExplorer.ViewModels;
     "Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable",
     Justification = "I CancellationTokenSource di download e upload sono creati e distrutti dentro " +
                     "RunDownloadAsync/RunUploadAsync: i campi sono solo l'appiglio per Cancel* e restano " +
-                    "null fuori dal batch, quindi la viewmodel non ha uno stato disposable da liberare.")]
+                    "null fuori dal batch. Il CancellationTokenSource del debounce filtri (_filterCts) " +
+                    "segue invece un pattern Cancel+Dispose+sostituisci a ogni nuovo set di un filtro " +
+                    "e non torna mai null: nel peggiore dei casi (viewmodel distrutta a debounce in " +
+                    "corso) resta un singolo CTS non liberato, trascurabile e non un leak crescente.")]
 public class RemoteBrowserViewModel : ViewModelBase
 {
     private readonly Func<ConnectionProfile, IRemoteFileClient> _clientFactory;
@@ -123,42 +126,53 @@ public class RemoteBrowserViewModel : ViewModelBase
     /// <summary>Sottoinsieme di <see cref="Items"/> che passa il filtro: è ciò che la lista mostra.</summary>
     public ObservableCollection<RemoteEntryViewModel> VisibleItems { get; } = new();
 
+    /// <summary>Debounce applicato a <see cref="ScheduleRebuild"/>; i test lo azzerano.</summary>
+    internal static TimeSpan FilterDebounce = TimeSpan.FromMilliseconds(200);
+    private CancellationTokenSource? _filterCts;
+
+    /// <summary>Task dell'ultimo rebuild filtri programmato; attendibile nei test.</summary>
+    public Task FilterRefresh { get; private set; } = Task.CompletedTask;
+
     private string? _filterPattern;
     public string? FilterPattern
     {
         get => _filterPattern;
-        set { this.RaiseAndSetIfChanged(ref _filterPattern, value); RebuildVisibleItems(); }
+        set { this.RaiseAndSetIfChanged(ref _filterPattern, value); ScheduleRebuild(); }
     }
 
     private string? _filterMinSizeKb;
     public string? FilterMinSizeKb
     {
         get => _filterMinSizeKb;
-        set { this.RaiseAndSetIfChanged(ref _filterMinSizeKb, value); RebuildVisibleItems(); }
+        set { this.RaiseAndSetIfChanged(ref _filterMinSizeKb, value); ScheduleRebuild(); }
     }
 
     private string? _filterMaxSizeKb;
     public string? FilterMaxSizeKb
     {
         get => _filterMaxSizeKb;
-        set { this.RaiseAndSetIfChanged(ref _filterMaxSizeKb, value); RebuildVisibleItems(); }
+        set { this.RaiseAndSetIfChanged(ref _filterMaxSizeKb, value); ScheduleRebuild(); }
     }
 
     private DateTimeOffset? _filterModifiedAfter;
     public DateTimeOffset? FilterModifiedAfter
     {
         get => _filterModifiedAfter;
-        set { this.RaiseAndSetIfChanged(ref _filterModifiedAfter, value); RebuildVisibleItems(); }
+        set { this.RaiseAndSetIfChanged(ref _filterModifiedAfter, value); ScheduleRebuild(); }
     }
 
     private DateTimeOffset? _filterModifiedBefore;
     public DateTimeOffset? FilterModifiedBefore
     {
         get => _filterModifiedBefore;
-        set { this.RaiseAndSetIfChanged(ref _filterModifiedBefore, value); RebuildVisibleItems(); }
+        set { this.RaiseAndSetIfChanged(ref _filterModifiedBefore, value); ScheduleRebuild(); }
     }
 
     private bool _onlyMissing;
+
+    // Niente ScheduleRebuild qui: DownloadFilter.Matches non legge OnlyMissing (è gestito a parte
+    // da DownloadService), quindi un rebuild sarebbe un no-op sul contenuto di VisibleItems ma
+    // azzererebbe comunque la selezione della griglia 200ms dopo il toggle.
     public bool OnlyMissing
     {
         get => _onlyMissing;
@@ -192,9 +206,20 @@ public class RemoteBrowserViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref _destinationFolder, value);
             if (SelectedProfile is not null)
                 SelectedProfile.LastDestinationFolder = value;
-            RefreshLocalStatuses();
+            // Il setter non può essere async: fire-and-forget con handle su LocalStatusRefresh
+            // (attendibile nei test) e guardia di generazione dentro RefreshLocalStatusesAsync,
+            // così un secondo set ravvicinato non si fa scavalcare da un risultato stantio.
+            LocalStatusRefresh = RefreshLocalStatusesAsync();
         }
     }
+
+    /// <summary>Task dell'ultimo refresh di "Su disco" programmato; attendibile nei test.</summary>
+    public Task LocalStatusRefresh { get; private set; } = Task.CompletedTask;
+
+    // Incrementato a ogni avvio di RefreshLocalStatusesAsync: un refresh che completa dopo che
+    // un altro più recente è già partito scarta il proprio risultato invece di sovrascrivere
+    // LocalStatus con dati stantii (es. due DestinationFolder ravvicinati).
+    private int _localStatusGeneration;
 
     private bool _isDownloading;
     public bool IsDownloading
@@ -611,7 +636,7 @@ public class RemoteBrowserViewModel : ViewModelBase
             DownloadProgressValue = 0;
             _downloadCts.Dispose();
             _downloadCts = null;
-            RefreshLocalStatuses();
+            await (LocalStatusRefresh = RefreshLocalStatusesAsync());
             // Persiste la destinazione appena usata (LastDestinationFolder del profilo).
             await ProfileStore.SaveAsync(_profilesFilePath, Profiles.ToList());
         }
@@ -748,6 +773,26 @@ public class RemoteBrowserViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Programma un rebuild di <see cref="VisibleItems"/> dopo <see cref="FilterDebounce"/>: più
+    /// set ravvicinati (es. l'utente che digita nel filtro) cancellano il rebuild precedente
+    /// invece di accodarne uno per ogni carattere.
+    /// </summary>
+    private void ScheduleRebuild()
+    {
+        _filterCts?.Cancel();
+        _filterCts?.Dispose();
+        var cts = _filterCts = new CancellationTokenSource();
+        FilterRefresh = RebuildAfterDebounceAsync(cts.Token);
+    }
+
+    private async Task RebuildAfterDebounceAsync(CancellationToken ct)
+    {
+        try { await Task.Delay(FilterDebounce, ct); }
+        catch (OperationCanceledException) { return; }
+        UiDispatch.Post(RebuildVisibleItems);
+    }
+
+    /// <summary>
     /// Elenco richiesto dai comandi di navigazione: ignora la richiesta se un'operazione è già
     /// in corso, così due comandi ravvicinati non si sovrappongono sullo stesso client.
     /// </summary>
@@ -791,24 +836,36 @@ public class RemoteBrowserViewModel : ViewModelBase
             Items.Add(new RemoteEntryViewModel(item));
         }
 
-        RefreshLocalStatuses();
+        await (LocalStatusRefresh = RefreshLocalStatusesAsync());
         StatusMessage = $"{Items.Count} elementi in {CurrentPath}";
         RebuildVisibleItems();
     }
 
-    /// <summary>Ricalcola la colonna "Su disco" per i file di primo livello.</summary>
-    private void RefreshLocalStatuses()
+    /// <summary>
+    /// Ricalcola la colonna "Su disco" per i file di primo livello. Lo stat delle destinazioni
+    /// gira su threadpool (può toccare percorsi di rete lenti): lo snapshot di <see cref="Items"/>
+    /// è preso sul thread UI, il calcolo su threadpool, l'assegnazione finale di nuovo sul thread
+    /// UI (via la continuazione dell'await, che nell'app cattura il contesto Avalonia).
+    /// </summary>
+    private async Task RefreshLocalStatusesAsync()
     {
-        foreach (var entry in Items)
-        {
-            if (entry.IsDirectory || string.IsNullOrWhiteSpace(DestinationFolder))
-            {
-                entry.LocalStatus = null;
-                continue;
-            }
-            entry.LocalStatus = DownloadService.GetLocalStatus(
-                entry.Item, Path.Combine(DestinationFolder, entry.Name));
-        }
+        int generation = ++_localStatusGeneration;
+        string? destination = DestinationFolder;
+        var entries = Items.ToList();                  // snapshot sul thread UI
+
+        var statuses = await Task.Run(() => entries.Select(entry =>
+            entry.IsDirectory || string.IsNullOrWhiteSpace(destination)
+                ? (LocalFileStatus?)null
+                : DownloadService.GetLocalStatus(entry.Item, Path.Combine(destination, entry.Name)))
+            .ToList());
+
+        // Un refresh più recente è partito nel frattempo (es. due DestinationFolder ravvicinati):
+        // questo risultato è stantio, scartarlo invece di sovrascrivere quello vincente.
+        if (generation != _localStatusGeneration)
+            return;
+
+        for (int i = 0; i < entries.Count; i++)        // continuation: di nuovo sul thread UI
+            entries[i].LocalStatus = statuses[i];
     }
 
     private async Task DisposeClientAsync()

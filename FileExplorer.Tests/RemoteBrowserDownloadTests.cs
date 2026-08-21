@@ -15,10 +15,16 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
         _root = Path.Combine(Path.GetTempPath(), "fe-vmdl-" + Guid.NewGuid().ToString("N"));
         _dest = Path.Combine(_root, "dest");
         Directory.CreateDirectory(_dest);
+        // Rebuild sincrono e senza debounce: i test verificano VisibleItems subito dopo il set
+        // di un filtro (stesso pattern di UiDispatch.Override usato dal Task 2 nelle altre suite).
+        RemoteBrowserViewModel.FilterDebounce = TimeSpan.Zero;
+        UiDispatch.Override = action => action();
     }
 
     public void Dispose()
     {
+        UiDispatch.Override = null;
+        RemoteBrowserViewModel.FilterDebounce = TimeSpan.FromMilliseconds(200);
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
@@ -43,6 +49,7 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
         var vm = await CreateConnectedAsync();
 
         vm.FilterPattern = "*.jpg";
+        await vm.FilterRefresh;
 
         Assert.Equal(2, vm.VisibleItems.Count); // docs + a.jpg
         Assert.Contains(vm.VisibleItems, i => i.Name == "docs");
@@ -58,7 +65,42 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
         await File.WriteAllTextAsync(local, "AAA");
         File.SetLastWriteTime(local, modified);
 
+        // Destinazione impostata sul profilo PRIMA della connessione: RefreshLocalStatusesAsync
+        // gira su threadpool, quindi lo stato "Su disco" deve essere già calcolato dal listing
+        // interno a ConnectAsync (che lo attende) invece di dipendere dal setter fire-and-forget
+        // di DestinationFolder usato da CreateConnectedAsync dopo il ritorno di ConnectAsync.
+        var vm = new RemoteBrowserViewModel(
+            _ => _client, new NullCredentialStore(), Path.Combine(_root, "profiles.json"));
+        vm.Profiles.Add(new ConnectionProfile
+        {
+            Name = "test",
+            Host = "h",
+            Username = "u",
+            LastDestinationFolder = _dest
+        });
+        vm.SelectedProfile = vm.Profiles[0];
+        vm.PasswordInput = "pw";
+
+        await vm.ConnectAsync();
+
+        var entry = vm.Items.Single(i => i.Name == "a.txt");
+        Assert.Equal(LocalFileStatus.Present, entry.LocalStatus);
+    }
+
+    [Fact]
+    public async Task DestinationFolder_Setter_RefreshesLocalStatuses()
+    {
+        // Copre il path del setter di DestinationFolder (fire-and-forget su threadpool): Items è
+        // già popolata da CreateConnectedAsync, poi il setter riassegna DestinationFolder = _dest
+        // e LocalStatusRefresh dà un handle attendibile sul refresh che ne consegue.
+        var modified = new DateTime(2026, 6, 1, 12, 0, 0);
+        _client.AddFile("/a.txt", "AAA", modified);
+        string local = Path.Combine(_dest, "a.txt");
+        await File.WriteAllTextAsync(local, "AAA");
+        File.SetLastWriteTime(local, modified);
+
         var vm = await CreateConnectedAsync();
+        await vm.LocalStatusRefresh;
 
         var entry = vm.Items.Single(i => i.Name == "a.txt");
         Assert.Equal(LocalFileStatus.Present, entry.LocalStatus);
@@ -229,6 +271,7 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
         var vm = await CreateConnectedAsync();
 
         vm.FilterMinSizeKb = "abc"; // non numerico: nessun filtro applicato
+        await vm.FilterRefresh;
 
         Assert.Single(vm.VisibleItems);
     }

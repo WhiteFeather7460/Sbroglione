@@ -153,4 +153,18 @@
   <Style Selector="TabControl.nav TabItem:selected">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
   </Style>
+
+  <!-- Liste di card virtualizzate (es. gruppi duplicati) senza cromo di selezione -->
+  <Style Selector="ListBox.cards">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.cards ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Focusable" Value="False" />
+  </Style>
+  <Style Selector="ListBox.cards ListBoxItem:selected /template/ ContentPresenter,
+                   ListBox.cards ListBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
 </Styles>

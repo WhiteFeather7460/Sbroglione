@@ -204,6 +204,41 @@ public sealed class WatchFolderServiceTests : IDisposable
         Assert.Equal(rule.Id, Assert.Single(WatchFolderService.ActiveRuleIds));
     }
 
+    /// <summary>
+    /// Start concorrenti sulla stessa regola: la sequenza stop → controlli → registrazione →
+    /// avvio deve essere atomica. Interlacciata, il chiamante più lento nei controlli
+    /// registra il proprio runner sopra quello già avviato dall'altro, che resta vivo e non
+    /// più fermabile: dopo lo Stop continuerebbe a sincronizzare (zombie).
+    /// </summary>
+    [Fact]
+    public async Task ConcurrentStarts_SameRule_LeaveNoRunnerAliveAfterStop()
+    {
+        WatchFolderService.IntervalOverride = _ => TimeSpan.FromMilliseconds(20);
+        WatchRule rule = CreateRule(WatchMode.Interval);
+
+        using var start = new Barrier(8);
+        Task[] starters = Enumerable.Range(0, 8)
+            .Select(_ => Task.Run(() =>
+            {
+                start.SignalAndWait();
+                WatchFolderService.Start(rule);
+            }))
+            .ToArray();
+        await Task.WhenAll(starters);
+
+        Assert.Equal(rule.Id, Assert.Single(WatchFolderService.ActiveRuleIds));
+        await WaitUntilAsync(() => Volatile.Read(ref _syncCount) >= 1);
+
+        WatchFolderService.Stop(rule.Id);
+        Assert.Empty(WatchFolderService.ActiveRuleIds);
+
+        // Un runner sopravvissuto continuerebbe a girare sull'intervallo da 20 ms.
+        await Task.Delay(100);
+        int afterStop = Volatile.Read(ref _syncCount);
+        await Task.Delay(400);
+        Assert.Equal(afterStop, Volatile.Read(ref _syncCount));
+    }
+
     [Fact]
     public void Start_MissingSource_DoesNotStartAndReportsError()
     {

@@ -49,7 +49,7 @@ public static class DuplicateFinderService
                     catch (UnauthorizedAccessException) { return (Path: path, Length: -1L); }
                 })
                 .Where(file => file.Length > 0)
-                .ToList(), ct);
+                .ToList(), ct).ConfigureAwait(false);
 
         var partialCandidates = files
             .GroupBy(file => file.Length)
@@ -61,7 +61,7 @@ public static class DuplicateFinderService
         var partialHashes = await HashAllAsync(
             partialCandidates, PartialHashBytes, maxDegreeOfParallelism,
             processed => onProgress?.Invoke(new DuplicateScanProgress("Hash parziale", processed, partialCandidates.Count)),
-            ct);
+            ct).ConfigureAwait(false);
 
         var partialGroups = partialHashes
             .GroupBy(file => (file.Length, file.Hash))
@@ -86,7 +86,7 @@ public static class DuplicateFinderService
         var fullHashes = await HashAllAsync(
             fullCandidates, long.MaxValue, maxDegreeOfParallelism,
             processed => onProgress?.Invoke(new DuplicateScanProgress("Hash completo", processed, fullCandidates.Count)),
-            ct);
+            ct).ConfigureAwait(false);
 
         results.AddRange(fullHashes
             .GroupBy(file => (file.Length, file.Hash))
@@ -115,10 +115,10 @@ public static class DuplicateFinderService
 
         var tasks = files.Select(async file =>
         {
-            await semaphore.WaitAsync(ct);
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
-                string hash = await ChecksumService.ComputeSha256Async(file.Path, maxBytes, ct);
+                string hash = await ChecksumService.ComputeSha256Async(file.Path, maxBytes, ct).ConfigureAwait(false);
                 results.Add((file.Path, file.Length, hash));
             }
             catch (IOException) { /* file sparito o bloccato: escluso dai risultati */ }
@@ -130,7 +130,7 @@ public static class DuplicateFinderService
             }
         });
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
         return results.ToList();
     }
 }

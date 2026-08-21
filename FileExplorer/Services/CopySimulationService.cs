@@ -65,38 +65,48 @@ public static class CopySimulationService
             .Select(f => (f, Path.GetRelativePath(sourcePath, f)))
             .ToList();
 
+        // Passata unica: totale, overwrite per destinazione e skip-se-invariato costruiscono i
+        // FileInfo di sorgente e destinazione una volta sola per file (rispettivamente per
+        // coppia file/destinazione), invece di tre passate separate sugli stessi file.
+        // Overwrite indicizzati per POSIZIONE (non per Dictionary keyed sul path): la copia reale
+        // tollera destinationRoots con radici duplicate (es. AddExtraDestinationAsync propone come
+        // default lo stesso DestinationPath e non deduplica), un Dictionary<string,int> ci
+        // lancerebbe un ArgumentException su "chiave duplicata".
         long totalBytes = 0;
-        foreach (var (source, _) in files)
-        {
-            ct.ThrowIfCancellationRequested();
-            totalBytes += new FileInfo(source).Length;
-        }
-
         int skipped = 0;
         long skippedBytes = 0;
-        if (skipUnchanged)
+        var overwrites = new int[destinationRoots.Count];
+
+        foreach (var (source, relative) in files)
         {
-            foreach (var (source, relative) in files)
+            ct.ThrowIfCancellationRequested();
+            var sourceInfo = new FileInfo(source);
+            totalBytes += sourceInfo.Length;
+
+            bool unchangedEverywhere = skipUnchanged;
+            for (int i = 0; i < destinationRoots.Count; i++)
             {
-                ct.ThrowIfCancellationRequested();
-                if (destinationRoots.All(root => FileCopyService.IsUnchanged(source, Path.Combine(root, relative))))
-                {
-                    skipped++;
-                    skippedBytes += new FileInfo(source).Length;
-                }
+                var destInfo = new FileInfo(Path.Combine(destinationRoots[i], relative));
+                if (destInfo.Exists)
+                    overwrites[i]++;
+                if (skipUnchanged)
+                    unchangedEverywhere &= FileCopyService.IsUnchanged(sourceInfo, destInfo);
+            }
+
+            if (skipUnchanged && unchangedEverywhere)
+            {
+                skipped++;
+                skippedBytes += sourceInfo.Length;
             }
         }
 
         long bytesToWrite = totalBytes - skippedBytes;
 
         var destinations = new List<DestinationSimulation>(destinationRoots.Count);
-        foreach (var root in destinationRoots)
+        for (int i = 0; i < destinationRoots.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
-
-            int overwrites = files.Count(pair => File.Exists(Path.Combine(root, pair.Relative)));
-
-            destinations.Add(BuildDestinationSimulation(root, overwrites, bytesToWrite));
+            destinations.Add(BuildDestinationSimulation(destinationRoots[i], overwrites[i], bytesToWrite));
         }
 
         return new CopySimulationResult(files.Count, totalBytes, skipped, destinations);

@@ -12,18 +12,31 @@ namespace FileExplorer.ViewModels;
 /// Scheda "Impostazioni": espone le proprietà di <see cref="AppSettingsStore.Current"/>
 /// con auto-save ad ogni modifica (nessun bottone "Salva").
 /// </summary>
-public class SettingsViewModel : ViewModelBase
+public class SettingsViewModel : ViewModelBase, IDisposable
 {
+    private readonly Action _throttleChangedHandler;
+
     public SettingsViewModel()
     {
-        AppSettingsStore.ThrottleChanged += () =>
+        _throttleChangedHandler = () =>
         {
             this.RaisePropertyChanged(nameof(ThrottleEnabled));
             this.RaisePropertyChanged(nameof(ThrottleMBps));
         };
+        AppSettingsStore.ThrottleChanged += _throttleChangedHandler;
 
         foreach (ColorTheme theme in ThemeStore.LoadAll())
             CustomThemes.Add(theme);
+    }
+
+    /// <summary>
+    /// Rimuove l'handler dall'evento statico <see cref="AppSettingsStore.ThrottleChanged"/>:
+    /// senza questo, ogni istanza resterebbe rootata per sempre (leak).
+    /// </summary>
+    public void Dispose()
+    {
+        AppSettingsStore.ThrottleChanged -= _throttleChangedHandler;
+        GC.SuppressFinalize(this);
     }
 
     public bool AutoParallelism

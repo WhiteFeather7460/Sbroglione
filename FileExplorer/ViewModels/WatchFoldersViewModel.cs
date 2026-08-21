@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
+using System.Threading;
 using System.Threading.Tasks;
 
 using FileExplorer.Models;
@@ -31,6 +32,10 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     /// </summary>
     private readonly ConcurrentDictionary<string, WatchRuleViewModel> _ruleIndex = new();
 
+    /// <summary>Catena delle operazioni sui runner, una per RuleId. Vedi <see cref="QueueRunnerSync"/>.</summary>
+    private readonly Dictionary<string, Task> _runnerOps = new();
+    private readonly object _runnerOpsGate = new();
+
     public WatchFoldersViewModel()
     {
         AddRuleCommand = ReactiveCommand.Create(AddRule);
@@ -54,6 +59,12 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
 
     /// <summary>Ultimo salvataggio best-effort; attendibile nei test.</summary>
     internal Task? LastSaveTask { get; private set; }
+
+    /// <summary>
+    /// Ultima operazione accodata sui runner: attenderla significa attendere anche tutte
+    /// quelle accodate prima per la stessa regola (catena). Attendibile nei test.
+    /// </summary>
+    internal Task? LastRunnerOpTask { get; private set; }
 
     /// <summary>False nei test headless: nessun runner reale (pattern ApplyThemesToApplication).</summary>
     internal bool ManageRunners { get; set; } = true;
@@ -85,7 +96,24 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
             return;
 
         if (ManageRunners)
-            WatchFolderService.Stop(rule.Model.Id);
+        {
+            // Nella stessa catena degli altri riallineamenti: uno stop diretto potrebbe
+            // essere scavalcato da un OnRuleChanged ancora accodato (es. l'utente attiva
+            // la regola e la rimuove subito dopo), che riavvierebbe un runner per una
+            // regola non più esistente.
+            QueueRunnerOp(rule.Model.Id, () =>
+            {
+                try
+                {
+                    WatchFolderService.Stop(rule.Model.Id);
+                }
+                catch (Exception)
+                {
+                    // best effort: la riga sparisce comunque dalla lista
+                }
+            });
+        }
+
         Rules.Remove(rule);
         _ruleIndex.TryRemove(rule.Model.Id, out _);
         this.RaisePropertyChanged(nameof(HasRules));
@@ -145,12 +173,70 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         if (!ManageRunners)
             return;
 
-        WatchFolderService.Stop(rule.Model.Id);
+        QueueRunnerSync(rule);
+    }
+
+    /// <summary>
+    /// Accoda il riallineamento del runner in una catena per regola: OnRuleChanged scatta
+    /// a ogni set di proprietà della riga, quindi due modifiche ravvicinate producevano due
+    /// Task.Run concorrenti sulla stessa regola. La catena li esegue nell'ordine di arrivo
+    /// e uno alla volta, così l'ultima azione dell'utente è anche l'ultima applicata
+    /// (un disable non può più essere scavalcato da uno start più lento partito prima).
+    /// La mutua esclusione con gli altri chiamanti del servizio — l'avvio iniziale di App,
+    /// un'altra istanza della scheda — la garantisce comunque il lock per regola dentro
+    /// <see cref="WatchFolderService.Start"/>: qui si serializza solo l'ordine.
+    /// </summary>
+    private void QueueRunnerSync(WatchRuleViewModel rule) =>
+        QueueRunnerOp(rule.Model.Id, () => ApplyRunnerState(rule));
+
+    /// <summary>Accoda un'operazione nella catena della regola (vedi <see cref="QueueRunnerSync"/>).</summary>
+    private void QueueRunnerOp(string ruleId, Action operation)
+    {
+        lock (_runnerOpsGate)
+        {
+            Task previous = _runnerOps.TryGetValue(ruleId, out Task? pending) ? pending : Task.CompletedTask;
+            Task next = previous.ContinueWith(
+                _ => operation(),
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+            _runnerOps[ruleId] = next;
+            LastRunnerOpTask = next;
+        }
+    }
+
+    /// <summary>
+    /// Ferma il runner della regola e lo riavvia se la regola è attiva e completa.
+    /// Non lancia mai: una catena che si guasta lascerebbe la regola senza riallineamenti.
+    /// </summary>
+    private static void ApplyRunnerState(WatchRuleViewModel rule)
+    {
+        try
+        {
+            WatchFolderService.Stop(rule.Model.Id);
+        }
+        catch (Exception)
+        {
+            // Difesa in profondità: Stop non è garantito lanciare se il runner
+            // non esiste già. Una regola disabilitata è OK.
+        }
+
+        // Il check di Enabled qui dentro è sicuro: letture atomiche e stato più fresco al
+        // momento dello Start. Con la catena per regola è anche definitivo: nessuna
+        // operazione precedente può più applicarsi dopo questa.
         if (rule.Model.Enabled
             && !string.IsNullOrWhiteSpace(rule.Model.SourcePath)
             && !string.IsNullOrWhiteSpace(rule.Model.DestinationPath))
         {
-            WatchFolderService.Start(rule.Model);
+            try
+            {
+                WatchFolderService.Start(rule.Model);
+            }
+            catch (Exception)
+            {
+                // Difesa in profondità: Start non lancia più, ma una singola regola
+                // malata non deve fermare l'arresto della precedente.
+            }
         }
     }
 
@@ -191,14 +277,17 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
 
     private void OnStatusChanged(WatchStatus status)
     {
-        // Thread di background: lookup via _ruleIndex (thread-safe), assegnazioni dirette
-        // sulla riga trovata come per i progressi di copia.
+        // Thread di background: lookup via _ruleIndex (thread-safe), assegnazioni sulla
+        // riga trovata marshalate sul thread UI come per i progressi di copia.
         if (!_ruleIndex.TryGetValue(status.RuleId, out WatchRuleViewModel? row))
             return;
 
-        row.StatusText = status.Message;
-        if (status.LastRunUtc is { } lastRun)
-            row.LastRunText = $"Ultima sync: {lastRun.ToLocalTime():HH:mm:ss}";
+        UiDispatch.Post(() =>
+        {
+            row.StatusText = status.Message;
+            if (status.LastRunUtc is { } lastRun)
+                row.LastRunText = $"Ultima sync: {lastRun.ToLocalTime():HH:mm:ss}";
+        });
     }
 
     public void Dispose() => WatchFolderService.StatusChanged -= _statusHandler;
