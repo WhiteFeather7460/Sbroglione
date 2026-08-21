@@ -46,19 +46,6 @@
     <Setter Property="Background" Value="{DynamicResource Brush.NeutralBg}" />
   </Style>
 
-  <!-- Bottone bianco semi-trasparente per l'header col gradiente -->
-  <Style Selector="Button.onaccent">
-    <Setter Property="Background" Value="#33FFFFFF" />
-    <Setter Property="Foreground" Value="White" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="CornerRadius" Value="6" />
-    <Setter Property="Padding" Value="14,7" />
-  </Style>
-  <Style Selector="Button.onaccent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#55FFFFFF" />
-    <Setter Property="Foreground" Value="White" />
-  </Style>
-
   <!-- ===== Campi di testo ===== -->
   <Style Selector="TextBox">
     <Setter Property="CornerRadius" Value="6" />
