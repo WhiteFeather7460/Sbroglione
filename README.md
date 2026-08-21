@@ -125,3 +125,7 @@ Architettura a livelli: `Views` → `ViewModels` → `Services` (statici) → `M
 - Nuove chiavi colore vanno aggiunte in `Palette.axaml` (entrambe le varianti), `ThemeColorKeys` e `BuiltInThemes`.
 - Lo stile del codice è definito in `.editorconfig` (`dotnet format whitespace`).
 - Non committare direttamente su `main`: branch di feature + pull request.
+
+## Licenza
+
+[MIT](LICENSE)
