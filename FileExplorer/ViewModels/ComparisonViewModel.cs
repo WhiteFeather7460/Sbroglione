@@ -72,7 +72,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
         private set => this.RaiseAndSetIfChanged(ref _isComparing, value);
     }
 
-    private string _statusText = "Selezionare due cartelle da confrontare";
+    private string _statusText = LocalizationService.Tr("Str.Comparison.SelectTwoFolders");
     public string StatusText
     {
         get => _statusText;
@@ -121,7 +121,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
         private set => this.RaiseAndSetIfChanged(ref _isFileComparing, value);
     }
 
-    private string _fileCompareStatus = "Selezionare due file da confrontare";
+    private string _fileCompareStatus = LocalizationService.Tr("Str.Comparison.SelectTwoFiles");
     public string FileCompareStatus
     {
         get => _fileCompareStatus;
@@ -149,12 +149,12 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
     {
         null => string.Empty,
         { FirstDifferenceOffset: long offset } =>
-            $"Primo byte diverso: offset {offset.ToString("N0", ItCulture)} (0x{offset:X})",
-        _ => "Nessuna differenza"
+            string.Format(LocalizationService.Tr("Str.Comparison.FirstDiffByteFormat"), offset.ToString("N0", ItCulture), offset.ToString("X")),
+        _ => LocalizationService.Tr("Str.Comparison.NoDifference")
     };
 
     public string IdenticalPercentText => FileResult is { } result
-        ? string.Format(ItCulture, "{0:0.##} % identico", ClampedIdenticalPercent(result))
+        ? string.Format(ItCulture, LocalizationService.Tr("Str.Comparison.IdenticalPercentFormat"), ClampedIdenticalPercent(result))
         : string.Empty;
 
     private static double ClampedIdenticalPercent(FileCompareResult result)
@@ -168,15 +168,15 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
     public string RangeCountText => FileResult is { } result
         ? (result.DifferentRanges.Count == 1
-              ? "1 intervallo differente"
-              : $"{result.DifferentRanges.Count} intervalli differenti") +
-          (result.RangesTruncated ? " (elenco troncato)" : string.Empty)
+              ? LocalizationService.Tr("Str.Comparison.OneRangeDiff")
+              : string.Format(LocalizationService.Tr("Str.Comparison.RangesDiffFormat"), result.DifferentRanges.Count)) +
+          (result.RangesTruncated ? LocalizationService.Tr("Str.Comparison.ListTruncated") : string.Empty)
         : string.Empty;
 
     public string? LengthsText => FileResult is { } result
-        ? $"Lunghezze: {result.LeftLength.ToString("N0", ItCulture)} byte vs " +
-          $"{result.RightLength.ToString("N0", ItCulture)} byte" +
-          (result.LeftLength != result.RightLength ? " (lunghezze diverse)" : string.Empty)
+        ? string.Format(LocalizationService.Tr("Str.Comparison.LengthsFormat"),
+              result.LeftLength.ToString("N0", ItCulture), result.RightLength.ToString("N0", ItCulture)) +
+          (result.LeftLength != result.RightLength ? LocalizationService.Tr("Str.Comparison.LengthsDiffer") : string.Empty)
         : null;
 
     private async Task BrowseLeftAsync()
@@ -213,7 +213,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
         if (string.IsNullOrWhiteSpace(LeftPath) || string.IsNullOrWhiteSpace(RightPath)
             || !Directory.Exists(LeftPath) || !Directory.Exists(RightPath))
         {
-            StatusText = "Selezionare due cartelle esistenti";
+            StatusText = LocalizationService.Tr("Str.Comparison.SelectTwoExistingFolders");
             return;
         }
 
@@ -224,7 +224,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
         IsComparing = true;
         Result = null;
-        StatusText = "Confronto in corso…";
+        StatusText = LocalizationService.Tr("Str.Comparison.InProgress");
 
         try
         {
@@ -250,7 +250,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
                     UiDispatch.Post(() =>
                     {
                         if (progressGate.TryAdvance(processed))
-                            StatusText = $"Confronto in corso… ({processed}/{total})";
+                            StatusText = string.Format(LocalizationService.Tr("Str.Comparison.InProgressCountFormat"), processed, total);
                     });
                 },
                 ct);
@@ -258,16 +258,16 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
             Result = result;
             _comparedLeftRoot = left;
             _comparedRightRoot = right;
-            StatusText = $"{result.Identical.Count} identici, {result.Different.Count} diversi, " +
-                         $"{result.LeftOnly.Count} solo a sinistra, {result.RightOnly.Count} solo a destra";
+            StatusText = string.Format(LocalizationService.Tr("Str.Comparison.SummaryFormat"),
+                result.Identical.Count, result.Different.Count, result.LeftOnly.Count, result.RightOnly.Count);
         }
         catch (OperationCanceledException)
         {
-            StatusText = "Confronto annullato";
+            StatusText = LocalizationService.Tr("Str.Comparison.Cancelled");
         }
         catch (Exception ex)
         {
-            StatusText = $"Errore: {ex.Message}";
+            StatusText = string.Format(LocalizationService.Tr("Str.Common.ErrorFormat"), ex.Message);
         }
         finally
         {
@@ -283,7 +283,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
         if (string.IsNullOrWhiteSpace(LeftFilePath) || string.IsNullOrWhiteSpace(RightFilePath)
             || !File.Exists(LeftFilePath) || !File.Exists(RightFilePath))
         {
-            FileCompareStatus = "Selezionare due file esistenti";
+            FileCompareStatus = LocalizationService.Tr("Str.Comparison.SelectTwoExistingFiles");
             return;
         }
 
@@ -294,7 +294,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
         IsFileComparing = true;
         FileResult = null;
-        FileCompareStatus = "Confronto in corso…";
+        FileCompareStatus = LocalizationService.Tr("Str.Comparison.InProgress");
 
         try
         {
@@ -318,23 +318,23 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
                     UiDispatch.Post(() =>
                     {
                         if (blockGate.TryAdvance(processed))
-                            FileCompareStatus = $"Confronto in corso… ({processed}/{total})";
+                            FileCompareStatus = string.Format(LocalizationService.Tr("Str.Comparison.InProgressCountFormat"), processed, total);
                     });
                 },
                 ct);
 
             FileResult = result;
             FileCompareStatus = result.AreIdentical
-                ? "File identici"
-                : $"File diversi ({result.DifferentRanges.Count} intervalli)";
+                ? LocalizationService.Tr("Str.Comparison.FilesIdentical")
+                : string.Format(LocalizationService.Tr("Str.Comparison.FilesDifferentFormat"), result.DifferentRanges.Count);
         }
         catch (OperationCanceledException)
         {
-            FileCompareStatus = "Confronto annullato";
+            FileCompareStatus = LocalizationService.Tr("Str.Comparison.Cancelled");
         }
         catch (Exception ex)
         {
-            FileCompareStatus = $"Errore: {ex.Message}";
+            FileCompareStatus = string.Format(LocalizationService.Tr("Str.Common.ErrorFormat"), ex.Message);
         }
         finally
         {
@@ -371,12 +371,12 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
             await ComparisonReportExporter.ExportAsync(
                 filePath, Result, format, _comparedLeftRoot, _comparedRightRoot, generatedUtc, CancellationToken.None);
 
-            StatusText = $"Report esportato: {filePath}";
+            StatusText = string.Format(LocalizationService.Tr("Str.Comparison.ExportedFormat"), filePath);
             return filePath;
         }
         catch (Exception ex)
         {
-            StatusText = $"Errore esportazione: {ex.Message}";
+            StatusText = string.Format(LocalizationService.Tr("Str.Comparison.ExportErrorFormat"), ex.Message);
             return null;
         }
     }
