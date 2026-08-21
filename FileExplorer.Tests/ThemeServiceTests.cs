@@ -46,7 +46,7 @@ public class ThemeServiceTests
         ResourceDictionary dict = ThemeService.BuildDictionary(theme);
 
         var surface = Assert.IsType<SolidColorBrush>(dict["Brush.Surface"]);
-        Assert.Equal(Color.Parse("#1E1B1A"), surface.Color);
+        Assert.Equal(Color.Parse("#191B1E"), surface.Color);
     }
 
     [Fact]

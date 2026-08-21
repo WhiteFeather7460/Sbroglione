@@ -6,69 +6,69 @@
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
       <!-- Accent resources per la variante Light -->
-      <SolidColorBrush x:Key="Brush.Accent" Color="#FF5E62" />
+      <SolidColorBrush x:Key="Brush.Accent" Color="#0EA5A0" />
       <LinearGradientBrush x:Key="Brush.AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-        <GradientStop Color="#FF5E62" Offset="0" />
-        <GradientStop Color="#FF9446" Offset="1" />
+        <GradientStop Color="#0EA5A0" Offset="0" />
+        <GradientStop Color="#0EA5A0" Offset="1" />
       </LinearGradientBrush>
-      <SolidColorBrush x:Key="Brush.OnAccent" Color="White" />
-      <SolidColorBrush x:Key="Brush.Surface" Color="#FAF9F7" />
+      <SolidColorBrush x:Key="Brush.OnAccent" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Surface" Color="#F7F8F8" />
       <SolidColorBrush x:Key="Brush.Card" Color="#FFFFFF" />
-      <SolidColorBrush x:Key="Brush.CardBorder" Color="#EEE2DA" />
-      <SolidColorBrush x:Key="Brush.Field" Color="#F4EFE9" />
-      <SolidColorBrush x:Key="Brush.TextPrimary" Color="#2B2420" />
-      <SolidColorBrush x:Key="Brush.TextMuted" Color="#8A7F78" />
-      <SolidColorBrush x:Key="Brush.SuccessBg" Color="#E6F6EC" />
-      <SolidColorBrush x:Key="Brush.SuccessFg" Color="#1F8A4C" />
-      <SolidColorBrush x:Key="Brush.WarningBg" Color="#FBF0D9" />
-      <SolidColorBrush x:Key="Brush.WarningFg" Color="#9A6B00" />
-      <SolidColorBrush x:Key="Brush.ErrorBg" Color="#FBE5E2" />
-      <SolidColorBrush x:Key="Brush.ErrorFg" Color="#C43025" />
-      <SolidColorBrush x:Key="Brush.ProgressBg" Color="#FFE9DF" />
-      <SolidColorBrush x:Key="Brush.ProgressFg" Color="#D8481F" />
-      <SolidColorBrush x:Key="Brush.NeutralBg" Color="#EFEAE5" />
-      <SolidColorBrush x:Key="Brush.NeutralFg" Color="#6E635C" />
-      <SolidColorBrush x:Key="Brush.Treemap.1" Color="#F2C4B3" />
-      <SolidColorBrush x:Key="Brush.Treemap.2" Color="#F5D8A7" />
-      <SolidColorBrush x:Key="Brush.Treemap.3" Color="#C9DEC4" />
-      <SolidColorBrush x:Key="Brush.Treemap.4" Color="#BCD5E3" />
-      <SolidColorBrush x:Key="Brush.Treemap.5" Color="#D9C6E0" />
-      <SolidColorBrush x:Key="Brush.Treemap.6" Color="#E3CFC0" />
-      <SolidColorBrush x:Key="Brush.Sparkline.Line" Color="#2563EB" />
-      <SolidColorBrush x:Key="Brush.Sparkline.Fill" Color="#332563EB" />
+      <SolidColorBrush x:Key="Brush.CardBorder" Color="#E4E7E9" />
+      <SolidColorBrush x:Key="Brush.Field" Color="#EFF1F2" />
+      <SolidColorBrush x:Key="Brush.TextPrimary" Color="#26292C" />
+      <SolidColorBrush x:Key="Brush.TextMuted" Color="#6D7278" />
+      <SolidColorBrush x:Key="Brush.SuccessBg" Color="#E3F2EB" />
+      <SolidColorBrush x:Key="Brush.SuccessFg" Color="#1D7F56" />
+      <SolidColorBrush x:Key="Brush.WarningBg" Color="#F6EDD8" />
+      <SolidColorBrush x:Key="Brush.WarningFg" Color="#8F6400" />
+      <SolidColorBrush x:Key="Brush.ErrorBg" Color="#F9E3E1" />
+      <SolidColorBrush x:Key="Brush.ErrorFg" Color="#C23B2E" />
+      <SolidColorBrush x:Key="Brush.ProgressBg" Color="#DEF0EF" />
+      <SolidColorBrush x:Key="Brush.ProgressFg" Color="#0B7D79" />
+      <SolidColorBrush x:Key="Brush.NeutralBg" Color="#EBEDEE" />
+      <SolidColorBrush x:Key="Brush.NeutralFg" Color="#64696E" />
+      <SolidColorBrush x:Key="Brush.Treemap.1" Color="#9DC3BC" />
+      <SolidColorBrush x:Key="Brush.Treemap.2" Color="#D3C089" />
+      <SolidColorBrush x:Key="Brush.Treemap.3" Color="#A9C29A" />
+      <SolidColorBrush x:Key="Brush.Treemap.4" Color="#96B4CC" />
+      <SolidColorBrush x:Key="Brush.Treemap.5" Color="#B5A7C9" />
+      <SolidColorBrush x:Key="Brush.Treemap.6" Color="#C4AC9A" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Line" Color="#0B7D79" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Fill" Color="#330EA5A0" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <!-- Accent resources per la variante Dark -->
-      <SolidColorBrush x:Key="Brush.Accent" Color="#FF5E62" />
+      <SolidColorBrush x:Key="Brush.Accent" Color="#0EA5A0" />
       <LinearGradientBrush x:Key="Brush.AccentGradient" StartPoint="0%,0%" EndPoint="100%,0%">
-        <GradientStop Color="#FF5E62" Offset="0" />
-        <GradientStop Color="#FF9446" Offset="1" />
+        <GradientStop Color="#0EA5A0" Offset="0" />
+        <GradientStop Color="#0EA5A0" Offset="1" />
       </LinearGradientBrush>
-      <SolidColorBrush x:Key="Brush.OnAccent" Color="White" />
-      <SolidColorBrush x:Key="Brush.Surface" Color="#1E1B1A" />
-      <SolidColorBrush x:Key="Brush.Card" Color="#2A2624" />
-      <SolidColorBrush x:Key="Brush.CardBorder" Color="#3A3430" />
-      <SolidColorBrush x:Key="Brush.Field" Color="#35302D" />
-      <SolidColorBrush x:Key="Brush.TextPrimary" Color="#F2ECE7" />
-      <SolidColorBrush x:Key="Brush.TextMuted" Color="#A79A91" />
-      <SolidColorBrush x:Key="Brush.SuccessBg" Color="#22402E" />
-      <SolidColorBrush x:Key="Brush.SuccessFg" Color="#7FD8A2" />
-      <SolidColorBrush x:Key="Brush.WarningBg" Color="#453A1C" />
-      <SolidColorBrush x:Key="Brush.WarningFg" Color="#E8C36A" />
-      <SolidColorBrush x:Key="Brush.ErrorBg" Color="#46231F" />
-      <SolidColorBrush x:Key="Brush.ErrorFg" Color="#FF9C8F" />
-      <SolidColorBrush x:Key="Brush.ProgressBg" Color="#44261C" />
-      <SolidColorBrush x:Key="Brush.ProgressFg" Color="#FFA07C" />
-      <SolidColorBrush x:Key="Brush.NeutralBg" Color="#35302D" />
-      <SolidColorBrush x:Key="Brush.NeutralFg" Color="#B5A89F" />
-      <SolidColorBrush x:Key="Brush.Treemap.1" Color="#7A4A3C" />
-      <SolidColorBrush x:Key="Brush.Treemap.2" Color="#7A6236" />
-      <SolidColorBrush x:Key="Brush.Treemap.3" Color="#46603F" />
-      <SolidColorBrush x:Key="Brush.Treemap.4" Color="#3B586B" />
-      <SolidColorBrush x:Key="Brush.Treemap.5" Color="#5C4668" />
-      <SolidColorBrush x:Key="Brush.Treemap.6" Color="#6B5546" />
-      <SolidColorBrush x:Key="Brush.Sparkline.Line" Color="#60A5FA" />
-      <SolidColorBrush x:Key="Brush.Sparkline.Fill" Color="#3360A5FA" />
+      <SolidColorBrush x:Key="Brush.OnAccent" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="Brush.Surface" Color="#191B1E" />
+      <SolidColorBrush x:Key="Brush.Card" Color="#212428" />
+      <SolidColorBrush x:Key="Brush.CardBorder" Color="#2E3237" />
+      <SolidColorBrush x:Key="Brush.Field" Color="#2C2F34" />
+      <SolidColorBrush x:Key="Brush.TextPrimary" Color="#E8EAEC" />
+      <SolidColorBrush x:Key="Brush.TextMuted" Color="#9AA0A6" />
+      <SolidColorBrush x:Key="Brush.SuccessBg" Color="#20362C" />
+      <SolidColorBrush x:Key="Brush.SuccessFg" Color="#34B27D" />
+      <SolidColorBrush x:Key="Brush.WarningBg" Color="#3A3122" />
+      <SolidColorBrush x:Key="Brush.WarningFg" Color="#E0B25C" />
+      <SolidColorBrush x:Key="Brush.ErrorBg" Color="#3D2624" />
+      <SolidColorBrush x:Key="Brush.ErrorFg" Color="#F08080" />
+      <SolidColorBrush x:Key="Brush.ProgressBg" Color="#1E3534" />
+      <SolidColorBrush x:Key="Brush.ProgressFg" Color="#2DD4CD" />
+      <SolidColorBrush x:Key="Brush.NeutralBg" Color="#2C2F34" />
+      <SolidColorBrush x:Key="Brush.NeutralFg" Color="#A6ACB2" />
+      <SolidColorBrush x:Key="Brush.Treemap.1" Color="#3E5A54" />
+      <SolidColorBrush x:Key="Brush.Treemap.2" Color="#5A5133" />
+      <SolidColorBrush x:Key="Brush.Treemap.3" Color="#45543C" />
+      <SolidColorBrush x:Key="Brush.Treemap.4" Color="#3B4C5E" />
+      <SolidColorBrush x:Key="Brush.Treemap.5" Color="#4C4258" />
+      <SolidColorBrush x:Key="Brush.Treemap.6" Color="#574838" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Line" Color="#2DD4CD" />
+      <SolidColorBrush x:Key="Brush.Sparkline.Fill" Color="#332DD4CD" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

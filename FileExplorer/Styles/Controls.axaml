@@ -3,15 +3,15 @@
 
   <!-- ===== Bottoni ===== -->
   <Style Selector="Button.primary">
-    <Setter Property="Background" Value="{DynamicResource Brush.AccentGradient}" />
-    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="16,7" />
   </Style>
   <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource Brush.AccentGradient}" />
-    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}" />
     <Setter Property="Opacity" Value="0.85" />
   </Style>
   <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
@@ -24,7 +24,7 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.CardBorder}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="16,7" />
   </Style>
   <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
@@ -35,7 +35,7 @@
   <Style Selector="Button.iconbtn">
     <Setter Property="Background" Value="{DynamicResource Brush.Field}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Width" Value="34" />
     <Setter Property="Height" Value="34" />
     <Setter Property="Padding" Value="0" />
@@ -44,19 +44,6 @@
   </Style>
   <Style Selector="Button.iconbtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Brush.NeutralBg}" />
-  </Style>
-
-  <!-- Bottone bianco semi-trasparente per l'header col gradiente -->
-  <Style Selector="Button.onaccent">
-    <Setter Property="Background" Value="#33FFFFFF" />
-    <Setter Property="Foreground" Value="White" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="CornerRadius" Value="8" />
-    <Setter Property="Padding" Value="14,7" />
-  </Style>
-  <Style Selector="Button.onaccent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#55FFFFFF" />
-    <Setter Property="Foreground" Value="White" />
   </Style>
 
   <!-- ===== Campi di testo ===== -->
@@ -73,28 +60,42 @@
 
   <!-- ===== Progress ===== -->
   <Style Selector="ProgressBar">
-    <Setter Property="MinHeight" Value="6" />
-    <Setter Property="Height" Value="6" />
-    <Setter Property="CornerRadius" Value="3" />
-    <Setter Property="Foreground" Value="{DynamicResource Brush.AccentGradient}" />
+    <Setter Property="MinHeight" Value="4" />
+    <Setter Property="Height" Value="4" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
     <Setter Property="Background" Value="{DynamicResource Brush.Field}" />
   </Style>
 
   <!-- ===== Card ===== -->
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{DynamicResource Brush.Card}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource Brush.CardBorder}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="14" />
     <Setter Property="Margin" Value="0,6" />
-    <Setter Property="BoxShadow" Value="0 2 8 0 #22FF5E62" />
+    <Setter Property="BoxShadow" Value="0 1 3 0 #18000000" />
+  </Style>
+
+  <!-- Barra-stato laterale: 3px a sinistra, colore per stato -->
+  <Style Selector="Border.card.success">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.SuccessFg}" />
+  </Style>
+  <Style Selector="Border.card.warning">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.WarningFg}" />
+  </Style>
+  <Style Selector="Border.card.error">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.ErrorFg}" />
+  </Style>
+  <Style Selector="Border.card.progress">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.ProgressFg}" />
   </Style>
 
   <!-- ===== Badge di stato (base = neutro) ===== -->
   <Style Selector="Border.badge">
-    <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="8,3" />
     <Setter Property="Background" Value="{DynamicResource Brush.NeutralBg}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>

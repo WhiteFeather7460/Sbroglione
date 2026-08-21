@@ -6,12 +6,13 @@
 
   <DockPanel>
 
-    <!-- Header con gradiente -->
-    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.AccentGradient}" Padding="20,14">
+    <!-- Header piatto -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
       <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <i:Icon Value="fa-solid fa-chart-pie" FontSize="20" Foreground="{DynamicResource Brush.OnAccent}" />
+        <i:Icon Value="fa-solid fa-chart-pie" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
         <TextBlock Text="Spazio disco" FontSize="18" FontWeight="Bold"
-                   Foreground="{DynamicResource Brush.OnAccent}" VerticalAlignment="Center" />
+                   Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
       </StackPanel>
     </Border>
 
