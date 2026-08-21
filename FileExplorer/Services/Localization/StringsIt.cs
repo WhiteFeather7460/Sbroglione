@@ -252,6 +252,8 @@ public static class StringsIt
         ["Str.DiskUsage.TotalFormat"] = "Totale: {0}",
         ["Str.DiskUsage.MoreItemsTooltipFormat"] = "altri {0} elementi — {1}",
         ["Str.DiskUsage.NodeTooltipFormat"] = "{0} — {1}",
+        ["Str.DiskUsage.ViewTreemap"] = "Vista treemap",
+        ["Str.DiskUsage.ViewList"] = "Vista gerarchica a lista",
         ["Str.Duplicates.Title"] = "Ricerca duplicati",
         ["Str.Duplicates.EmptyTitle"] = "Nessun gruppo di duplicati",
         ["Str.Duplicates.KeepFirst"] = "Tieni solo il primo",

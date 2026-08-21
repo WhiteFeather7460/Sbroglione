@@ -248,6 +248,8 @@ public static class StringsEn
         ["Str.DiskUsage.TotalFormat"] = "Total: {0}",
         ["Str.DiskUsage.MoreItemsTooltipFormat"] = "{0} more items — {1}",
         ["Str.DiskUsage.NodeTooltipFormat"] = "{0} — {1}",
+        ["Str.DiskUsage.ViewTreemap"] = "Treemap view",
+        ["Str.DiskUsage.ViewList"] = "Hierarchical list view",
         ["Str.Duplicates.Title"] = "Find duplicates",
         ["Str.Duplicates.EmptyTitle"] = "No duplicate groups",
         ["Str.Duplicates.KeepFirst"] = "Keep only the first",

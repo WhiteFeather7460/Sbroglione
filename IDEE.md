@@ -56,11 +56,11 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 ## Interfaccia & personalizzazione
 
-21. `[ ]` **Selettore lingua (localizzazione UI)** — picker della lingua nelle Impostazioni (es. Italiano/English) con stringhe estratte in file di risorse (`.resx` o JSON) e cambio a caldo senza riavvio dove possibile. Oggi la UI è monolingua; prerequisito per distribuire l'app a un pubblico più ampio. *(M)*
+21. `[x]` **Selettore lingua (localizzazione UI)** — picker della lingua nelle Impostazioni (es. Italiano/English) con stringhe estratte in file di risorse (`.resx` o JSON) e cambio a caldo senza riavvio dove possibile. Oggi la UI è monolingua; prerequisito per distribuire l'app a un pubblico più ampio. *(M)* *(implementata: branch feature/multilingua-it-en, i18n completo su tutti i layer Views/ViewModels/Services)*
 
 22. `[x]` **Menu hamburger laterale (navigazione a sinistra)** — sostituire la barra tab orizzontale in alto con un menu hamburger a sinistra: pannello laterale collassabile (icone sole ↔ icone + etichette) con le voci di navigazione (Copia, Esplora, Sync auto, ecc.), stato espanso/collassato persistito nelle Impostazioni. Libera spazio verticale e scala meglio all'aumentare delle sezioni. *(M)* *(implementata: TabControl verticale con etichette collassabili, stato in Impostazioni/settings.json)*
 
-23. `[ ]` **Visualizzazione gerarchica alternativa per l'occupazione disco** — alternativa al treemap (punto 15). Vista tipo tree-file-size / du-browser: albero espandibile verticale che mostra path e dimensioni relative senza riempire lo schermo di blocchi. **Scelta: lista gerarchica con barre inline** (ogni riga = folder, barra % occupazione, byte totali). Utile per directory con migliaia di file dove i blocchi diventano invisibili. *(M)*
+23. `[x]` **Visualizzazione gerarchica alternativa per l'occupazione disco** — alternativa al treemap (punto 15). Vista tipo tree-file-size / du-browser: albero espandibile verticale che mostra path e dimensioni relative senza riempire lo schermo di blocchi. **Scelta: lista gerarchica con barre inline** (ogni riga = folder, barra % occupazione, byte totali). Utile per directory con migliaia di file dove i blocchi diventano invisibili. *(M)* *(implementata: `HierarchyListControl`, toggle treemap/lista in Spazio disco)*
 
 ---
 
