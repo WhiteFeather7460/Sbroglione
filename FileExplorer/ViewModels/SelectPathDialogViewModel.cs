@@ -79,7 +79,7 @@ public class SelectPathDialogViewModel : ReactiveObject
             // la condivisione va montata dal sistema operativo.
             if (!OperatingSystem.IsWindows() && FileSystemService.IsUncPath(CurrentPath))
             {
-                ErrorMessage = "Percorso UNC non supportato su questo sistema: montare la condivisione di rete e usare il punto di mount.";
+                ErrorMessage = LocalizationService.Tr("Str.SelectPathDialog.UncNotSupported");
                 return;
             }
 
