@@ -5,13 +5,13 @@
     <!-- Barra di navigazione -->
     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
       <TextBox Width="500" Text="{Binding CurrentPath}" />
-      <Button Content="Vai" Command="{Binding NavigateCommand}" />
+      <Button Content="{DynamicResource Str.PathPicker.Go}" Command="{Binding NavigateCommand}" />
     </StackPanel>
 
     <!-- Pulsanti azione -->
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
-      <Button Content="Annulla" Command="{Binding CancelCommand}" Margin="5" />
-      <Button Content="Seleziona" Command="{Binding SelectCommand}" Margin="5" />
+      <Button Content="{DynamicResource Str.Common.Cancel}" Command="{Binding CancelCommand}" Margin="5" />
+      <Button Content="{DynamicResource Str.PathPicker.Select}" Command="{Binding SelectCommand}" Margin="5" />
     </StackPanel>
 
     <!-- Lista file/cartelle -->

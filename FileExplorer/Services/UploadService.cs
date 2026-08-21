@@ -71,7 +71,7 @@ public static class UploadService
             if (error is null)
                 uploaded.Add(entry);
             else
-                failed.Add(new UploadFailure(entry, error.Message));
+                failed.Add(new UploadFailure(entry, error.MessageKey, error.Detail));
         }
 
         return new UploadReport(uploaded, skipped, failed);

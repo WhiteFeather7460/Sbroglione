@@ -23,6 +23,12 @@ public static class DuplicateFinderService
 {
     private const long PartialHashBytes = 64 * 1024;
 
+    /// <summary>Identificatore di fase, stabile e indipendente dalla lingua — la traduzione avviene al confine ViewModel.</summary>
+    internal const string PartialHashStage = "PartialHash";
+
+    /// <summary>Identificatore di fase, stabile e indipendente dalla lingua — la traduzione avviene al confine ViewModel.</summary>
+    internal const string FullHashStage = "FullHash";
+
     public static async Task<IReadOnlyList<DuplicateGroup>> FindDuplicatesAsync(
         string rootPath,
         int maxDegreeOfParallelism,
@@ -60,7 +66,7 @@ public static class DuplicateFinderService
         // Fase 2: hash parziale dei candidati.
         var partialHashes = await HashAllAsync(
             partialCandidates, PartialHashBytes, maxDegreeOfParallelism,
-            processed => onProgress?.Invoke(new DuplicateScanProgress("Hash parziale", processed, partialCandidates.Count)),
+            processed => onProgress?.Invoke(new DuplicateScanProgress(PartialHashStage, processed, partialCandidates.Count)),
             ct).ConfigureAwait(false);
 
         var partialGroups = partialHashes
@@ -85,7 +91,7 @@ public static class DuplicateFinderService
 
         var fullHashes = await HashAllAsync(
             fullCandidates, long.MaxValue, maxDegreeOfParallelism,
-            processed => onProgress?.Invoke(new DuplicateScanProgress("Hash completo", processed, fullCandidates.Count)),
+            processed => onProgress?.Invoke(new DuplicateScanProgress(FullHashStage, processed, fullCandidates.Count)),
             ct).ConfigureAwait(false);
 
         results.AddRange(fullHashes

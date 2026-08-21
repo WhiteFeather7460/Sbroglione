@@ -12,7 +12,7 @@
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
       <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
         <i:Icon Value="fa-solid fa-gear" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
-        <TextBlock Text="Impostazioni" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource Str.Nav.Settings}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
       </StackPanel>
     </Border>
 
@@ -21,42 +21,42 @@
 
         <Border Classes="card">
           <StackPanel Spacing="14">
-            <TextBlock Text="Copia" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+            <TextBlock Text="{DynamicResource Str.Nav.Copy}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
 
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Grid.Column="0" Text="Parallelismo automatico (rileva SSD/HDD)"
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.AutoParallelism}"
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
               <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoParallelism}" />
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding !AutoParallelism}">
-              <TextBlock Grid.Column="0" Text="Thread di copia (manuale, 1-32)"
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.ManualThreads}"
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
               <NumericUpDown Grid.Column="1" Width="120" Minimum="1" Maximum="32" Increment="1"
                              Value="{Binding ManualParallelism}" />
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Grid.Column="0" Text="Dimensione buffer copia (KB)"
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.BufferSize}"
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
               <NumericUpDown Grid.Column="1" Width="140" Minimum="256" Maximum="16384" Increment="256"
                              Value="{Binding BufferSizeKb}" />
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Grid.Column="0" Text="Verifica checksum dopo la copia"
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.VerifyChecksum}"
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
               <ToggleSwitch Grid.Column="1" IsChecked="{Binding VerifyChecksumAfterCopy}" />
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Grid.Column="0" Text="Limita velocità di copia"
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.CopyPairs.ThrottleTooltip}"
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
               <ToggleSwitch Grid.Column="1" IsChecked="{Binding ThrottleEnabled}" />
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding ThrottleEnabled}">
-              <TextBlock Grid.Column="0" Text="Limite di banda (MB/s, 1-1000)"
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.BandwidthLimit}"
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
               <NumericUpDown Grid.Column="1" Width="140" Minimum="1" Maximum="1000" Increment="5"
                              Value="{Binding ThrottleMBps}" />
@@ -66,15 +66,26 @@
 
         <Border Classes="card">
           <StackPanel Spacing="14">
-            <TextBlock Text="Aspetto" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+            <TextBlock Text="{DynamicResource Str.Settings.Language}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
 
             <StackPanel Orientation="Horizontal" Spacing="16">
-              <RadioButton GroupName="Theme" Content="Sistema" IsChecked="{Binding IsThemeDefault}" />
-              <RadioButton GroupName="Theme" Content="Chiaro" IsChecked="{Binding IsThemeLight}" />
-              <RadioButton GroupName="Theme" Content="Scuro" IsChecked="{Binding IsThemeDark}" />
+              <RadioButton GroupName="Language" Content="{DynamicResource Str.Settings.LanguageItalian}" IsChecked="{Binding IsLanguageItalian}" />
+              <RadioButton GroupName="Language" Content="{DynamicResource Str.Settings.LanguageEnglish}" IsChecked="{Binding IsLanguageEnglish}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Str.Settings.Appearance}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <RadioButton GroupName="Theme" Content="{DynamicResource Str.Settings.ThemeSystem}" IsChecked="{Binding IsThemeDefault}" />
+              <RadioButton GroupName="Theme" Content="{DynamicResource Str.Settings.ThemeLight}" IsChecked="{Binding IsThemeLight}" />
+              <RadioButton GroupName="Theme" Content="{DynamicResource Str.Settings.ThemeDark}" IsChecked="{Binding IsThemeDark}" />
             </StackPanel>
 
-            <TextBlock Text="Temi personalizzati" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+            <TextBlock Text="{DynamicResource Str.Settings.CustomThemes}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
 
             <ItemsControl ItemsSource="{Binding CustomThemes}" IsVisible="{Binding HasCustomThemes}">
               <ItemsControl.ItemTemplate>
@@ -83,26 +94,26 @@
                     <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
                                Foreground="{DynamicResource Brush.TextPrimary}" />
                     <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-check"
-                            ToolTip.Tip="Applica" Click="OnApplyThemeClick" />
+                            ToolTip.Tip="{DynamicResource Str.Settings.ApplyTooltip}" Click="OnApplyThemeClick" />
                     <Button Grid.Column="2" Classes="iconbtn" i:Attached.Icon="fa-solid fa-pen"
-                            ToolTip.Tip="Modifica" Click="OnEditThemeClick" />
+                            ToolTip.Tip="{DynamicResource Str.Settings.EditTooltip}" Click="OnEditThemeClick" />
                     <Button Grid.Column="3" Classes="iconbtn" i:Attached.Icon="fa-solid fa-file-export"
-                            ToolTip.Tip="Esporta" Click="OnExportThemeClick" />
+                            ToolTip.Tip="{DynamicResource Str.Settings.ExportTooltip}" Click="OnExportThemeClick" />
                     <Button Grid.Column="4" Classes="iconbtn" i:Attached.Icon="fa-solid fa-trash"
-                            ToolTip.Tip="Elimina" Click="OnDeleteThemeClick" />
+                            ToolTip.Tip="{DynamicResource Str.Common.Delete}" Click="OnDeleteThemeClick" />
                   </Grid>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Text="Nessun tema personalizzato: creane uno partendo da Chiaro o Scuro."
+            <TextBlock Text="{DynamicResource Str.Settings.NoCustomThemes}"
                        IsVisible="{Binding !HasCustomThemes}"
                        Foreground="{DynamicResource Brush.TextMuted}" TextWrapping="Wrap" />
 
             <StackPanel Orientation="Horizontal" Spacing="10">
-              <Button Classes="secondary" Content="Nuovo da Chiaro" Click="OnNewFromLightClick" />
-              <Button Classes="secondary" Content="Nuovo da Scuro" Click="OnNewFromDarkClick" />
-              <Button Classes="secondary" Content="Importa…" Click="OnImportThemeClick" />
+              <Button Classes="secondary" Content="{DynamicResource Str.Settings.NewFromLight}" Click="OnNewFromLightClick" />
+              <Button Classes="secondary" Content="{DynamicResource Str.Settings.NewFromDark}" Click="OnNewFromDarkClick" />
+              <Button Classes="secondary" Content="{DynamicResource Str.Settings.Import}" Click="OnImportThemeClick" />
             </StackPanel>
           </StackPanel>
         </Border>

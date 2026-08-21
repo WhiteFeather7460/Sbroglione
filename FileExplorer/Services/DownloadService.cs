@@ -133,13 +133,13 @@ public static class DownloadService
                     {
                         DeletePartialFile(tempPath);
                         failed.Add(new DownloadFailure(
-                            item, "Impossibile sostituire il file locale: " + ex.Message));
+                            item, RemoteErrorMessageKeys.LocalReplaceFailed, ex.Message));
                     }
                 }
                 else
                 {
                     DeletePartialFile(tempPath);
-                    failed.Add(new DownloadFailure(item, error.Message));
+                    failed.Add(new DownloadFailure(item, error.MessageKey, error.Detail));
                 }
             }
             catch (OperationCanceledException)

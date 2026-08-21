@@ -94,17 +94,17 @@ public class ProfileEditorViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(Name))
         {
-            ValidationError = "Il nome del profilo è obbligatorio.";
+            ValidationError = LocalizationService.Tr("Str.ProfileEditor.NameRequired");
             return false;
         }
         if (string.IsNullOrWhiteSpace(Host))
         {
-            ValidationError = "L'host è obbligatorio.";
+            ValidationError = LocalizationService.Tr("Str.ProfileEditor.HostRequired");
             return false;
         }
         if (!int.TryParse(PortText, out int port) || port is < 1 or > 65535)
         {
-            ValidationError = "La porta deve essere un numero tra 1 e 65535.";
+            ValidationError = LocalizationService.Tr("Str.ProfileEditor.PortRange");
             return false;
         }
         ValidationError = null;
@@ -133,8 +133,7 @@ public class ProfileEditorViewModel : ViewModelBase
             }
             catch (Exception)
             {
-                ValidationError = "Impossibile salvare la password nel keyring di sistema. "
-                                  + "Svuota il campo password per salvare solo il profilo.";
+                ValidationError = LocalizationService.Tr("Str.ProfileEditor.KeyringSaveFailed");
                 return false;
             }
         }

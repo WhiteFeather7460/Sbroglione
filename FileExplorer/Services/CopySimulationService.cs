@@ -52,7 +52,9 @@ public static class CopySimulationService
     {
         bool isDirectory = Directory.Exists(sourcePath);
         if (!isDirectory && !File.Exists(sourcePath))
-            throw new FileNotFoundException("Sorgente inesistente", sourcePath);
+            // Testo diagnostico, non mostrato: CopyPairsViewModel intercetta questo tipo
+            // specifico e traduce con il percorso, non con ex.Message (confine Service→ViewModel).
+            throw new FileNotFoundException("Missing simulation source", sourcePath);
 
         // Sorgente file singolo: la copia reale (CopySingleFileAsync) risolve la destinazione in modo
         // diverso da una directory e non applica mai SkipUnchanged (ricopia sempre). La simulazione deve

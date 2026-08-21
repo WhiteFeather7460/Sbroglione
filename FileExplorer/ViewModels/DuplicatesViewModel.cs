@@ -43,7 +43,7 @@ public class DuplicateGroupViewModel : ReactiveObject
     public ObservableCollection<DuplicateFileViewModel> Files { get; } = new();
 
     public string Header =>
-        $"{Files.Count} copie · {SizeFormatter.Format(FileSize)} l'una · spreco {SizeFormatter.Format(FileSize * Math.Max(0, Files.Count - 1))}";
+        string.Format(LocalizationService.Tr("Str.Duplicates.GroupHeaderFormat"), Files.Count, SizeFormatter.Format(FileSize), SizeFormatter.Format(FileSize * Math.Max(0, Files.Count - 1)));
 }
 
 /// <summary>
@@ -86,7 +86,7 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
         set => this.RaiseAndSetIfChanged(ref _isScanning, value);
     }
 
-    private string _statusText = "Pronto";
+    private string _statusText = LocalizationService.Tr("Str.Common.Ready");
     public string StatusText
     {
         get => _statusText;
@@ -121,20 +121,20 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
     {
         if (string.IsNullOrWhiteSpace(RootPath) || !Directory.Exists(RootPath))
         {
-            StatusText = "Selezionare una cartella valida";
+            StatusText = LocalizationService.Tr("Str.Common.SelectValidFolder");
             return;
         }
 
         _scanCts = new CancellationTokenSource();
         Groups = new ObservableCollection<DuplicateGroupViewModel>();
         IsScanning = true;
-        StatusText = "Analisi…";
+        StatusText = LocalizationService.Tr("Str.Common.Analyzing");
 
         try
         {
             // Il callback arriva da threadpool e in parallelo: throttle sulla frequenza,
             // set su thread UI e clamp monotono sul contatore pubblicato. Il gate è per
-            // fase ("Hash parziale"/"Hash completo"): ogni fase riparte da 1.
+            // fase (identificatore stabile "PartialHash"/"FullHash", tradotto solo per la UI): ogni fase riparte da 1.
             var progressThrottle = new UiProgressThrottle();
             var progressGates = new ConcurrentDictionary<string, MonotonicProgressGate>(StringComparer.Ordinal);
             var found = await DuplicateFinderService.FindDuplicatesAsync(
@@ -148,10 +148,13 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
                     string stage = progress.Stage;
                     int processed = progress.Processed;
                     int total = progress.Total;
+                    string stageLabel = stage == DuplicateFinderService.PartialHashStage
+                        ? LocalizationService.Tr("Str.Duplicates.PartialHash")
+                        : LocalizationService.Tr("Str.Duplicates.FullHash");
                     UiDispatch.Post(() =>
                     {
                         if (progressGates.GetOrAdd(stage, _ => new MonotonicProgressGate()).TryAdvance(processed))
-                            StatusText = $"{stage}: {processed}/{total}";
+                            StatusText = string.Format(LocalizationService.Tr("Str.Duplicates.StageProgressFormat"), stageLabel, processed, total);
                     });
                 },
                 _scanCts.Token);
@@ -161,16 +164,18 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
             Groups = groups; // un solo reset per la UI
 
             StatusText = found.Count == 0
-                ? "Nessun duplicato trovato"
-                : found.Count == 1 ? "1 gruppo di duplicati" : $"{found.Count} gruppi di duplicati";
+                ? LocalizationService.Tr("Str.Duplicates.NoneFound")
+                : found.Count == 1
+                    ? LocalizationService.Tr("Str.Duplicates.OneGroupFound")
+                    : string.Format(LocalizationService.Tr("Str.Duplicates.GroupsFoundFormat"), found.Count);
         }
         catch (OperationCanceledException)
         {
-            StatusText = "Annullato";
+            StatusText = LocalizationService.Tr("Str.Common.Cancelled");
         }
         catch (Exception ex)
         {
-            StatusText = $"Errore: {ex.Message}";
+            StatusText = string.Format(LocalizationService.Tr("Str.Common.ErrorFormat"), ex.Message);
         }
         finally
         {
@@ -188,7 +193,7 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
         }
         catch (Exception ex)
         {
-            StatusText = $"Errore eliminazione: {ex.Message}";
+            StatusText = string.Format(LocalizationService.Tr("Str.Duplicates.DeleteErrorFormat"), ex.Message);
             return;
         }
 
@@ -207,9 +212,9 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
     public async Task ConfirmAndDeleteFileAsync(DuplicateFileViewModel file)
     {
         bool confirmed = await ConfirmDialogHelper.ShowAsync(
-            "Elimina file",
-            $"Eliminare definitivamente \"{file.FilePath}\"?\nL'operazione non è reversibile.",
-            "Elimina");
+            LocalizationService.Tr("Str.Duplicates.DeleteFileTitle"),
+            string.Format(LocalizationService.Tr("Str.Duplicates.DeleteFileMessageFormat"), file.FilePath),
+            LocalizationService.Tr("Str.Common.Delete"));
 
         if (confirmed)
             await DeleteFileAsync(file);
@@ -223,10 +228,9 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
             return;
 
         bool confirmed = await ConfirmDialogHelper.ShowAsync(
-            "Tieni solo il primo",
-            $"Eliminare definitivamente {toDelete.Count} file ({SizeFormatter.Format(group.FileSize * toDelete.Count)})?\n" +
-            $"Resta solo \"{group.Files[0].FilePath}\". L'operazione non è reversibile.",
-            "Elimina");
+            LocalizationService.Tr("Str.Duplicates.KeepFirst"),
+            string.Format(LocalizationService.Tr("Str.Duplicates.DeleteGroupMessageFormat"), toDelete.Count, SizeFormatter.Format(group.FileSize * toDelete.Count), group.Files[0].FilePath),
+            LocalizationService.Tr("Str.Common.Delete"));
 
         if (confirmed)
             await KeepFirstAsync(group);

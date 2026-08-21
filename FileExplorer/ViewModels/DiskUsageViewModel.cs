@@ -33,7 +33,7 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
         set => this.RaiseAndSetIfChanged(ref _isScanning, value);
     }
 
-    private string _statusText = "Pronto";
+    private string _statusText = LocalizationService.Tr("Str.Common.Ready");
     public string StatusText
     {
         get => _statusText;
@@ -54,7 +54,7 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
 
     public string CurrentPathText => _currentNode is null
         ? ""
-        : $"{_currentNode.FullPath} — {SizeFormatter.Format(_currentNode.SizeBytes)}";
+        : string.Format(LocalizationService.Tr("Str.DiskUsage.PathSizeFormat"), _currentNode.FullPath, SizeFormatter.Format(_currentNode.SizeBytes));
 
     public bool CanNavigateUp => _breadcrumb.Count > 0;
 
@@ -82,13 +82,13 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
     {
         if (string.IsNullOrWhiteSpace(RootPath) || !Directory.Exists(RootPath))
         {
-            StatusText = "Selezionare una cartella valida";
+            StatusText = LocalizationService.Tr("Str.Common.SelectValidFolder");
             return;
         }
 
         _scanCts = new CancellationTokenSource();
         IsScanning = true;
-        StatusText = "Analisi…";
+        StatusText = LocalizationService.Tr("Str.Common.Analyzing");
         _breadcrumb.Clear();
         CurrentNode = null;
 
@@ -99,19 +99,19 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
             // contatore monotono per costruzione: nessun throttle né clamp necessari.
             var root = await DiskUsageService.BuildTreeAsync(
                 RootPath,
-                scanned => UiDispatch.Post(() => StatusText = $"Analisi… {scanned} file"),
+                scanned => UiDispatch.Post(() => StatusText = string.Format(LocalizationService.Tr("Str.DiskUsage.AnalyzingProgressFormat"), scanned)),
                 _scanCts.Token);
 
             CurrentNode = root;
-            StatusText = $"Totale: {SizeFormatter.Format(root.SizeBytes)}";
+            StatusText = string.Format(LocalizationService.Tr("Str.DiskUsage.TotalFormat"), SizeFormatter.Format(root.SizeBytes));
         }
         catch (OperationCanceledException)
         {
-            StatusText = "Annullato";
+            StatusText = LocalizationService.Tr("Str.Common.Cancelled");
         }
         catch (Exception ex)
         {
-            StatusText = $"Errore: {ex.Message}";
+            StatusText = string.Format(LocalizationService.Tr("Str.Common.ErrorFormat"), ex.Message);
         }
         finally
         {

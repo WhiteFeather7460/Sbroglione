@@ -22,6 +22,9 @@ public class AppSettings
     /// <summary>Id del tema custom attivo (file in AppData/themes); null = usa ThemeVariant.</summary>
     public string? CustomThemeId { get; set; }
 
+    /// <summary>Lingua dell'interfaccia: "it" o "en".</summary>
+    public string Language { get; set; } = "it";
+
     /// <summary>Pannello di navigazione laterale espanso (icone + etichette) o collassato (solo icone).</summary>
     public bool NavExpanded { get; set; } = true;
 }

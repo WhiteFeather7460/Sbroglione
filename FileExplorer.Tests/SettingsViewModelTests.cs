@@ -111,6 +111,24 @@ public sealed class SettingsViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Language_defaults_to_italian()
+    {
+        SettingsViewModel vm = new() { ApplyThemesToApplication = false };
+        Assert.Equal("it", vm.Language);
+        Assert.True(vm.IsLanguageItalian);
+        Assert.False(vm.IsLanguageEnglish);
+    }
+
+    [Fact]
+    public void Setting_IsLanguageEnglish_updates_Language_and_persists()
+    {
+        SettingsViewModel vm = new() { ApplyThemesToApplication = false };
+        vm.IsLanguageEnglish = true;
+        Assert.Equal("en", vm.Language);
+        Assert.Equal("en", AppSettingsStore.Current.Language);
+    }
+
+    [Fact]
     public void Dispose_UnsubscribesFromThrottleChanged()
     {
         var vm = new SettingsViewModel();

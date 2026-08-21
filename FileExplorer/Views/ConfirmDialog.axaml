@@ -18,7 +18,7 @@
     </StackPanel>
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button Classes="secondary" Content="Annulla" Click="OnCancelClick" />
+      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Click="OnCancelClick" />
       <Button Classes="primary" Content="{Binding ConfirmLabel}" Click="OnConfirmClick" />
     </StackPanel>
 

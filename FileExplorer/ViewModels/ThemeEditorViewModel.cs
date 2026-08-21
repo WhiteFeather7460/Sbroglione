@@ -26,51 +26,51 @@ public class ThemeEditorViewModel : ViewModelBase
         WorkingTheme = themeToEdit.Clone();
         Groups =
         [
-            new ThemeColorGroupViewModel("Accent", this,
+            new ThemeColorGroupViewModel(LocalizationService.Tr("Str.ThemeEditor.Accent"), this,
             [
-                (ThemeColorKeys.Accent, "Accent"),
-                (ThemeColorKeys.AccentGradientStart, "Gradiente: inizio"),
-                (ThemeColorKeys.AccentGradientEnd, "Gradiente: fine"),
-                (ThemeColorKeys.OnAccent, "Testo su accent")
+                (ThemeColorKeys.Accent, LocalizationService.Tr("Str.ThemeEditor.Accent")),
+                (ThemeColorKeys.AccentGradientStart, LocalizationService.Tr("Str.ThemeEditor.GradientStart")),
+                (ThemeColorKeys.AccentGradientEnd, LocalizationService.Tr("Str.ThemeEditor.GradientEnd")),
+                (ThemeColorKeys.OnAccent, LocalizationService.Tr("Str.ThemeEditor.TextOnAccent"))
             ]),
-            new ThemeColorGroupViewModel("Base", this,
+            new ThemeColorGroupViewModel(LocalizationService.Tr("Str.ThemeEditor.SectionBase"), this,
             [
-                (ThemeColorKeys.Surface, "Sfondo"),
-                (ThemeColorKeys.Card, "Card"),
-                (ThemeColorKeys.CardBorder, "Bordo card"),
-                (ThemeColorKeys.Field, "Campi di input")
+                (ThemeColorKeys.Surface, LocalizationService.Tr("Str.ThemeEditor.Background")),
+                (ThemeColorKeys.Card, LocalizationService.Tr("Str.ThemeEditor.Card")),
+                (ThemeColorKeys.CardBorder, LocalizationService.Tr("Str.ThemeEditor.CardBorder")),
+                (ThemeColorKeys.Field, LocalizationService.Tr("Str.ThemeEditor.InputFields"))
             ]),
-            new ThemeColorGroupViewModel("Testo", this,
+            new ThemeColorGroupViewModel(LocalizationService.Tr("Str.ThemeEditor.SectionText"), this,
             [
-                (ThemeColorKeys.TextPrimary, "Testo principale"),
-                (ThemeColorKeys.TextMuted, "Testo secondario")
+                (ThemeColorKeys.TextPrimary, LocalizationService.Tr("Str.ThemeEditor.TextPrimary")),
+                (ThemeColorKeys.TextMuted, LocalizationService.Tr("Str.ThemeEditor.TextSecondary"))
             ]),
-            new ThemeColorGroupViewModel("Badge di stato", this,
+            new ThemeColorGroupViewModel(LocalizationService.Tr("Str.ThemeEditor.SectionBadges"), this,
             [
-                (ThemeColorKeys.SuccessBg, "Successo: sfondo"),
-                (ThemeColorKeys.SuccessFg, "Successo: testo"),
-                (ThemeColorKeys.WarningBg, "Avviso: sfondo"),
-                (ThemeColorKeys.WarningFg, "Avviso: testo"),
-                (ThemeColorKeys.ErrorBg, "Errore: sfondo"),
-                (ThemeColorKeys.ErrorFg, "Errore: testo"),
-                (ThemeColorKeys.ProgressBg, "In corso: sfondo"),
-                (ThemeColorKeys.ProgressFg, "In corso: testo"),
-                (ThemeColorKeys.NeutralBg, "Neutro: sfondo"),
-                (ThemeColorKeys.NeutralFg, "Neutro: testo")
+                (ThemeColorKeys.SuccessBg, LocalizationService.Tr("Str.ThemeEditor.SuccessBg")),
+                (ThemeColorKeys.SuccessFg, LocalizationService.Tr("Str.ThemeEditor.SuccessFg")),
+                (ThemeColorKeys.WarningBg, LocalizationService.Tr("Str.ThemeEditor.WarningBg")),
+                (ThemeColorKeys.WarningFg, LocalizationService.Tr("Str.ThemeEditor.WarningFg")),
+                (ThemeColorKeys.ErrorBg, LocalizationService.Tr("Str.ThemeEditor.ErrorBg")),
+                (ThemeColorKeys.ErrorFg, LocalizationService.Tr("Str.ThemeEditor.ErrorFg")),
+                (ThemeColorKeys.ProgressBg, LocalizationService.Tr("Str.ThemeEditor.ProgressBg")),
+                (ThemeColorKeys.ProgressFg, LocalizationService.Tr("Str.ThemeEditor.ProgressFg")),
+                (ThemeColorKeys.NeutralBg, LocalizationService.Tr("Str.ThemeEditor.NeutralBg")),
+                (ThemeColorKeys.NeutralFg, LocalizationService.Tr("Str.ThemeEditor.NeutralFg"))
             ]),
-            new ThemeColorGroupViewModel("Treemap", this,
+            new ThemeColorGroupViewModel(LocalizationService.Tr("Str.ThemeEditor.SectionTreemap"), this,
             [
-                (ThemeColorKeys.Treemap1, "Colore 1"),
-                (ThemeColorKeys.Treemap2, "Colore 2"),
-                (ThemeColorKeys.Treemap3, "Colore 3"),
-                (ThemeColorKeys.Treemap4, "Colore 4"),
-                (ThemeColorKeys.Treemap5, "Colore 5"),
-                (ThemeColorKeys.Treemap6, "Colore 6")
+                (ThemeColorKeys.Treemap1, LocalizationService.Tr("Str.ThemeEditor.Color1")),
+                (ThemeColorKeys.Treemap2, LocalizationService.Tr("Str.ThemeEditor.Color2")),
+                (ThemeColorKeys.Treemap3, LocalizationService.Tr("Str.ThemeEditor.Color3")),
+                (ThemeColorKeys.Treemap4, LocalizationService.Tr("Str.ThemeEditor.Color4")),
+                (ThemeColorKeys.Treemap5, LocalizationService.Tr("Str.ThemeEditor.Color5")),
+                (ThemeColorKeys.Treemap6, LocalizationService.Tr("Str.ThemeEditor.Color6"))
             ]),
-            new ThemeColorGroupViewModel("Grafico velocità", this,
+            new ThemeColorGroupViewModel(LocalizationService.Tr("Str.ThemeEditor.SectionSpeedChart"), this,
             [
-                (ThemeColorKeys.SparklineLine, "Linea"),
-                (ThemeColorKeys.SparklineFill, "Riempimento")
+                (ThemeColorKeys.SparklineLine, LocalizationService.Tr("Str.ThemeEditor.Line")),
+                (ThemeColorKeys.SparklineFill, LocalizationService.Tr("Str.ThemeEditor.Fill"))
             ])
         ];
     }

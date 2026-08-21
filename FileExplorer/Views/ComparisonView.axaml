@@ -10,7 +10,7 @@
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
       <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
         <i:Icon Value="fa-solid fa-code-compare" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
-        <TextBlock Text="Confronto directory" FontSize="18" FontWeight="Bold"
+        <TextBlock Text="{DynamicResource Str.Comparison.DirTitle}" FontSize="18" FontWeight="Bold"
                    Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
       </StackPanel>
     </Border>
@@ -21,19 +21,19 @@
         <Border Classes="card">
           <StackPanel Spacing="10">
             <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,8,Auto">
-              <TextBlock Grid.Row="0" Grid.Column="0" Text="Sinistra:" Width="70" VerticalAlignment="Center"
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Str.Comparison.Left}" Width="70" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.TextPrimary}" />
-              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding LeftPath}" Watermark="Cartella sinistra" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding LeftPath}" Watermark="{DynamicResource Str.Comparison.LeftWatermark}" />
               <Button Grid.Row="0" Grid.Column="2" Classes="iconbtn" Command="{Binding BrowseLeftCommand}"
-                      ToolTip.Tip="Sfoglia">
+                      ToolTip.Tip="{DynamicResource Str.Common.Browse}">
                 <i:Icon Value="fa-solid fa-folder-open" />
               </Button>
 
-              <TextBlock Grid.Row="2" Grid.Column="0" Text="Destra:" Width="70" VerticalAlignment="Center"
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Str.Comparison.Right}" Width="70" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.TextPrimary}" />
-              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RightPath}" Watermark="Cartella destra" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RightPath}" Watermark="{DynamicResource Str.Comparison.RightWatermark}" />
               <Button Grid.Row="2" Grid.Column="2" Classes="iconbtn" Command="{Binding BrowseRightCommand}"
-                      ToolTip.Tip="Sfoglia">
+                      ToolTip.Tip="{DynamicResource Str.Common.Browse}">
                 <i:Icon Value="fa-solid fa-folder-open" />
               </Button>
             </Grid>
@@ -42,11 +42,11 @@
               <Button Classes="primary" Command="{Binding CompareCommand}" IsEnabled="{Binding !IsComparing}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <i:Icon Value="fa-solid fa-code-compare" />
-                  <TextBlock Text="Confronta" />
+                  <TextBlock Text="{DynamicResource Str.Comparison.Compare}" />
                 </StackPanel>
               </Button>
               <Button Classes="secondary" Command="{Binding CancelCommand}" IsEnabled="{Binding IsComparing}">
-                <TextBlock Text="Annulla" />
+                <TextBlock Text="{DynamicResource Str.Common.Cancel}" />
               </Button>
             </StackPanel>
 
@@ -56,34 +56,34 @@
 
         <Border Classes="card" IsVisible="{Binding HasResult}">
           <StackPanel Spacing="10">
-            <TextBlock Text="Risultato" FontSize="15" FontWeight="SemiBold"
+            <TextBlock Text="{DynamicResource Str.Comparison.Result}" FontSize="15" FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.TextPrimary}" />
 
             <UniformGrid Columns="4">
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding IdenticalCount}" FontSize="20" FontWeight="Bold"
                            Foreground="{DynamicResource Brush.TextPrimary}" />
-                <TextBlock Text="Identici" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
+                <TextBlock Text="{DynamicResource Str.Comparison.Identical}" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
               </StackPanel>
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding DifferentCount}" FontSize="20" FontWeight="Bold"
                            Foreground="{DynamicResource Brush.TextPrimary}" />
-                <TextBlock Text="Diversi" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
+                <TextBlock Text="{DynamicResource Str.Comparison.Different}" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
               </StackPanel>
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding LeftOnlyCount}" FontSize="20" FontWeight="Bold"
                            Foreground="{DynamicResource Brush.TextPrimary}" />
-                <TextBlock Text="Solo a sinistra" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
+                <TextBlock Text="{DynamicResource Str.Comparison.LeftOnly}" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
               </StackPanel>
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding RightOnlyCount}" FontSize="20" FontWeight="Bold"
                            Foreground="{DynamicResource Brush.TextPrimary}" />
-                <TextBlock Text="Solo a destra" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
+                <TextBlock Text="{DynamicResource Str.Comparison.RightOnly}" Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
               </StackPanel>
             </UniformGrid>
 
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBlock Text="Esporta:" VerticalAlignment="Center"
+              <TextBlock Text="{DynamicResource Str.Comparison.ExportLabel}" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.TextPrimary}" />
               <Button Classes="secondary" Command="{Binding ExportHtmlCommand}"><TextBlock Text="HTML" /></Button>
               <Button Classes="secondary" Command="{Binding ExportCsvCommand}"><TextBlock Text="CSV" /></Button>
@@ -94,23 +94,23 @@
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Text="Confronto binario di due file" FontSize="15" FontWeight="SemiBold"
+            <TextBlock Text="{DynamicResource Str.Comparison.FileTitle}" FontSize="15" FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.TextPrimary}" />
 
             <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,8,Auto">
-              <TextBlock Grid.Row="0" Grid.Column="0" Text="File 1:" Width="70" VerticalAlignment="Center"
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Str.Comparison.File1}" Width="70" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.TextPrimary}" />
-              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding LeftFilePath}" Watermark="Primo file" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding LeftFilePath}" Watermark="{DynamicResource Str.Comparison.File1Watermark}" />
               <Button Grid.Row="0" Grid.Column="2" Classes="iconbtn" Command="{Binding BrowseLeftFileCommand}"
-                      ToolTip.Tip="Sfoglia">
+                      ToolTip.Tip="{DynamicResource Str.Common.Browse}">
                 <i:Icon Value="fa-solid fa-file" />
               </Button>
 
-              <TextBlock Grid.Row="2" Grid.Column="0" Text="File 2:" Width="70" VerticalAlignment="Center"
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Str.Comparison.File2}" Width="70" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.TextPrimary}" />
-              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RightFilePath}" Watermark="Secondo file" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RightFilePath}" Watermark="{DynamicResource Str.Comparison.File2Watermark}" />
               <Button Grid.Row="2" Grid.Column="2" Classes="iconbtn" Command="{Binding BrowseRightFileCommand}"
-                      ToolTip.Tip="Sfoglia">
+                      ToolTip.Tip="{DynamicResource Str.Common.Browse}">
                 <i:Icon Value="fa-solid fa-file" />
               </Button>
             </Grid>
@@ -119,12 +119,12 @@
               <Button Classes="primary" Command="{Binding CompareFilesCommand}" IsEnabled="{Binding !IsFileComparing}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <i:Icon Value="fa-solid fa-code-compare" />
-                  <TextBlock Text="Confronta file" />
+                  <TextBlock Text="{DynamicResource Str.Comparison.CompareFiles}" />
                 </StackPanel>
               </Button>
               <Button Classes="secondary" Command="{Binding CancelFileCompareCommand}"
                       IsEnabled="{Binding IsFileComparing}">
-                <TextBlock Text="Annulla" />
+                <TextBlock Text="{DynamicResource Str.Common.Cancel}" />
               </Button>
             </StackPanel>
 

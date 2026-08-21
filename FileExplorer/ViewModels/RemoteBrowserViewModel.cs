@@ -341,8 +341,8 @@ public class RemoteBrowserViewModel : ViewModelBase
             {
                 IsPasswordPromptVisible = true;
                 StatusMessage = _credentialStore.IsAvailable
-                    ? "Inserire la password."
-                    : "Keyring di sistema non disponibile: la password va inserita a ogni connessione.";
+                    ? LocalizationService.Tr("Str.RemoteBrowser.EnterPassword")
+                    : LocalizationService.Tr("Str.RemoteBrowser.KeyringUnavailable");
                 return;
             }
 
@@ -353,7 +353,7 @@ public class RemoteBrowserViewModel : ViewModelBase
             if (error is not null)
             {
                 await client.DisposeAsync();
-                ErrorMessage = error.Message;
+                ErrorMessage = TranslateRemoteMessage(error.MessageKey, error.Detail);
                 if (error.Kind == RemoteErrorKind.HostKeyMismatch)
                 {
                     PendingFingerprint = error.Fingerprint;
@@ -365,7 +365,7 @@ public class RemoteBrowserViewModel : ViewModelBase
                     // l'utente non avrebbe alcun modo di reinserirla: vicolo cieco.
                     PasswordInput = null;
                     IsPasswordPromptVisible = true;
-                    StatusMessage = "Autenticazione fallita: reinserisci la password.";
+                    StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.AuthFailed");
                 }
                 return;
             }
@@ -411,8 +411,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         }
         catch (Exception)
         {
-            ErrorMessage = "Connessione riuscita, ma il salvataggio della password nel keyring "
-                           + "è fallito: andrà reinserita alla prossima connessione.";
+            ErrorMessage = LocalizationService.Tr("Str.RemoteBrowser.KeyringSaveFailedAfterConnect");
         }
     }
 
@@ -427,7 +426,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         IsConnected = false;
         Items.Clear();
         VisibleItems.Clear();   // è la collezione mostrata dalla lista: senza questo resterebbe a video
-        StatusMessage = "Disconnesso.";
+        StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.DisconnectedStatus");
     }
 
     public async Task OpenDirectoryAsync(RemoteEntryViewModel entry)
@@ -475,7 +474,7 @@ public class RemoteBrowserViewModel : ViewModelBase
     public void RejectFingerprint()
     {
         ClearPendingFingerprint();
-        StatusMessage = "Connessione rifiutata: host key non accettata.";
+        StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.HostKeyRejected");
     }
 
     /// <summary>
@@ -510,7 +509,7 @@ public class RemoteBrowserViewModel : ViewModelBase
             // per fallire l'operazione (e l'handler chiamante è async void).
         }
 
-        StatusMessage = $"Profilo \"{profile.Name}\" eliminato.";
+        StatusMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.ProfileDeletedFormat"), profile.Name);
     }
 
     /// <summary>
@@ -567,7 +566,7 @@ public class RemoteBrowserViewModel : ViewModelBase
                 var result = await _client.ListRecursiveAsync(entry.Item.FullPath, CancellationToken.None);
                 if (result.Error is not null)
                 {
-                    ErrorMessage = result.Error.Message;
+                    ErrorMessage = TranslateRemoteMessage(result.Error.MessageKey, result.Error.Detail);
                     return null;
                 }
                 files.AddRange(result.Items);
@@ -588,7 +587,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         var result = await _client.ListRecursiveAsync(CurrentPath, CancellationToken.None);
         if (result.Error is not null)
         {
-            ErrorMessage = result.Error.Message;
+            ErrorMessage = TranslateRemoteMessage(result.Error.MessageKey, result.Error.Detail);
             return null;
         }
         return result.Items;
@@ -602,7 +601,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
         if (string.IsNullOrWhiteSpace(DestinationFolder))
         {
-            ErrorMessage = "Scegliere una cartella di destinazione prima di scaricare.";
+            ErrorMessage = LocalizationService.Tr("Str.RemoteBrowser.ChooseDestinationBeforeDownload");
             return;
         }
 
@@ -612,7 +611,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         var progress = new Progress<DownloadProgress>(p =>
         {
             DownloadProgressValue = p.TotalFiles == 0 ? 0 : (double)p.FileIndex / p.TotalFiles;
-            DownloadStatusText = $"{p.FileIndex}/{p.TotalFiles} — {p.CurrentFile}";
+            DownloadStatusText = string.Format(LocalizationService.Tr("Str.RemoteBrowser.TransferProgressFormat"), p.FileIndex, p.TotalFiles, p.CurrentFile);
         });
 
         try
@@ -622,13 +621,16 @@ public class RemoteBrowserViewModel : ViewModelBase
                 OverwriteAlways, progress, _downloadCts.Token);
 
             StatusMessage =
-                $"Scaricati {report.Downloaded.Count}, saltati {report.Skipped.Count}, falliti {report.Failed.Count}.";
+                string.Format(LocalizationService.Tr("Str.RemoteBrowser.DownloadSummaryFormat"), report.Downloaded.Count, report.Skipped.Count, report.Failed.Count);
             if (report.Failed.Count > 0)
-                ErrorMessage = $"{report.Failed.Count} file falliti. Primo errore: {report.Failed[0].Reason}";
+                ErrorMessage = string.Format(
+                    LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"),
+                    report.Failed.Count,
+                    TranslateRemoteMessage(report.Failed[0].MessageKey, report.Failed[0].Detail));
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Download annullato.";
+            StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.DownloadCancelled");
         }
         finally
         {
@@ -689,7 +691,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         // l'utente (cartella vuota, o senza file al primo livello) e va comunicato.
         if (entries.Count == 0)
         {
-            StatusMessage = "Nessun file da caricare.";
+            StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.NoFilesToUpload");
             return;
         }
 
@@ -700,7 +702,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         var progress = new Progress<UploadProgress>(p =>
         {
             UploadProgressValue = p.TotalFiles == 0 ? 0 : (double)p.FileIndex / p.TotalFiles;
-            UploadStatusText = $"{p.FileIndex}/{p.TotalFiles} — {p.CurrentFile}";
+            UploadStatusText = string.Format(LocalizationService.Tr("Str.RemoteBrowser.TransferProgressFormat"), p.FileIndex, p.TotalFiles, p.CurrentFile);
         });
 
         try
@@ -709,13 +711,16 @@ public class RemoteBrowserViewModel : ViewModelBase
                 _client, entries, remoteBasePath, UploadOverwriteAlways, progress, _uploadCts.Token);
 
             StatusMessage =
-                $"Caricati {report.Uploaded.Count}, saltati {report.Skipped.Count}, falliti {report.Failed.Count}.";
+                string.Format(LocalizationService.Tr("Str.RemoteBrowser.UploadSummaryFormat"), report.Uploaded.Count, report.Skipped.Count, report.Failed.Count);
             if (report.Failed.Count > 0)
-                ErrorMessage = $"{report.Failed.Count} file falliti. Primo errore: {report.Failed[0].Reason}";
+                ErrorMessage = string.Format(
+                    LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"),
+                    report.Failed.Count,
+                    TranslateRemoteMessage(report.Failed[0].MessageKey, report.Failed[0].Detail));
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Caricamento annullato.";
+            StatusMessage = LocalizationService.Tr("Str.RemoteBrowser.UploadCancelled");
         }
         finally
         {
@@ -825,7 +830,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
         if (result.Error is not null)
         {
-            ErrorMessage = result.Error.Message;
+            ErrorMessage = TranslateRemoteMessage(result.Error.MessageKey, result.Error.Detail);
             return;
         }
 
@@ -837,7 +842,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         }
 
         await (LocalStatusRefresh = RefreshLocalStatusesAsync());
-        StatusMessage = $"{Items.Count} elementi in {CurrentPath}";
+        StatusMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.ItemsInPathFormat"), Items.Count, CurrentPath);
         RebuildVisibleItems();
     }
 
@@ -876,6 +881,39 @@ public class RemoteBrowserViewModel : ViewModelBase
             _client = null;
         }
     }
+
+    /// <summary>
+    /// Traduce l'identificatore stabile e indipendente dalla lingua emesso dai client
+    /// remoti/DownloadService/UploadService (<see cref="RemoteErrorMessageKeys"/>) nel testo
+    /// mostrato in UI. Confine Service→ViewModel: stesso pattern di
+    /// <see cref="WatchFoldersViewModel"/> per <c>WatchFolderService.Status*</c>.
+    /// <see cref="RemoteErrorMessageKeys.Generic"/> non ha una voce nel catalogo: è già testo in
+    /// linguaggio naturale prodotto dal runtime (ex.Message), mostrato così com'è.
+    /// </summary>
+    private static string TranslateRemoteMessage(string messageKey, string? detail) => messageKey switch
+    {
+        RemoteErrorMessageKeys.NotConnected => LocalizationService.Tr("Str.RemoteBrowser.Error.NotConnected"),
+        RemoteErrorMessageKeys.AuthFailed => LocalizationService.Tr("Str.RemoteBrowser.Error.AuthFailed"),
+        RemoteErrorMessageKeys.FtpsNotSupported => LocalizationService.Tr("Str.RemoteBrowser.Error.FtpsNotSupported"),
+        RemoteErrorMessageKeys.NotFound => LocalizationService.Tr("Str.RemoteBrowser.Error.NotFound"),
+        RemoteErrorMessageKeys.PermissionDenied => LocalizationService.Tr("Str.RemoteBrowser.Error.PermissionDenied"),
+        RemoteErrorMessageKeys.Timeout => LocalizationService.Tr("Str.RemoteBrowser.Error.Timeout"),
+        RemoteErrorMessageKeys.HostUnreachable => LocalizationService.Tr("Str.RemoteBrowser.Error.HostUnreachable"),
+        RemoteErrorMessageKeys.HostKeyFirstConnection => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.HostKeyFirstConnectionFormat"), detail),
+        RemoteErrorMessageKeys.HostKeyChanged => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.HostKeyChangedFormat"), detail),
+        RemoteErrorMessageKeys.DownloadFailed => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.DownloadFailedFormat"), detail),
+        RemoteErrorMessageKeys.UploadFailed => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.UploadFailedFormat"), detail),
+        RemoteErrorMessageKeys.LocalReplaceFailed => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.LocalReplaceFailedFormat"), detail),
+        RemoteErrorMessageKeys.Generic => detail ?? messageKey,
+        // Fallback difensivo: un identificatore non riconosciuto (es. un valore letterale nei test)
+        // viene mostrato così com'è invece di rompere la UI con un testo mancante.
+        _ => detail ?? messageKey,
+    };
 
     /// <summary>
     /// Percorso del file profili: la view lo usa per salvare dall'editor, così view e viewmodel

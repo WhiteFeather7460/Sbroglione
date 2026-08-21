@@ -82,7 +82,7 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
     public async Task ConnectAsync_HostKeyMismatch_ShowsPendingFingerprint()
     {
         _client.ConnectError = new RemoteError(
-            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", Fingerprint: "SHA256:xyz");
         var vm = CreateViewModel();
         vm.PasswordInput = "pw";
 
@@ -96,7 +96,7 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
     public async Task AcceptFingerprint_SavesToProfileAndReconnects()
     {
         _client.ConnectError = new RemoteError(
-            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", Fingerprint: "SHA256:xyz");
         var vm = CreateViewModel();
         vm.PasswordInput = "pw";
         await vm.ConnectAsync();
@@ -113,7 +113,7 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
     public async Task RejectFingerprint_ClearsPendingAndStaysDisconnected()
     {
         _client.ConnectError = new RemoteError(
-            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", Fingerprint: "SHA256:xyz");
         var vm = CreateViewModel();
         vm.PasswordInput = "pw";
         await vm.ConnectAsync();
@@ -237,7 +237,7 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
     public async Task AcceptFingerprint_PersistsFingerprintOnDisk()
     {
         _client.ConnectError = new RemoteError(
-            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", Fingerprint: "SHA256:xyz");
         var vm = CreateViewModel();
         vm.PasswordInput = "pw";
         await vm.ConnectAsync();
@@ -253,7 +253,7 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
     public async Task AcceptFingerprint_AfterProfileSwitch_DoesNotWriteOnAnyProfile()
     {
         _client.ConnectError = new RemoteError(
-            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", Fingerprint: "SHA256:xyz");
         var vm = CreateViewModel();
         var other = new ConnectionProfile { Name = "altro", Host = "h2", Username = "u" };
         vm.Profiles.Add(other);
@@ -393,7 +393,7 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
     public async Task ConnectAsync_ProfiloCambiatoDuranteLaConnessione_NonAccettaLaFingerprintSulNuovoProfilo()
     {
         _client.ConnectError = new RemoteError(
-            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", "SHA256:xyz");
+            RemoteErrorKind.HostKeyMismatch, "Prima connessione.", Fingerprint: "SHA256:xyz");
         var gated = new GatedConnectClient(_client);
         var vm = CreateViewModel(_ => gated, new NullCredentialStore());
         var original = vm.SelectedProfile!;

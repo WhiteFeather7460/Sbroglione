@@ -9,8 +9,14 @@ using FileExplorer.Models;
 
 namespace FileExplorer.Services;
 
-/// <summary>Stato di una regola watch-folder, notificato via <see cref="WatchFolderService.StatusChanged"/>.</summary>
-public sealed record WatchStatus(string RuleId, bool IsRunning, DateTime? LastRunUtc, string Message);
+/// <summary>
+/// Stato di una regola watch-folder, notificato via <see cref="WatchFolderService.StatusChanged"/>.
+/// <paramref name="MessageKind"/> è un identificatore stabile e indipendente dalla lingua
+/// (uno dei const <c>Status*</c> di <see cref="WatchFolderService"/>); <paramref name="MessageDetail"/>
+/// porta l'eventuale dato dinamico (percorso, messaggio d'eccezione). La traduzione avviene
+/// al confine ViewModel — vedi il commento su <see cref="WatchFolderService.StatusSyncing"/>.
+/// </summary>
+public sealed record WatchStatus(string RuleId, bool IsRunning, DateTime? LastRunUtc, string MessageKind, string? MessageDetail = null);
 
 /// <summary>
 /// Motore delle regole watch-folder: un runner per regola attiva.
@@ -44,8 +50,21 @@ public static class WatchFolderService
     /// </summary>
     private static readonly Dictionary<string, object> RuleGates = new();
 
-    /// <summary>Prefisso dello stato emesso quando una regola si autoalimenta.</summary>
-    internal const string SelfFeedingMessagePrefix = "Destinazione dentro la sorgente";
+    /// <summary>
+    /// Identificatori di <see cref="WatchStatus.MessageKind"/>, stabili e indipendenti dalla
+    /// lingua: la traduzione (e l'eventuale <see cref="string.Format(string, object?)"/> con
+    /// <see cref="WatchStatus.MessageDetail"/>) avviene al confine ViewModel, mai qui.
+    /// </summary>
+    internal const string StatusSyncing = "Syncing";
+    internal const string StatusCompleted = "Completed";
+    internal const string StatusInterrupted = "Interrupted";
+    internal const string StatusError = "Error";
+    internal const string StatusSourceNotFound = "SourceNotFound";
+    internal const string StatusStartFailed = "StartFailed";
+    internal const string StatusSelfFeeding = "SelfFeeding";
+    internal const string StatusDestinationNotFound = "DestinationNotFound";
+    internal const string StatusWatcherError = "WatcherError";
+    internal const string StatusWatcherNotRestored = "WatcherNotRestored";
 
     /// <summary>
     /// Notifica di stato. Invocato su thread di background: i ViewModel assegnano
@@ -99,13 +118,13 @@ public static class WatchFolderService
 
             if (IsDestinationInsideSource(rule.SourcePath, rule.DestinationPath))
             {
-                RaiseStatus(new WatchStatus(rule.Id, false, null, $"{SelfFeedingMessagePrefix}: {rule.DestinationPath}"));
+                RaiseStatus(new WatchStatus(rule.Id, false, null, StatusSelfFeeding, rule.DestinationPath));
                 return;
             }
 
             if (!Directory.Exists(rule.SourcePath))
             {
-                RaiseStatus(new WatchStatus(rule.Id, false, null, $"Sorgente non trovata: {rule.SourcePath}"));
+                RaiseStatus(new WatchStatus(rule.Id, false, null, StatusSourceNotFound, rule.SourcePath));
                 return;
             }
 
@@ -128,7 +147,7 @@ public static class WatchFolderService
                 }
 
                 runner.Dispose();
-                RaiseStatus(new WatchStatus(rule.Id, false, null, $"Avvio non riuscito: {ex.Message}"));
+                RaiseStatus(new WatchStatus(rule.Id, false, null, StatusStartFailed, ex.Message));
             }
         }
     }
@@ -221,7 +240,7 @@ public static class WatchFolderService
     {
         if (IsDestinationInsideSource(rule.SourcePath, rule.DestinationPath))
         {
-            RaiseStatus(new WatchStatus(rule.Id, false, null, $"{SelfFeedingMessagePrefix}: {rule.DestinationPath}"));
+            RaiseStatus(new WatchStatus(rule.Id, false, null, StatusSelfFeeding, rule.DestinationPath));
             return;
         }
 
@@ -246,7 +265,7 @@ public static class WatchFolderService
         // diventa uno stato di errore e la passata viene saltata: il segnale (o il tick)
         // successivo riprova.
         if (!Directory.Exists(rule.DestinationPath))
-            throw new DirectoryNotFoundException($"Destinazione non trovata: {rule.DestinationPath}");
+            throw new DirectoryNotFoundException(rule.DestinationPath);
 
         // Snapshot: l'utente può cambiare le impostazioni mentre la sync è in corso.
         AppSettings settings = AppSettingsStore.Current;
@@ -289,23 +308,30 @@ public static class WatchFolderService
     /// </summary>
     private static async Task<DateTime?> SyncWithStatusAsync(WatchRule rule, DateTime? lastRunUtc, CancellationToken ct)
     {
-        RaiseStatus(new WatchStatus(rule.Id, true, lastRunUtc, "Sincronizzazione…"));
+        RaiseStatus(new WatchStatus(rule.Id, true, lastRunUtc, StatusSyncing));
         try
         {
             Func<WatchRule, CancellationToken, Task> sync = SyncOverride ?? DefaultSyncAsync;
             await sync(rule, ct).ConfigureAwait(false);
             DateTime completed = DateTime.UtcNow;
-            RaiseStatus(new WatchStatus(rule.Id, false, completed, $"Completata alle {completed.ToLocalTime():HH:mm:ss}"));
+            RaiseStatus(new WatchStatus(rule.Id, false, completed, StatusCompleted));
             return completed;
         }
         catch (OperationCanceledException)
         {
-            RaiseStatus(new WatchStatus(rule.Id, false, lastRunUtc, "Interrotta"));
+            RaiseStatus(new WatchStatus(rule.Id, false, lastRunUtc, StatusInterrupted));
             throw;
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            // Message porta solo il percorso (vedi DefaultSyncAsync): nessun testo italiano
+            // hardcoded da propagare, la traduzione avviene al confine ViewModel.
+            RaiseStatus(new WatchStatus(rule.Id, false, lastRunUtc, StatusDestinationNotFound, ex.Message));
+            return lastRunUtc;
         }
         catch (Exception ex)
         {
-            RaiseStatus(new WatchStatus(rule.Id, false, lastRunUtc, $"Errore: {ex.Message}"));
+            RaiseStatus(new WatchStatus(rule.Id, false, lastRunUtc, StatusError, ex.Message));
             return lastRunUtc;
         }
     }
@@ -388,7 +414,7 @@ public static class WatchFolderService
         /// </summary>
         private void OnWatcherError(ErrorEventArgs e)
         {
-            RaiseStatus(new WatchStatus(_rule.Id, false, LastRunUtc, $"Errore watcher: {e.GetException().Message}"));
+            RaiseStatus(new WatchStatus(_rule.Id, false, LastRunUtc, StatusWatcherError, e.GetException().Message));
             Signal();
 
             // Fuori dal thread di callback del watcher: non si dispone un watcher
@@ -411,7 +437,7 @@ public static class WatchFolderService
                 catch (Exception ex)
                 {
                     _watcher = null;
-                    RaiseStatus(new WatchStatus(_rule.Id, false, LastRunUtc, $"Watcher non ripristinato: {ex.Message}"));
+                    RaiseStatus(new WatchStatus(_rule.Id, false, LastRunUtc, StatusWatcherNotRestored, ex.Message));
                 }
             }
         }

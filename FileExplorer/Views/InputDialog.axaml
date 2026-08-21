@@ -17,11 +17,11 @@
                  Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
     </StackPanel>
 
-    <TextBox x:Name="InputBox" Text="{Binding Text}" Watermark="Nome…" KeyDown="OnTextKeyDown" />
+    <TextBox x:Name="InputBox" Text="{Binding Text}" Watermark="{DynamicResource Str.InputDialog.Watermark}" KeyDown="OnTextKeyDown" />
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button Classes="secondary" Content="Annulla" Click="OnCancelClick" />
-      <Button Classes="primary" Content="OK" Click="OnConfirmClick" IsEnabled="{Binding CanConfirm}" />
+      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Click="OnCancelClick" />
+      <Button Classes="primary" Content="{DynamicResource Str.Common.Ok}" Click="OnConfirmClick" IsEnabled="{Binding CanConfirm}" />
     </StackPanel>
 
   </StackPanel>

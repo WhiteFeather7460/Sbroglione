@@ -62,9 +62,9 @@ public partial class SettingsView : UserControl
 
         IStorageFile? file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Esporta tema",
+            Title = LocalizationService.Tr("Str.Settings.ExportThemeDialogTitle"),
             SuggestedFileName = theme.Name + ".json",
-            FileTypeChoices = [new FilePickerFileType("Tema JSON") { Patterns = ["*.json"] }]
+            FileTypeChoices = [new FilePickerFileType(LocalizationService.Tr("Str.Settings.ThemeJsonFileType")) { Patterns = ["*.json"] }]
         });
         if (file?.TryGetLocalPath() is { } path)
             await vm.ExportThemeAsync(theme, path);
@@ -79,9 +79,9 @@ public partial class SettingsView : UserControl
 
         IReadOnlyList<IStorageFile> files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Importa tema",
+            Title = LocalizationService.Tr("Str.Settings.ImportThemeDialogTitle"),
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("Tema JSON") { Patterns = ["*.json"] }]
+            FileTypeFilter = [new FilePickerFileType(LocalizationService.Tr("Str.Settings.ThemeJsonFileType")) { Patterns = ["*.json"] }]
         });
         if (files.Count == 1 && files[0].TryGetLocalPath() is { } path)
             await vm.ImportThemeAsync(path);

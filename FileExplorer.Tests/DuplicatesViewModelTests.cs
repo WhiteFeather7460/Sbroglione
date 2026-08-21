@@ -37,7 +37,7 @@ public sealed class DuplicatesViewModelTests : IDisposable
         var group = Assert.Single(vm.Groups);
         Assert.Equal(2, group.Files.Count);
         Assert.False(vm.IsScanning);
-        Assert.Equal("1 gruppo di duplicati", vm.StatusText);
+        Assert.Equal(LocalizationService.Tr("Str.Duplicates.OneGroupFound"), vm.StatusText);
     }
 
     [Fact]

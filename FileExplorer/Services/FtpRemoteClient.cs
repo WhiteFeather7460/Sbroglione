@@ -115,7 +115,7 @@ public sealed class FtpRemoteClient : IRemoteFileClient
     public async Task<RemoteError?> DownloadFileAsync(RemoteItem item, string localPath, IProgress<long>? progress, CancellationToken ct)
     {
         if (_client is null)
-            return new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso.");
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
 
         try
         {
@@ -127,7 +127,7 @@ public sealed class FtpRemoteClient : IRemoteFileClient
                 FtpLocalExists.Overwrite, progress: ftpProgress, token: ct);
 
             if (status != FtpStatus.Success)
-                return new RemoteError(RemoteErrorKind.TransferFailed, $"Download di {item.Name} non riuscito.");
+                return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.DownloadFailed, item.Name);
 
             // Il confronto "Present"/"Different" (DownloadService.GetLocalStatus) si basa sulla
             // data di modifica: allineiamo il file locale a quella remota (già convertita in ora locale).
@@ -147,7 +147,7 @@ public sealed class FtpRemoteClient : IRemoteFileClient
     public async Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
     {
         if (_client is null)
-            return new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso.");
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
 
         try
         {
@@ -159,7 +159,7 @@ public sealed class FtpRemoteClient : IRemoteFileClient
                 createRemoteDir: true, progress: ftpProgress, token: ct);
 
             if (status != FtpStatus.Success)
-                return new RemoteError(RemoteErrorKind.TransferFailed, $"Caricamento di {Path.GetFileName(localPath)} non riuscito.");
+                return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.UploadFailed, Path.GetFileName(localPath));
 
             // Speculare a DownloadFileAsync: il server stampa l'orario di upload, mentre lo skip
             // "già presente e identico" (UploadService) confronta la data di modifica locale.
@@ -203,22 +203,22 @@ public sealed class FtpRemoteClient : IRemoteFileClient
         modified.Kind == DateTimeKind.Utc ? modified.ToLocalTime() : modified;
 
     private static RemoteListingResult NotConnectedResult() =>
-        new(Array.Empty<RemoteItem>(), new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso."));
+        new(Array.Empty<RemoteItem>(), new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected));
 
     private static RemoteError TranslateError(Exception ex) => ex switch
     {
         FtpAuthenticationException =>
-            new RemoteError(RemoteErrorKind.AuthFailed, "Autenticazione fallita: utente o password errati."),
+            new RemoteError(RemoteErrorKind.AuthFailed, RemoteErrorMessageKeys.AuthFailed),
         FtpSecurityNotAvailableException or AuthenticationException =>
-            new RemoteError(RemoteErrorKind.AuthFailed, "Il server non supporta la cifratura richiesta (FTPS)."),
+            new RemoteError(RemoteErrorKind.AuthFailed, RemoteErrorMessageKeys.FtpsNotSupported),
         FtpMissingObjectException =>
-            new RemoteError(RemoteErrorKind.NotFound, "Percorso remoto inesistente."),
+            new RemoteError(RemoteErrorKind.NotFound, RemoteErrorMessageKeys.NotFound),
         FtpCommandException cmd when cmd.CompletionCode == "550" =>
-            new RemoteError(RemoteErrorKind.PermissionDenied, "Permesso negato dal server."),
+            new RemoteError(RemoteErrorKind.PermissionDenied, RemoteErrorMessageKeys.PermissionDenied),
         TimeoutException =>
-            new RemoteError(RemoteErrorKind.Timeout, "Timeout di connessione al server."),
+            new RemoteError(RemoteErrorKind.Timeout, RemoteErrorMessageKeys.Timeout),
         SocketException =>
-            new RemoteError(RemoteErrorKind.HostUnreachable, "Server non raggiungibile."),
-        _ => new RemoteError(RemoteErrorKind.TransferFailed, ex.Message)
+            new RemoteError(RemoteErrorKind.HostUnreachable, RemoteErrorMessageKeys.HostUnreachable),
+        _ => new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.Generic, ex.Message)
     };
 }

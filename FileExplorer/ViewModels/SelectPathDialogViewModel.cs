@@ -79,12 +79,12 @@ public class SelectPathDialogViewModel : ReactiveObject
             // la condivisione va montata dal sistema operativo.
             if (!OperatingSystem.IsWindows() && FileSystemService.IsUncPath(CurrentPath))
             {
-                ErrorMessage = "Percorso UNC non supportato su questo sistema: montare la condivisione di rete e usare il punto di mount.";
+                ErrorMessage = LocalizationService.Tr("Str.SelectPathDialog.UncNotSupported");
                 return;
             }
 
             var result = await FileSystemService.ListDirectoryAsync(CurrentPath, _directoriesOnly);
-            ErrorMessage = result.Error?.Message;
+            ErrorMessage = result.Error is null ? null : TranslateListingError(result.Error);
 
             foreach (var item in result.Items)
             {
@@ -96,4 +96,19 @@ public class SelectPathDialogViewModel : ReactiveObject
             IsLoading = false;
         }
     }
+
+    /// <summary>
+    /// Traduce l'identificatore stabile e indipendente dalla lingua emesso da
+    /// <see cref="FileSystemService.CreateListingError"/> nel testo mostrato in UI. Confine
+    /// Service→ViewModel: stesso pattern di <c>RemoteBrowserViewModel.TranslateRemoteMessage</c>.
+    /// </summary>
+    private static string TranslateListingError(ListingError error) => error.MessageKey switch
+    {
+        ListingErrorMessageKeys.NotFound => LocalizationService.Tr("Str.SelectPathDialog.Error.NotFound"),
+        ListingErrorMessageKeys.AccessDenied => LocalizationService.Tr("Str.SelectPathDialog.Error.AccessDenied"),
+        ListingErrorMessageKeys.Unavailable => string.Format(
+            LocalizationService.Tr("Str.SelectPathDialog.Error.UnavailableFormat"), error.Detail),
+        ListingErrorMessageKeys.Generic => error.Detail ?? error.MessageKey,
+        _ => error.Detail ?? error.MessageKey,
+    };
 }
