@@ -3,7 +3,7 @@
         xmlns:vm="using:FileExplorer.ViewModels"
         x:Class="FileExplorer.Views.ThemeEditorWindow"
         x:DataType="vm:ThemeEditorViewModel"
-        Title="Modifica tema"
+        Title="{DynamicResource Str.ThemeEditor.Title}"
         Width="560" Height="680"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource Brush.Surface}">
@@ -12,12 +12,12 @@
 
     <StackPanel DockPanel.Dock="Top" Spacing="10">
       <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
-        <TextBlock Grid.Column="0" Text="Nome" VerticalAlignment="Center" Margin="0,0,10,0"
+        <TextBlock Grid.Column="0" Text="{DynamicResource Str.Common.Name}" VerticalAlignment="Center" Margin="0,0,10,0"
                    Foreground="{DynamicResource Brush.TextPrimary}" />
         <TextBox Grid.Column="1" Text="{Binding Name}" />
       </Grid>
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Grid.Column="0" Text="Base scura (controlli nativi e fallback)"
+        <TextBlock Grid.Column="0" Text="{DynamicResource Str.ThemeEditor.DarkBaseLabel}"
                    VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
         <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsDarkBase}" />
       </Grid>
@@ -25,8 +25,8 @@
 
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
                 Spacing="10" Margin="0,12,0,0">
-      <Button Classes="secondary" Content="Annulla" Click="OnCancelClick" />
-      <Button Classes="primary" Content="Salva" Click="OnSaveClick" />
+      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Click="OnCancelClick" />
+      <Button Classes="primary" Content="{DynamicResource Str.Common.Save}" Click="OnSaveClick" />
     </StackPanel>
 
     <ScrollViewer Margin="0,12,0,0">
