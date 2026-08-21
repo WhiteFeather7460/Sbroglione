@@ -26,6 +26,7 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             AppSettingsStore.LoadCurrent();
+            LocalizationService.Apply(AppSettingsStore.Current.Language);
             ColorTheme? customTheme = AppSettingsStore.Current.CustomThemeId is { } themeId
                 ? ThemeStore.Load(themeId)
                 : null;
