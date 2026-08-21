@@ -4,14 +4,14 @@
   <!-- ===== Bottoni ===== -->
   <Style Selector="Button.primary">
     <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
-    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="16,7" />
   </Style>
   <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
-    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}" />
     <Setter Property="Opacity" Value="0.85" />
   </Style>
   <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
@@ -71,7 +71,7 @@
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{DynamicResource Brush.Card}" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="14" />
     <Setter Property="Margin" Value="0,6" />
@@ -80,19 +80,15 @@
 
   <!-- Barra-stato laterale: 3px a sinistra, colore per stato -->
   <Style Selector="Border.card.success">
-    <Setter Property="BorderThickness" Value="3,0,0,0" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.SuccessFg}" />
   </Style>
   <Style Selector="Border.card.warning">
-    <Setter Property="BorderThickness" Value="3,0,0,0" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.WarningFg}" />
   </Style>
   <Style Selector="Border.card.error">
-    <Setter Property="BorderThickness" Value="3,0,0,0" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.ErrorFg}" />
   </Style>
   <Style Selector="Border.card.progress">
-    <Setter Property="BorderThickness" Value="3,0,0,0" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.ProgressFg}" />
   </Style>
 

@@ -28,11 +28,11 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <Button Grid.Column="2" Classes="secondary" Click="OnNewProfileClick" Margin="10,0,0,0"
+        <Button Grid.Column="2" Classes="iconbtn" Click="OnNewProfileClick" Margin="10,0,0,0"
                 i:Attached.Icon="fa-solid fa-plus" ToolTip.Tip="Nuovo profilo" />
-        <Button Grid.Column="3" Classes="secondary" Click="OnManageProfilesClick" Margin="10,0,0,0"
+        <Button Grid.Column="3" Classes="iconbtn" Click="OnManageProfilesClick" Margin="10,0,0,0"
                 i:Attached.Icon="fa-solid fa-gear" ToolTip.Tip="Gestisci profili" />
-        <Button Grid.Column="4" Classes="secondary" Click="OnDeleteProfileClick" Margin="10,0,0,0"
+        <Button Grid.Column="4" Classes="iconbtn" Click="OnDeleteProfileClick" Margin="10,0,0,0"
                 i:Attached.Icon="fa-solid fa-trash" ToolTip.Tip="Elimina profilo">
           <Button.IsEnabled>
             <MultiBinding Converter="{StaticResource NotAny}">
