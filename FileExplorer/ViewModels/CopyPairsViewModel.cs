@@ -501,9 +501,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
     private static void PublishSpeed(FolderFilePairViewModel pair, SpeedSnapshot snapshot)
     {
-        pair.SpeedText =
-            $"{FormatSpeed(snapshot.CurrentBytesPerSecond)} · media {FormatSpeed(snapshot.AverageBytesPerSecond)}" +
-            $" · picco {FormatSpeed(snapshot.PeakBytesPerSecond)} · ETA {FormatEta(snapshot.EtaSeconds)}";
+        pair.SpeedText = string.Format(
+            LocalizationService.Tr("Str.CopyPairs.SpeedSummaryFormat"),
+            FormatSpeed(snapshot.CurrentBytesPerSecond),
+            FormatSpeed(snapshot.AverageBytesPerSecond),
+            FormatSpeed(snapshot.PeakBytesPerSecond),
+            FormatEta(snapshot.EtaSeconds));
         pair.SpeedSamples = snapshot.Samples;
     }
 
@@ -552,7 +555,10 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             });
         }, ct, AppSettingsStore.Current.BufferSizeBytes);
 
-        pair.SpeedText = $"media {FormatSpeed(tracker.AverageBytesPerSecond)} · picco {FormatSpeed(tracker.PeakBytesPerSecond)}";
+        pair.SpeedText = string.Format(
+            LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
+            FormatSpeed(tracker.AverageBytesPerSecond),
+            FormatSpeed(tracker.PeakBytesPerSecond));
 
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
@@ -608,7 +614,10 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
         int knownFileCount = publisher.KnownFileCount;
         if (knownFileCount > 0)
-            pair.SpeedText = $"media {FormatSpeed(tracker.AverageBytesPerSecond)} · picco {FormatSpeed(tracker.PeakBytesPerSecond)}";
+            pair.SpeedText = string.Format(
+                LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
+                FormatSpeed(tracker.AverageBytesPerSecond),
+                FormatSpeed(tracker.PeakBytesPerSecond));
 
         if (ct.IsCancellationRequested || knownFileCount == 0)
         {

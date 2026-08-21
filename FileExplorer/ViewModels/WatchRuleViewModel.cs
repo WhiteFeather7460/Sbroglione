@@ -138,8 +138,10 @@ public class WatchRuleViewModel : ReactiveObject
     private string BaselineStatus()
     {
         if (!Model.Enabled)
-            return "Disattivata";
+            return LocalizationService.Tr("Str.WatchFolders.StatusDisabled");
 
-        return WatchFolderService.ActiveRuleIds.Contains(Model.Id) ? "In ascolto" : "In attesa";
+        return WatchFolderService.ActiveRuleIds.Contains(Model.Id)
+            ? LocalizationService.Tr("Str.WatchFolders.StatusListening")
+            : LocalizationService.Tr("Str.WatchFolders.StatusPending");
     }
 }
