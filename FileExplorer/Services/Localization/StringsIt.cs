@@ -26,5 +26,8 @@ public static class StringsIt
         ["Str.Common.Analyzing"] = "Analisi…",
         ["Str.Common.SelectValidFolder"] = "Selezionare una cartella valida",
         ["Str.Common.AnalyzeFolderWatermark"] = "Cartella da analizzare…",
+        ["Str.Settings.Language"] = "Lingua",
+        ["Str.Settings.LanguageItalian"] = "Italiano",
+        ["Str.Settings.LanguageEnglish"] = "English",
     };
 }

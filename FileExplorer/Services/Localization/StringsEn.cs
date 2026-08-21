@@ -22,5 +22,8 @@ public static class StringsEn
         ["Str.Common.Analyzing"] = "Analyzing…",
         ["Str.Common.SelectValidFolder"] = "Select a valid folder",
         ["Str.Common.AnalyzeFolderWatermark"] = "Folder to analyze…",
+        ["Str.Settings.Language"] = "Language",
+        ["Str.Settings.LanguageItalian"] = "Italiano",
+        ["Str.Settings.LanguageEnglish"] = "English",
     };
 }

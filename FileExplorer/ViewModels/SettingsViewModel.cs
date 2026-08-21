@@ -170,12 +170,42 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         set { if (value) ThemeVariant = "Dark"; }
     }
 
+    public string Language
+    {
+        get => AppSettingsStore.Current.Language;
+        set
+        {
+            if (AppSettingsStore.Current.Language == value)
+                return;
+
+            AppSettingsStore.Current.Language = value;
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(IsLanguageItalian));
+            this.RaisePropertyChanged(nameof(IsLanguageEnglish));
+            if (ApplyThemesToApplication)
+                LocalizationService.Apply(value);
+            SaveCurrent();
+        }
+    }
+
+    public bool IsLanguageItalian
+    {
+        get => Language == LocalizationService.Italian;
+        set { if (value) Language = LocalizationService.Italian; }
+    }
+
+    public bool IsLanguageEnglish
+    {
+        get => Language == LocalizationService.English;
+        set { if (value) Language = LocalizationService.English; }
+    }
+
     /// <summary>Temi custom salvati su disco, in ordine alfabetico.</summary>
     public ObservableCollection<ColorTheme> CustomThemes { get; } = new();
 
     public bool HasCustomThemes => CustomThemes.Count > 0;
 
-    /// <summary>False nei test: evita di toccare Application.Current tramite ThemeService.</summary>
+    /// <summary>False nei test: evita di toccare Application.Current tramite ThemeService/LocalizationService.</summary>
     internal bool ApplyThemesToApplication { get; set; } = true;
 
     /// <summary>Tema custom attivo risolto da CustomThemeId, o null.</summary>

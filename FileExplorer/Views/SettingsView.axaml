@@ -66,6 +66,17 @@
 
         <Border Classes="card">
           <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Str.Settings.Language}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <RadioButton GroupName="Language" Content="{DynamicResource Str.Settings.LanguageItalian}" IsChecked="{Binding IsLanguageItalian}" />
+              <RadioButton GroupName="Language" Content="{DynamicResource Str.Settings.LanguageEnglish}" IsChecked="{Binding IsLanguageEnglish}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="14">
             <TextBlock Text="Aspetto" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
 
             <StackPanel Orientation="Horizontal" Spacing="16">
