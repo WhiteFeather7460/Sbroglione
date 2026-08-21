@@ -62,6 +62,8 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 23. `[x]` **Visualizzazione gerarchica alternativa per l'occupazione disco** — alternativa al treemap (punto 15). Vista tipo tree-file-size / du-browser: albero espandibile verticale che mostra path e dimensioni relative senza riempire lo schermo di blocchi. **Scelta: lista gerarchica con barre inline** (ogni riga = folder, barra % occupazione, byte totali). Utile per directory con migliaia di file dove i blocchi diventano invisibili. *(M)* *(implementata: `HierarchyListControl`, toggle treemap/lista in Spazio disco)*
 
+24. `[ ]` **Rimuovere treemap a blocchi, tenere solo barre + menu contestuale righe** — nel grafico occupazione disco (punto 15/23), togliere vista treemap a blocchi e lasciare solo `HierarchyListControl` a barre. Aggiungere menu contestuale (click destro) sulle righe con azioni utili (da definire: apri cartella, elimina, copia path, mostra in esplora file, ecc.). *(B)*
+
 ---
 
 ## Note di priorità
