@@ -17,7 +17,7 @@ namespace FileExplorer.Views;
 /// all'occupazione e freccia di espansione. Lo stato di espansione è tenuto per
 /// riferimento nodo (il Model resta senza stato di presentazione).
 /// </summary>
-public class HierarchyListControl : ScrollViewer
+public class HierarchyListControl : Decorator
 {
     public static readonly StyledProperty<DiskUsageNode?> NodeProperty =
         AvaloniaProperty.Register<HierarchyListControl, DiskUsageNode?>(nameof(Node));
@@ -39,8 +39,11 @@ public class HierarchyListControl : ScrollViewer
 
     public HierarchyListControl()
     {
+        // ScrollViewer subclassato non riceve il ControlTemplate del tema Fluent (i selettori
+        // matchano il tipo esatto, non le sottoclassi): niente PART_ContentPresenter, niente
+        // scroll funzionante. Componiamo invece un'istanza reale di ScrollViewer come figlio.
         _rows = new StackPanel { Orientation = Orientation.Vertical };
-        Content = _rows;
+        Child = new ScrollViewer { Content = _rows };
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
