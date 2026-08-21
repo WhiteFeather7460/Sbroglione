@@ -29,5 +29,13 @@ public static class StringsIt
         ["Str.Settings.Language"] = "Lingua",
         ["Str.Settings.LanguageItalian"] = "Italiano",
         ["Str.Settings.LanguageEnglish"] = "English",
+        ["Str.Nav.Copy"] = "Copia",
+        ["Str.Nav.Remote"] = "Server remoto",
+        ["Str.Nav.Compare"] = "Confronto",
+        ["Str.Nav.WatchSync"] = "Sync auto",
+        ["Str.Nav.Duplicates"] = "Duplicati",
+        ["Str.Nav.DiskUsage"] = "Spazio disco",
+        ["Str.Nav.Settings"] = "Impostazioni",
+        ["Str.Nav.ToggleMenu"] = "Espandi/comprimi menu",
     };
 }

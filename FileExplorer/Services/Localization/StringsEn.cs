@@ -25,5 +25,13 @@ public static class StringsEn
         ["Str.Settings.Language"] = "Language",
         ["Str.Settings.LanguageItalian"] = "Italiano",
         ["Str.Settings.LanguageEnglish"] = "English",
+        ["Str.Nav.Copy"] = "Copy",
+        ["Str.Nav.Remote"] = "Remote server",
+        ["Str.Nav.Compare"] = "Compare",
+        ["Str.Nav.WatchSync"] = "Auto sync",
+        ["Str.Nav.Duplicates"] = "Duplicates",
+        ["Str.Nav.DiskUsage"] = "Disk usage",
+        ["Str.Nav.Settings"] = "Settings",
+        ["Str.Nav.ToggleMenu"] = "Expand/collapse menu",
     };
 }
