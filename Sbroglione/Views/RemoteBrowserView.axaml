@@ -12,12 +12,22 @@
 
   <DockPanel>
 
-    <!-- Barra connessione -->
+    <!-- Header piatto -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <i:Icon Value="fa-solid fa-server" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock Text="{DynamicResource Str.Nav.Remote}" FontSize="18" FontWeight="Bold"
+                   Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <!-- Barra connessione -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
-        <i:Icon Grid.Column="0" Value="fa-solid fa-server" FontSize="20"
-                Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" />
+        <i:Icon Grid.Column="0" Value="fa-solid fa-plug" FontSize="20"
+                Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
         <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}"
                   SelectedItem="{Binding SelectedProfile}"
                   MaxWidth="280" Margin="10,0,0,0"
