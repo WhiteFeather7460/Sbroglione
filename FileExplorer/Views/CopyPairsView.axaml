@@ -85,7 +85,11 @@
         <ItemsControl ItemsSource="{Binding PathPairs}" Margin="20,12">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border Classes="card">
+              <Border Classes="card"
+                      Classes.success="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Success}"
+                      Classes.warning="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Warning}"
+                      Classes.error="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Error}"
+                      Classes.progress="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Copying}">
                 <StackPanel Spacing="8">
 
                   <!-- Sorgente -->

@@ -44,7 +44,7 @@
         <ItemsControl ItemsSource="{Binding Rules}" Margin="20,12">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border Classes="card">
+              <Border Classes="card" Classes.progress="{Binding Enabled}">
                 <StackPanel Spacing="8">
 
                   <!-- Sorgente -->
