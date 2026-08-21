@@ -64,7 +64,7 @@
                     <i:Icon Grid.Column="0" Value="fa-solid fa-folder" Width="26"
                             Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
                     <TextBox Grid.Column="1" Text="{Binding DestinationPath}" IsReadOnly="True"
-                             Watermark="{DynamicResource Str.WatchFolders.DestinationWatermark}" Margin="8,0" />
+                             Watermark="{DynamicResource Str.CopyPairs.DestinationWatermark}" Margin="8,0" />
                     <Button Grid.Column="2" Classes="iconbtn"
                             i:Attached.Icon="fa-solid fa-magnifying-glass"
                             Command="{Binding DataContext.BrowseDestinationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

@@ -3,8 +3,22 @@ using FileExplorer.Services;
 
 namespace FileExplorer.Tests;
 
-public class LocalizationServiceTests
+/// <summary>
+/// LocalizationService.CurrentLanguage è uno stato statico globale, condiviso da tutti i test
+/// del processo: ogni test che lo cambia deve ripristinarlo, altrimenti l'ordine di esecuzione
+/// dei test (non garantito da xUnit) diventerebbe significativo. Pattern IDisposable, come
+/// WatchFolderServiceTests per lo stato statico di WatchFolderService.
+/// </summary>
+public class LocalizationServiceTests : IDisposable
 {
+    private readonly string _originalLanguage = LocalizationService.CurrentLanguage;
+
+    public void Dispose()
+    {
+        LocalizationService.Apply(_originalLanguage);
+        GC.SuppressFinalize(this);
+    }
+
     [Fact]
     public void StringsEn_has_same_keys_as_StringsIt()
     {

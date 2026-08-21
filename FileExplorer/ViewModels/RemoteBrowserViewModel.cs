@@ -353,7 +353,7 @@ public class RemoteBrowserViewModel : ViewModelBase
             if (error is not null)
             {
                 await client.DisposeAsync();
-                ErrorMessage = error.Message;
+                ErrorMessage = TranslateRemoteMessage(error.MessageKey, error.Detail);
                 if (error.Kind == RemoteErrorKind.HostKeyMismatch)
                 {
                     PendingFingerprint = error.Fingerprint;
@@ -566,7 +566,7 @@ public class RemoteBrowserViewModel : ViewModelBase
                 var result = await _client.ListRecursiveAsync(entry.Item.FullPath, CancellationToken.None);
                 if (result.Error is not null)
                 {
-                    ErrorMessage = result.Error.Message;
+                    ErrorMessage = TranslateRemoteMessage(result.Error.MessageKey, result.Error.Detail);
                     return null;
                 }
                 files.AddRange(result.Items);
@@ -587,7 +587,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         var result = await _client.ListRecursiveAsync(CurrentPath, CancellationToken.None);
         if (result.Error is not null)
         {
-            ErrorMessage = result.Error.Message;
+            ErrorMessage = TranslateRemoteMessage(result.Error.MessageKey, result.Error.Detail);
             return null;
         }
         return result.Items;
@@ -623,7 +623,10 @@ public class RemoteBrowserViewModel : ViewModelBase
             StatusMessage =
                 string.Format(LocalizationService.Tr("Str.RemoteBrowser.DownloadSummaryFormat"), report.Downloaded.Count, report.Skipped.Count, report.Failed.Count);
             if (report.Failed.Count > 0)
-                ErrorMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"), report.Failed.Count, report.Failed[0].Reason);
+                ErrorMessage = string.Format(
+                    LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"),
+                    report.Failed.Count,
+                    TranslateRemoteMessage(report.Failed[0].MessageKey, report.Failed[0].Detail));
         }
         catch (OperationCanceledException)
         {
@@ -710,7 +713,10 @@ public class RemoteBrowserViewModel : ViewModelBase
             StatusMessage =
                 string.Format(LocalizationService.Tr("Str.RemoteBrowser.UploadSummaryFormat"), report.Uploaded.Count, report.Skipped.Count, report.Failed.Count);
             if (report.Failed.Count > 0)
-                ErrorMessage = string.Format(LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"), report.Failed.Count, report.Failed[0].Reason);
+                ErrorMessage = string.Format(
+                    LocalizationService.Tr("Str.RemoteBrowser.FailedFilesFormat"),
+                    report.Failed.Count,
+                    TranslateRemoteMessage(report.Failed[0].MessageKey, report.Failed[0].Detail));
         }
         catch (OperationCanceledException)
         {
@@ -824,7 +830,7 @@ public class RemoteBrowserViewModel : ViewModelBase
 
         if (result.Error is not null)
         {
-            ErrorMessage = result.Error.Message;
+            ErrorMessage = TranslateRemoteMessage(result.Error.MessageKey, result.Error.Detail);
             return;
         }
 
@@ -875,6 +881,39 @@ public class RemoteBrowserViewModel : ViewModelBase
             _client = null;
         }
     }
+
+    /// <summary>
+    /// Traduce l'identificatore stabile e indipendente dalla lingua emesso dai client
+    /// remoti/DownloadService/UploadService (<see cref="RemoteErrorMessageKeys"/>) nel testo
+    /// mostrato in UI. Confine Service→ViewModel: stesso pattern di
+    /// <see cref="WatchFoldersViewModel"/> per <c>WatchFolderService.Status*</c>.
+    /// <see cref="RemoteErrorMessageKeys.Generic"/> non ha una voce nel catalogo: è già testo in
+    /// linguaggio naturale prodotto dal runtime (ex.Message), mostrato così com'è.
+    /// </summary>
+    private static string TranslateRemoteMessage(string messageKey, string? detail) => messageKey switch
+    {
+        RemoteErrorMessageKeys.NotConnected => LocalizationService.Tr("Str.RemoteBrowser.Error.NotConnected"),
+        RemoteErrorMessageKeys.AuthFailed => LocalizationService.Tr("Str.RemoteBrowser.Error.AuthFailed"),
+        RemoteErrorMessageKeys.FtpsNotSupported => LocalizationService.Tr("Str.RemoteBrowser.Error.FtpsNotSupported"),
+        RemoteErrorMessageKeys.NotFound => LocalizationService.Tr("Str.RemoteBrowser.Error.NotFound"),
+        RemoteErrorMessageKeys.PermissionDenied => LocalizationService.Tr("Str.RemoteBrowser.Error.PermissionDenied"),
+        RemoteErrorMessageKeys.Timeout => LocalizationService.Tr("Str.RemoteBrowser.Error.Timeout"),
+        RemoteErrorMessageKeys.HostUnreachable => LocalizationService.Tr("Str.RemoteBrowser.Error.HostUnreachable"),
+        RemoteErrorMessageKeys.HostKeyFirstConnection => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.HostKeyFirstConnectionFormat"), detail),
+        RemoteErrorMessageKeys.HostKeyChanged => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.HostKeyChangedFormat"), detail),
+        RemoteErrorMessageKeys.DownloadFailed => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.DownloadFailedFormat"), detail),
+        RemoteErrorMessageKeys.UploadFailed => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.UploadFailedFormat"), detail),
+        RemoteErrorMessageKeys.LocalReplaceFailed => string.Format(
+            LocalizationService.Tr("Str.RemoteBrowser.Error.LocalReplaceFailedFormat"), detail),
+        RemoteErrorMessageKeys.Generic => detail ?? messageKey,
+        // Fallback difensivo: un identificatore non riconosciuto (es. un valore letterale nei test)
+        // viene mostrato così com'è invece di rompere la UI con un testo mancante.
+        _ => detail ?? messageKey,
+    };
 
     /// <summary>
     /// Percorso del file profili: la view lo usa per salvare dall'editor, così view e viewmodel

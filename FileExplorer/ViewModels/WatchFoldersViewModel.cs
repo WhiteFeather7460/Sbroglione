@@ -148,7 +148,7 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
         if (!WatchFolderService.IsDestinationInsideSource(source, destination))
             return false;
 
-        rule.StatusText = string.Format(LocalizationService.Tr("Str.WatchFolders.SelfFeedingFormat"), WatchFolderService.SelfFeedingMessagePrefix);
+        rule.StatusText = LocalizationService.Tr("Str.WatchFolders.SelfFeeding");
         return true;
     }
 
@@ -284,11 +284,41 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
 
         UiDispatch.Post(() =>
         {
-            row.StatusText = status.Message;
+            row.StatusText = FormatStatusMessage(status);
             if (status.LastRunUtc is { } lastRun)
                 row.LastRunText = string.Format(LocalizationService.Tr("Str.WatchFolders.LastRunFormat"), lastRun.ToLocalTime());
         });
     }
+
+    /// <summary>
+    /// Traduce l'identificatore stabile e indipendente dalla lingua emesso dal Service
+    /// (<see cref="WatchStatus.MessageKind"/>) nel testo mostrato in UI. Confine
+    /// Service→ViewModel: vedi il commento sullo stesso pattern in
+    /// <see cref="DuplicatesViewModel"/> per <c>DuplicateFinderService.PartialHashStage</c>.
+    /// </summary>
+    private static string FormatStatusMessage(WatchStatus status) => status.MessageKind switch
+    {
+        WatchFolderService.StatusSyncing => LocalizationService.Tr("Str.WatchFolders.Status.Syncing"),
+        WatchFolderService.StatusCompleted => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.CompletedFormat"),
+            (status.LastRunUtc ?? DateTime.UtcNow).ToLocalTime()),
+        WatchFolderService.StatusInterrupted => LocalizationService.Tr("Str.WatchFolders.Status.Interrupted"),
+        WatchFolderService.StatusError => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.ErrorFormat"), status.MessageDetail),
+        WatchFolderService.StatusSourceNotFound => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.SourceNotFoundFormat"), status.MessageDetail),
+        WatchFolderService.StatusStartFailed => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.StartFailedFormat"), status.MessageDetail),
+        WatchFolderService.StatusSelfFeeding => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.SelfFeedingFormat"), status.MessageDetail),
+        WatchFolderService.StatusDestinationNotFound => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.DestinationNotFoundFormat"), status.MessageDetail),
+        WatchFolderService.StatusWatcherError => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.WatcherErrorFormat"), status.MessageDetail),
+        WatchFolderService.StatusWatcherNotRestored => string.Format(
+            LocalizationService.Tr("Str.WatchFolders.Status.WatcherNotRestoredFormat"), status.MessageDetail),
+        _ => status.MessageDetail ?? status.MessageKind,
+    };
 
     public void Dispose() => WatchFolderService.StatusChanged -= _statusHandler;
 }

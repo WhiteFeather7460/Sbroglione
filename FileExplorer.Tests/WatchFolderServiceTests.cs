@@ -172,7 +172,7 @@ public sealed class WatchFolderServiceTests : IDisposable
             await WatchFolderService.RunNowAsync(rule);
 
             lock (statuses)
-                Assert.Contains(statuses, s => !s.IsRunning && s.Message == "Errore: disco pieno");
+                Assert.Contains(statuses, s => !s.IsRunning && s.MessageKind == WatchFolderService.StatusError && s.MessageDetail == "disco pieno");
         }
         finally
         {
@@ -256,7 +256,7 @@ public sealed class WatchFolderServiceTests : IDisposable
 
             Assert.Empty(WatchFolderService.ActiveRuleIds);
             lock (statuses)
-                Assert.Contains(statuses, s => s.RuleId == rule.Id && s.Message.StartsWith("Sorgente non trovata", StringComparison.Ordinal));
+                Assert.Contains(statuses, s => s.RuleId == rule.Id && s.MessageKind == WatchFolderService.StatusSourceNotFound);
         }
         finally
         {
@@ -304,7 +304,8 @@ public sealed class WatchFolderServiceTests : IDisposable
 
             Assert.Empty(WatchFolderService.ActiveRuleIds);
             lock (statuses)
-                Assert.Contains(statuses, s => s.RuleId == rule.Id && !s.IsRunning && s.Message.Contains("limite inotify raggiunto", StringComparison.Ordinal));
+                Assert.Contains(statuses, s => s.RuleId == rule.Id && !s.IsRunning && s.MessageKind == WatchFolderService.StatusStartFailed
+                    && s.MessageDetail != null && s.MessageDetail.Contains("limite inotify raggiunto", StringComparison.Ordinal));
         }
         finally
         {
@@ -335,7 +336,7 @@ public sealed class WatchFolderServiceTests : IDisposable
 
             Assert.Equal(0, Volatile.Read(ref _syncCount));
             lock (statuses)
-                Assert.Equal(2, statuses.Count(s => s.RuleId == rule.Id && s.Message.StartsWith("Destinazione dentro la sorgente", StringComparison.Ordinal)));
+                Assert.Equal(2, statuses.Count(s => s.RuleId == rule.Id && s.MessageKind == WatchFolderService.StatusSelfFeeding));
         }
         finally
         {

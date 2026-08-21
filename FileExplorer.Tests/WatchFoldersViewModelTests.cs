@@ -175,9 +175,10 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         WatchRuleViewModel rule = await AddCompleteRuleAsync(vm);
         var lastRun = new DateTime(2026, 8, 19, 10, 0, 0, DateTimeKind.Utc);
 
-        WatchFolderService.RaiseStatus(new WatchStatus(rule.Model.Id, false, lastRun, "Completata alle 12:00:00"));
+        WatchFolderService.RaiseStatus(new WatchStatus(rule.Model.Id, false, lastRun, WatchFolderService.StatusCompleted));
 
-        Assert.Equal("Completata alle 12:00:00", rule.StatusText);
+        string expectedStatus = string.Format(LocalizationService.Tr("Str.WatchFolders.Status.CompletedFormat"), lastRun.ToLocalTime());
+        Assert.Equal(expectedStatus, rule.StatusText);
         Assert.NotNull(rule.LastRunText);
         string lastRunPrefix = LocalizationService.Tr("Str.WatchFolders.LastRunFormat").Split("{0")[0];
         Assert.StartsWith(lastRunPrefix, rule.LastRunText);
@@ -193,7 +194,7 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         string? before = rule.StatusText;
 
         vm.Dispose();
-        WatchFolderService.RaiseStatus(new WatchStatus(rule.Model.Id, true, null, "Sincronizzazione…"));
+        WatchFolderService.RaiseStatus(new WatchStatus(rule.Model.Id, true, null, WatchFolderService.StatusSyncing));
 
         Assert.Equal(before, rule.StatusText);
     }

@@ -116,13 +116,12 @@ public static class FileSystemService
     public static ListingError CreateListingError(Exception exception) => exception switch
     {
         DirectoryNotFoundException or FileNotFoundException =>
-            new ListingError(ListingErrorKind.NotFound, "Percorso inesistente."),
+            new ListingError(ListingErrorKind.NotFound, ListingErrorMessageKeys.NotFound),
         UnauthorizedAccessException =>
-            new ListingError(ListingErrorKind.AccessDenied,
-                "Accesso negato. Per una condivisione di rete, autenticarsi dal sistema operativo."),
+            new ListingError(ListingErrorKind.AccessDenied, ListingErrorMessageKeys.AccessDenied),
         IOException =>
-            new ListingError(ListingErrorKind.Unavailable, $"Percorso non raggiungibile: {exception.Message}"),
-        _ => new ListingError(ListingErrorKind.Unavailable, exception.Message)
+            new ListingError(ListingErrorKind.Unavailable, ListingErrorMessageKeys.Unavailable, exception.Message),
+        _ => new ListingError(ListingErrorKind.Unavailable, ListingErrorMessageKeys.Generic, exception.Message)
     };
 
     private static FileSystemItem CreateDirectoryItem(DirectoryInfo info) => new()

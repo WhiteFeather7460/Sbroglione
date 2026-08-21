@@ -60,10 +60,10 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         {
             // Host key sconosciuta (primo accesso) o cambiata: mai connettersi in silenzio.
             DisposeClientBestEffort();
-            string message = profile.AcceptedHostKeyFingerprint is null
-                ? $"Prima connessione a {profile.Host}: verifica e accetta la fingerprint del server."
-                : $"ATTENZIONE: la host key di {profile.Host} è CAMBIATA (possibile attacco). Accetta solo se il cambio è atteso.";
-            return new RemoteError(RemoteErrorKind.HostKeyMismatch, message, receivedFingerprint);
+            string messageKey = profile.AcceptedHostKeyFingerprint is null
+                ? RemoteErrorMessageKeys.HostKeyFirstConnection
+                : RemoteErrorMessageKeys.HostKeyChanged;
+            return new RemoteError(RemoteErrorKind.HostKeyMismatch, messageKey, profile.Host, receivedFingerprint);
         }
         catch (Exception ex)
         {
@@ -147,7 +147,7 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         ArgumentNullException.ThrowIfNull(item);
 
         if (_client is null)
-            return new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso.");
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
 
         try
         {
@@ -183,7 +183,7 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         ArgumentNullException.ThrowIfNull(remoteFullPath);
 
         if (_client is null)
-            return new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso.");
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
 
         try
         {
@@ -265,20 +265,20 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         modified.Kind == DateTimeKind.Utc ? modified.ToLocalTime() : modified;
 
     private static RemoteListingResult NotConnectedResult() =>
-        new(Array.Empty<RemoteItem>(), new RemoteError(RemoteErrorKind.TransferFailed, "Non connesso."));
+        new(Array.Empty<RemoteItem>(), new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected));
 
     private static RemoteError TranslateError(Exception ex) => ex switch
     {
         SshAuthenticationException =>
-            new RemoteError(RemoteErrorKind.AuthFailed, "Autenticazione fallita: utente o password errati."),
+            new RemoteError(RemoteErrorKind.AuthFailed, RemoteErrorMessageKeys.AuthFailed),
         SftpPathNotFoundException =>
-            new RemoteError(RemoteErrorKind.NotFound, "Percorso remoto inesistente."),
+            new RemoteError(RemoteErrorKind.NotFound, RemoteErrorMessageKeys.NotFound),
         SftpPermissionDeniedException =>
-            new RemoteError(RemoteErrorKind.PermissionDenied, "Permesso negato dal server."),
+            new RemoteError(RemoteErrorKind.PermissionDenied, RemoteErrorMessageKeys.PermissionDenied),
         SshOperationTimeoutException =>
-            new RemoteError(RemoteErrorKind.Timeout, "Timeout di connessione al server."),
+            new RemoteError(RemoteErrorKind.Timeout, RemoteErrorMessageKeys.Timeout),
         SocketException =>
-            new RemoteError(RemoteErrorKind.HostUnreachable, "Server non raggiungibile."),
-        _ => new RemoteError(RemoteErrorKind.TransferFailed, ex.Message)
+            new RemoteError(RemoteErrorKind.HostUnreachable, RemoteErrorMessageKeys.HostUnreachable),
+        _ => new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.Generic, ex.Message)
     };
 }

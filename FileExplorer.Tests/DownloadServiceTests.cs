@@ -149,7 +149,7 @@ public sealed class DownloadServiceTests : IDisposable
         Assert.Single(report.Downloaded);
         Assert.Single(report.Failed);
         Assert.Equal("a.txt", report.Failed[0].Item.Name);
-        Assert.False(string.IsNullOrWhiteSpace(report.Failed[0].Reason));
+        Assert.False(string.IsNullOrWhiteSpace(report.Failed[0].MessageKey));
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public sealed class DownloadServiceTests : IDisposable
 
         Assert.Single(report.Failed);
         Assert.Equal("a.txt", report.Failed[0].Item.Name);
-        Assert.False(string.IsNullOrWhiteSpace(report.Failed[0].Reason));
+        Assert.False(string.IsNullOrWhiteSpace(report.Failed[0].MessageKey));
         Assert.Single(report.Downloaded);
         Assert.Equal("b.txt", report.Downloaded[0].Name);
         Assert.Empty(Directory.GetFiles(_dest, "*.part", SearchOption.AllDirectories));

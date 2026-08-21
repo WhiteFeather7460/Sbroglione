@@ -131,7 +131,7 @@ public sealed class UploadServiceTests : IDisposable
         Assert.Single(report.Uploaded);
         Assert.Single(report.Failed);
         Assert.Equal("a.txt", Path.GetFileName(report.Failed[0].Entry.LocalPath));
-        Assert.False(string.IsNullOrWhiteSpace(report.Failed[0].Reason));
+        Assert.False(string.IsNullOrWhiteSpace(report.Failed[0].MessageKey));
     }
 
     [Fact]

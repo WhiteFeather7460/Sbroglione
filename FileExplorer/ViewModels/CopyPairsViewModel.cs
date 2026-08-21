@@ -471,6 +471,14 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 : LocalizationService.Tr("Str.CopyPairs.SimulateComplete");
             pair.StateKind = anyDoesNotFit ? CopyStateKind.Warning : CopyStateKind.Ready;
         }
+        catch (FileNotFoundException)
+        {
+            // CopySimulationService.Simulate: sorgente assente. Il percorso è già noto qui
+            // (pair.SourcePath), niente bisogno di ex.Message — che porta comunque un testo
+            // diagnostico non tradotto (confine Service→ViewModel, vedi commento nel Service).
+            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.SimulateSourceNotFoundFormat"), pair.SourcePath);
+            pair.StateKind = CopyStateKind.Error;
+        }
         catch (Exception ex)
         {
             pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.SimulateErrorFormat"), ex.Message);
