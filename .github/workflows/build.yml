@@ -1,0 +1,83 @@
+name: Build distributable
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish Windows (.exe)
+        run: >
+          dotnet publish FileExplorer.Desktop -c Release -r win-x64
+          --self-contained -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+
+      - name: Publish Linux (self-contained)
+        run: >
+          dotnet publish FileExplorer.Desktop -c Release -r linux-x64
+          --self-contained -p:PublishTrimmed=true
+
+      - name: Build AppImage
+        run: |
+          set -euo pipefail
+          APPDIR="FileExplorer.AppDir"
+          mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/pixmaps"
+
+          cp -r FileExplorer.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
+          chmod +x "$APPDIR/usr/bin/FileExplorer.Desktop"
+
+          convert FileExplorer/Assets/avalonia-logo.ico -resize 256x256 "$APPDIR/usr/share/pixmaps/FileExplorer.png"
+          cp "$APPDIR/usr/share/pixmaps/FileExplorer.png" "$APPDIR/FileExplorer.png"
+
+          {
+          echo "[Desktop Entry]"
+          echo "Type=Application"
+          echo "Name=FileExplorer"
+          echo "Exec=FileExplorer.Desktop"
+          echo "Icon=FileExplorer"
+          echo "Categories=Utility;"
+          } > "$APPDIR/usr/share/applications/FileExplorer.desktop"
+          cp "$APPDIR/usr/share/applications/FileExplorer.desktop" "$APPDIR/FileExplorer.desktop"
+
+          {
+          echo '#!/bin/sh'
+          echo 'HERE="$(dirname "$(readlink -f "$0")")"'
+          echo 'exec "$HERE/usr/bin/FileExplorer.Desktop" "$@"'
+          } > "$APPDIR/AppRun"
+          chmod +x "$APPDIR/AppRun"
+
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          ./appimagetool --appimage-extract-and-run "$APPDIR" FileExplorer-x86_64.AppImage
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FileExplorer-windows-x64
+          path: FileExplorer.Desktop/bin/Release/net10.0/win-x64/publish/FileExplorer.Desktop.exe
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FileExplorer-linux-x64
+          path: FileExplorer-x86_64.AppImage
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            FileExplorer.Desktop/bin/Release/net10.0/win-x64/publish/FileExplorer.Desktop.exe
+            FileExplorer-x86_64.AppImage
