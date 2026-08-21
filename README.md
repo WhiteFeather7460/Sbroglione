@@ -45,14 +45,14 @@ I test (xunit) vivono in `FileExplorer.Tests`.
 
 Self-contained executable (include .NET runtime):
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish FileExplorer.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
-Output: `FileExplorer.Desktop/bin/Release/net10.0-windows/win-x64/publish/FileExplorer.Desktop.exe`
+Output: `FileExplorer.Desktop/bin/Release/net10.0/win-x64/publish/FileExplorer.Desktop.exe`
 
 Framework-dependent (richiede .NET Runtime installato):
 ```bash
-dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true
+dotnet publish FileExplorer.Desktop -c Release -r win-x64 -p:PublishSingleFile=true
 ```
 
 ### Linux (.AppImage)
@@ -61,14 +61,14 @@ Prerequisiti: `appimagetool` installato e `wget`/`curl`.
 
 ```bash
 # 1. Pubblica per Linux
-dotnet publish -c Release -r linux-x64 --self-contained -p:PublishTrimmed=true
+dotnet publish FileExplorer.Desktop -c Release -r linux-x64 --self-contained -p:PublishTrimmed=true
 
 # 2. Prepara la struttura AppImage
 APPDIR="FileExplorer.AppDir"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/pixmaps"
 
 # 3. Copia l'eseguibile
-cp -r FileExplorer.Desktop/bin/Release/net10.0-linux/linux-x64/publish/* "$APPDIR/usr/bin/"
+cp -r FileExplorer.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
 
 # 4. Crea il desktop entry
 cat > "$APPDIR/usr/share/applications/FileExplorer.desktop" <<EOF
@@ -90,7 +90,7 @@ Output: `FileExplorer-x86_64.AppImage` (portable, eseguibile direttamente)
 ### macOS (.app)
 
 ```bash
-dotnet publish -c Release -r osx-x64 --self-contained -p:PublishTrimmed=true
+dotnet publish FileExplorer.Desktop -c Release -r osx-x64 --self-contained -p:PublishTrimmed=true
 ```
 
 Avvolgi l'output in un bundle `.app` usando lo script ufficiale Avalonia (vedi docs).
