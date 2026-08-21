@@ -134,7 +134,7 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
         {
             // Il callback arriva da threadpool e in parallelo: throttle sulla frequenza,
             // set su thread UI e clamp monotono sul contatore pubblicato. Il gate è per
-            // fase ("Hash parziale"/"Hash completo"): ogni fase riparte da 1.
+            // fase (identificatore stabile "PartialHash"/"FullHash", tradotto solo per la UI): ogni fase riparte da 1.
             var progressThrottle = new UiProgressThrottle();
             var progressGates = new ConcurrentDictionary<string, MonotonicProgressGate>(StringComparer.Ordinal);
             var found = await DuplicateFinderService.FindDuplicatesAsync(
@@ -148,10 +148,13 @@ public class DuplicatesViewModel : ViewModelBase, IDisposable
                     string stage = progress.Stage;
                     int processed = progress.Processed;
                     int total = progress.Total;
+                    string stageLabel = stage == DuplicateFinderService.PartialHashStage
+                        ? LocalizationService.Tr("Str.Duplicates.PartialHash")
+                        : LocalizationService.Tr("Str.Duplicates.FullHash");
                     UiDispatch.Post(() =>
                     {
                         if (progressGates.GetOrAdd(stage, _ => new MonotonicProgressGate()).TryAdvance(processed))
-                            StatusText = string.Format(LocalizationService.Tr("Str.Duplicates.StageProgressFormat"), stage, processed, total);
+                            StatusText = string.Format(LocalizationService.Tr("Str.Duplicates.StageProgressFormat"), stageLabel, processed, total);
                     });
                 },
                 _scanCts.Token);
