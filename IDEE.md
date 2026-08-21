@@ -60,6 +60,8 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 22. `[x]` **Menu hamburger laterale (navigazione a sinistra)** — sostituire la barra tab orizzontale in alto con un menu hamburger a sinistra: pannello laterale collassabile (icone sole ↔ icone + etichette) con le voci di navigazione (Copia, Esplora, Sync auto, ecc.), stato espanso/collassato persistito nelle Impostazioni. Libera spazio verticale e scala meglio all'aumentare delle sezioni. *(M)* *(implementata: TabControl verticale con etichette collassabili, stato in Impostazioni/settings.json)*
 
+23. `[ ]` **Visualizzazione gerarchica alternativa per l'occupazione disco** — alternativa al treemap (punto 15). Vista tipo tree-file-size / du-browser: albero espandibile verticale che mostra path e dimensioni relative senza riempire lo schermo di blocchi. **Scelta: lista gerarchica con barre inline** (ogni riga = folder, barra % occupazione, byte totali). Utile per directory con migliaia di file dove i blocchi diventano invisibili. *(M)*
+
 ---
 
 ## Note di priorità
