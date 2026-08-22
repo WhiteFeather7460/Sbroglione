@@ -15,6 +15,9 @@ public class SelectPathDialogViewModel : ReactiveObject
 {
     private readonly bool _directoriesOnly;
 
+    /// <summary>True se il dialog deve rifiutare la conferma su una cartella (serve un file).</summary>
+    public bool FilesOnly { get; }
+
     private string _currentPath;
     public string CurrentPath
     {
@@ -49,10 +52,11 @@ public class SelectPathDialogViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
     }
 
-    public SelectPathDialogViewModel(bool directoriesOnly, string startPath)
+    public SelectPathDialogViewModel(bool directoriesOnly, string startPath, bool filesOnly = false)
     {
         _directoriesOnly = directoriesOnly;
         _currentPath = startPath;
+        FilesOnly = filesOnly;
     }
 
     /// <summary>

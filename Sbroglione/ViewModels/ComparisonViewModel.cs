@@ -28,14 +28,28 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
     {
         BrowseLeftCommand = ReactiveCommand.CreateFromTask(BrowseLeftAsync);
         BrowseRightCommand = ReactiveCommand.CreateFromTask(BrowseRightAsync);
-        CompareCommand = ReactiveCommand.CreateFromTask(CompareAsync);
+
+        // Come per il confronto file: percorso digitato/incollato a mano che punta a un file
+        // (o non esiste) non deve lasciare il bottone cliccabile.
+        var canCompareDirectories = this.WhenAnyValue(
+            x => x.LeftPath, x => x.RightPath,
+            (left, right) => !string.IsNullOrWhiteSpace(left) && !string.IsNullOrWhiteSpace(right)
+                              && Directory.Exists(left) && Directory.Exists(right));
+        CompareCommand = ReactiveCommand.CreateFromTask(CompareAsync, canCompareDirectories);
         CancelCommand = ReactiveCommand.Create(Cancel);
         ExportHtmlCommand = ReactiveCommand.CreateFromTask(() => BrowseAndExportAsync(ComparisonReportFormat.Html));
         ExportCsvCommand = ReactiveCommand.CreateFromTask(() => BrowseAndExportAsync(ComparisonReportFormat.Csv));
         ExportJsonCommand = ReactiveCommand.CreateFromTask(() => BrowseAndExportAsync(ComparisonReportFormat.Json));
         BrowseLeftFileCommand = ReactiveCommand.CreateFromTask(BrowseLeftFileAsync);
         BrowseRightFileCommand = ReactiveCommand.CreateFromTask(BrowseRightFileAsync);
-        CompareFilesCommand = ReactiveCommand.CreateFromTask(CompareFilesAsync);
+
+        // Il bottone resta disabilitato finché entrambi i campi non puntano a file esistenti
+        // (copia/incolla o digitazione manuale di un percorso invalido o di una cartella inclusi).
+        var canCompareFiles = this.WhenAnyValue(
+            x => x.LeftFilePath, x => x.RightFilePath,
+            (left, right) => !string.IsNullOrWhiteSpace(left) && !string.IsNullOrWhiteSpace(right)
+                              && File.Exists(left) && File.Exists(right));
+        CompareFilesCommand = ReactiveCommand.CreateFromTask(CompareFilesAsync, canCompareFiles);
         CancelFileCompareCommand = ReactiveCommand.Create(CancelFileCompare);
     }
 
@@ -128,6 +142,13 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
         private set => this.RaiseAndSetIfChanged(ref _fileCompareStatus, value);
     }
 
+    private bool _isFileCompareError;
+    public bool IsFileCompareError
+    {
+        get => _isFileCompareError;
+        private set => this.RaiseAndSetIfChanged(ref _isFileCompareError, value);
+    }
+
     private FileCompareResult? _fileResult;
     public FileCompareResult? FileResult
     {
@@ -195,14 +216,14 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
     private async Task BrowseLeftFileAsync()
     {
-        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: false, LeftFilePath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: false, LeftFilePath, filesOnly: true);
         if (!string.IsNullOrEmpty(selected))
             LeftFilePath = selected;
     }
 
     private async Task BrowseRightFileAsync()
     {
-        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: false, RightFilePath);
+        var selected = await SelectPathDialogHelper.ShowAsync(directoriesOnly: false, RightFilePath, filesOnly: true);
         if (!string.IsNullOrEmpty(selected))
             RightFilePath = selected;
     }
@@ -284,6 +305,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
             || !File.Exists(LeftFilePath) || !File.Exists(RightFilePath))
         {
             FileCompareStatus = LocalizationService.Tr("Str.Comparison.SelectTwoExistingFiles");
+            IsFileCompareError = true;
             return;
         }
 
@@ -294,6 +316,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
 
         IsFileComparing = true;
         FileResult = null;
+        IsFileCompareError = false;
         FileCompareStatus = LocalizationService.Tr("Str.Comparison.InProgress");
 
         try
@@ -335,6 +358,7 @@ public class ComparisonViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             FileCompareStatus = string.Format(LocalizationService.Tr("Str.Common.ErrorFormat"), ex.Message);
+            IsFileCompareError = true;
         }
         finally
         {

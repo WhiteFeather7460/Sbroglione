@@ -33,6 +33,8 @@ public class HierarchyListControl : Decorator
 
     private const int MaxChildrenPerLevel = 400;
     private const double IndentPerLevel = 18;
+    private const double BarWidth = 60;
+    private const double BarHeight = 14;
 
     private readonly HashSet<DiskUsageNode> _expanded = new();
     private readonly StackPanel _rows;
@@ -97,7 +99,7 @@ public class HierarchyListControl : Decorator
 
         var grid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("18,*,90"),
+            ColumnDefinitions = new ColumnDefinitions("18,*,Auto,80"),
             Margin = new Thickness(depth * IndentPerLevel, 2, 4, 2)
         };
 
@@ -111,6 +113,35 @@ public class HierarchyListControl : Decorator
         Grid.SetColumn(arrow, 0);
         grid.Children.Add(arrow);
 
+        string label = isAggregate
+            ? string.Format(LocalizationService.Tr("Str.DiskUsage.MoreItemsTooltipFormat"), hiddenCount, SizeFormatter.Format(hiddenBytes))
+            : node!.Name;
+
+        var nameText = new TextBlock
+        {
+            Text = label,
+            FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(0, 0, 8, 0),
+            Foreground = this.FindResource(ActualThemeVariant, "Brush.TextPrimary") as IBrush
+        };
+        Grid.SetColumn(nameText, 1);
+        grid.Children.Add(nameText);
+
+        var barTrack = new Grid
+        {
+            Width = BarWidth,
+            Height = BarHeight,
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        var track = new Border
+        {
+            Background = this.FindResource(ActualThemeVariant, "Brush.CardBorder") as IBrush,
+            CornerRadius = new CornerRadius(2)
+        };
+        barTrack.Children.Add(track);
+
         var barCell = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions
@@ -122,39 +153,34 @@ public class HierarchyListControl : Decorator
         var fill = new Border
         {
             Background = this.FindResource(ActualThemeVariant, isAggregate ? "Brush.Treemap.6" : "Brush.Accent") as IBrush,
-            CornerRadius = new CornerRadius(2),
-            Height = 14,
-            Margin = new Thickness(0, 0, 4, 0)
+            CornerRadius = new CornerRadius(2)
         };
         Grid.SetColumn(fill, 0);
         barCell.Children.Add(fill);
+        barTrack.Children.Add(barCell);
 
-        string label = isAggregate
-            ? string.Format(LocalizationService.Tr("Str.DiskUsage.MoreItemsTooltipFormat"), hiddenCount, SizeFormatter.Format(hiddenBytes))
-            : node!.Name;
-
-        var nameText = new TextBlock
+        var pctText = new TextBlock
         {
-            Text = label,
-            FontSize = 12,
+            Text = $"{pct:0}%",
+            FontSize = 10,
+            HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            TextTrimming = TextTrimming.CharacterEllipsis,
             Foreground = this.FindResource(ActualThemeVariant, "Brush.TextPrimary") as IBrush
         };
-        Grid.SetColumn(nameText, 1);
-        barCell.Children.Add(nameText);
-        Grid.SetColumn(barCell, 1);
-        grid.Children.Add(barCell);
+        barTrack.Children.Add(pctText);
+
+        Grid.SetColumn(barTrack, 2);
+        grid.Children.Add(barTrack);
 
         var sizeText = new TextBlock
         {
-            Text = $"{SizeFormatter.Format(sizeBytes)} ({pct:0.#}%)",
+            Text = SizeFormatter.Format(sizeBytes),
             FontSize = 11,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
             Foreground = this.FindResource(ActualThemeVariant, "Brush.TextMuted") as IBrush
         };
-        Grid.SetColumn(sizeText, 2);
+        Grid.SetColumn(sizeText, 3);
         grid.Children.Add(sizeText);
 
         if (!isAggregate)
