@@ -184,6 +184,72 @@ public sealed class FtpRemoteClient : IRemoteFileClient
         }
     }
 
+    public async Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
+
+        try
+        {
+            await _client.CreateDirectory(path, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
+    public async Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
+
+        try
+        {
+            if (isDirectory)
+                await _client.DeleteDirectory(path, ct);
+            else
+                await _client.DeleteFile(path, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
+    public async Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
+
+        try
+        {
+            int lastSlash = path.TrimEnd('/').LastIndexOf('/');
+            string parent = lastSlash <= 0 ? "/" : path[..lastSlash];
+            string newPath = parent.TrimEnd('/') + "/" + newName;
+            await _client.Rename(path, newPath, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_client is not null)
