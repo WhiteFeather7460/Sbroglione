@@ -1,76 +1,76 @@
 # Sbroglione
 
-Applicazione desktop multipiattaforma (Avalonia UI, .NET 10) per esplorare, confrontare e sincronizzare cartelle. Nata come file explorer a doppio pannello, include copia massiva con verifica checksum, confronto directory, sincronizzazione automatica, ricerca duplicati, analisi dello spazio disco e accesso a server remoti FTP/SFTP.
+Cross-platform desktop app (Avalonia UI, .NET 10) to explore, compare, and sync folders. Started as a dual-pane file explorer, it now includes bulk copy with checksum verification, directory comparison, automatic synchronization, duplicate finder, disk usage analysis, and access to remote FTP/SFTP servers.
 
-## Funzionalità
+## Features
 
-L'interfaccia è organizzata in schede:
+The UI is organized into tabs:
 
-- **Copia** — code di coppie sorgente→destinazione con copia parallela, profili riutilizzabili, journal di ripresa, simulazione (dry-run), verifica checksum post-copia e throttling I/O in base al tipo di disco (HDD/SSD/NVMe).
-- **Server remoto** — browser per server FTP e SFTP (FluentFTP / SSH.NET) con upload/download; le credenziali sono salvate nel keystore nativo del sistema (Windows Credential Manager, macOS Keychain, `secret-tool` su Linux).
-- **Confronto** — confronto ricorsivo tra due directory (presenza, dimensione, checksum, confronto byte-a-byte) con esportazione del report.
-- **Sync auto** — regole di sincronizzazione automatica ("watch folder"): al variare della cartella sorgente il contenuto viene riallineato sulla destinazione; le regole attive partono all'avvio dell'app.
-- **Duplicati** — ricerca di file duplicati basata su dimensione e checksum.
-- **Spazio disco** — analisi dell'uso del disco con visualizzazione treemap.
-- **Impostazioni** — preferenze dell'app e temi: chiaro/scuro più temi custom creabili con un editor dedicato.
+- **Copy** — source→destination pair queue with parallel copying, reusable profiles, resumable journal, dry-run simulation, post-copy checksum verification, and I/O throttling based on disk type (HDD/SSD/NVMe).
+- **Remote server** — browser for FTP and SFTP servers (FluentFTP / SSH.NET) with upload/download; credentials are stored in the OS-native keystore (Windows Credential Manager, macOS Keychain, `secret-tool` on Linux).
+- **Compare** — recursive comparison between two directories (presence, size, checksum, byte-by-byte comparison) with report export.
+- **Auto sync** — automatic sync rules ("watch folders"): when the source folder changes, its content is realigned to the destination; active rules start when the app launches.
+- **Duplicates** — duplicate file search based on size and checksum.
+- **Disk usage** — disk usage analysis with treemap visualization.
+- **Settings** — app preferences and themes: light/dark plus custom themes creatable with a dedicated editor.
 
-## Requisiti
+## Requirements
 
-- [.NET SDK 10.0](https://dotnet.microsoft.com/download) o superiore
-- Linux, Windows o macOS (desktop)
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download) or later
+- Linux, Windows, or macOS (desktop)
 
-## Compilazione
+## Build
 
 ```bash
 dotnet build Sbroglione.sln
 ```
 
-## Avvio
+## Run
 
 ```bash
 dotnet run --project Sbroglione.Desktop
 ```
 
-## Test
+## Tests
 
 ```bash
 dotnet test
 ```
 
-I test (xunit) vivono in `Sbroglione.Tests`.
+Tests (xunit) live in `Sbroglione.Tests`.
 
-## Build distribuibile
+## Distributable builds
 
 ### Windows (.exe)
 
-Self-contained executable (include .NET runtime):
+Self-contained executable (includes .NET runtime):
 ```bash
 dotnet publish Sbroglione.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
 Output: `Sbroglione.Desktop/bin/Release/net10.0/win-x64/publish/Sbroglione.Desktop.exe`
 
-Framework-dependent (richiede .NET Runtime installato):
+Framework-dependent (requires .NET Runtime installed):
 ```bash
 dotnet publish Sbroglione.Desktop -c Release -r win-x64 -p:PublishSingleFile=true
 ```
 
 ### Linux (.AppImage)
 
-Prerequisiti: `appimagetool` installato e `wget`/`curl`.
+Prerequisites: `appimagetool` installed and `wget`/`curl`.
 
 ```bash
-# 1. Pubblica per Linux
+# 1. Publish for Linux
 dotnet publish Sbroglione.Desktop -c Release -r linux-x64 --self-contained
 
-# 2. Prepara la struttura AppImage
+# 2. Prepare the AppImage structure
 APPDIR="Sbroglione.AppDir"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/pixmaps"
 
-# 3. Copia l'eseguibile
+# 3. Copy the executable
 cp -r Sbroglione.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
 
-# 4. Crea il desktop entry
+# 4. Create the desktop entry
 cat > "$APPDIR/usr/share/applications/Sbroglione.desktop" <<EOF
 [Desktop Entry]
 Type=Application
@@ -80,12 +80,12 @@ Icon=Sbroglione
 Categories=Utility;
 EOF
 
-# 5. Crea l'AppImage
+# 5. Create the AppImage
 appimagetool "$APPDIR" "Sbroglione-x86_64.AppImage"
 chmod +x Sbroglione-x86_64.AppImage
 ```
 
-Output: `Sbroglione-x86_64.AppImage` (portable, eseguibile direttamente)
+Output: `Sbroglione-x86_64.AppImage` (portable, directly executable)
 
 ### macOS (.app)
 
@@ -93,43 +93,43 @@ Output: `Sbroglione-x86_64.AppImage` (portable, eseguibile direttamente)
 dotnet publish Sbroglione.Desktop -c Release -r osx-x64 --self-contained
 ```
 
-Avvolgi l'output in un bundle `.app` usando lo script ufficiale Avalonia (vedi docs).
+Wrap the output in a `.app` bundle using Avalonia's official script (see docs).
 
-## Struttura del progetto
+## Project structure
 
 ```
-Sbroglione.sln            Soluzione (a livello di root del repo)
-Sbroglione/               Progetto core
-  Models/                   Dati semplici (WatchRule, profili, ecc.)
-  Services/                 Logica: file system, copia, checksum, FTP/SFTP, temi, watch folder
-  ViewModels/               ReactiveUI (un ViewModel per vista)
-  Views/                    XAML Avalonia + code-behind
-  Converters/               Value converter per il binding
-  Styles/                   Palette.axaml (brush a tema) e Controls.axaml (stili per classe)
-Sbroglione.Desktop/       Entry point desktop (WinExe)
-Sbroglione.Tests/         Test xunit
+Sbroglione.sln            Solution (at repo root)
+Sbroglione/               Core project
+  Models/                   Plain data (WatchRule, profiles, etc.)
+  Services/                 Logic: file system, copy, checksum, FTP/SFTP, themes, watch folder
+  ViewModels/               ReactiveUI (one ViewModel per view)
+  Views/                    Avalonia XAML + code-behind
+  Converters/               Value converters for binding
+  Styles/                   Palette.axaml (theme-aware brushes) and Controls.axaml (class-based styles)
+Sbroglione.Desktop/       Desktop entry point (WinExe)
+Sbroglione.Tests/         xunit tests
 ```
 
-Architettura a livelli: `Views` → `ViewModels` → `Services` (statici) → `Models`. Nessun container DI: le viste dei tab creano il proprio ViewModel nel costruttore.
+Layering: `Views` → `ViewModels` → `Services` (static) → `Models`. No DI container: tab views create their own ViewModel in the constructor.
 
-## Stack tecnologico
+## Tech stack
 
-- [Avalonia UI](https://avaloniaui.net/) 11.2 (tema Fluent, font Inter)
-- ReactiveUI per l'MVVM
-- [FluentFTP](https://github.com/robinrodricks/FluentFTP) e [SSH.NET](https://github.com/sshnet/SSH.NET) per i client remoti
-- [Projektanker.Icons.Avalonia](https://github.com/Projektanker/Icons.Avalonia) (icone FontAwesome)
+- [Avalonia UI](https://avaloniaui.net/) 11.2 (Fluent theme, Inter font)
+- ReactiveUI for MVVM
+- [FluentFTP](https://github.com/robinrodricks/FluentFTP) and [SSH.NET](https://github.com/sshnet/SSH.NET) for remote clients
+- [Projektanker.Icons.Avalonia](https://github.com/Projektanker/Icons.Avalonia) (FontAwesome icons)
 
-## Convenzioni
+## Conventions
 
-- Niente colori hardcoded nelle viste: usare sempre `{DynamicResource Brush.*}` definiti in `Styles/Palette.axaml`.
-- Nuove chiavi colore vanno aggiunte in `Palette.axaml` (entrambe le varianti), `ThemeColorKeys` e `BuiltInThemes`.
-- Lo stile del codice è definito in `.editorconfig` (`dotnet format whitespace`).
-- Non committare direttamente su `main`: branch di feature + pull request.
+- No hardcoded colors in views: always use `{DynamicResource Brush.*}` defined in `Styles/Palette.axaml`.
+- New color keys must be added to `Palette.axaml` (both variants), `ThemeColorKeys`, and `BuiltInThemes`.
+- Code style is defined in `.editorconfig` (`dotnet format whitespace`).
+- Never commit directly to `main`: feature branch + pull request.
 
-## Trasparenza
+## Transparency
 
-Il codice di questo progetto è stato implementato interamente da Claude (Anthropic). Idee, requisiti e decisioni di design sono di WhiteFeather.
+This project's code was implemented entirely by Claude (Anthropic). Ideas, requirements, and design decisions are by WhiteFeather.
 
-## Licenza
+## License
 
 [MIT](LICENSE)
