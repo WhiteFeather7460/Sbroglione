@@ -454,3 +454,6 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 .superpowers/
 docs/.worktrees/
+
+# AppImage build output
+*.AppImage
