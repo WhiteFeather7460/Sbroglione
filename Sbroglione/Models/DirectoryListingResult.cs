@@ -14,7 +14,10 @@ public enum ListingErrorKind
     AccessDenied,
 
     /// <summary>Errore di I/O, tipicamente rete non raggiungibile.</summary>
-    Unavailable
+    Unavailable,
+
+    /// <summary>Il percorso di destinazione esiste già (create/rename su un nome occupato).</summary>
+    AlreadyExists
 }
 
 /// <summary>
@@ -29,6 +32,9 @@ public static class ListingErrorMessageKeys
 
     /// <summary>Detail: <c>ex.Message</c> (errore di I/O tipicamente di rete).</summary>
     public const string Unavailable = "Unavailable";
+
+    /// <summary>Nessun detail: il nome del file/cartella di destinazione esiste già.</summary>
+    public const string AlreadyExists = "AlreadyExists";
 
     /// <summary>
     /// Detail: <c>ex.Message</c> di un'eccezione non riconosciuta. Dinamico e già in linguaggio
