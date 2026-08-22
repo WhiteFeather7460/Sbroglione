@@ -614,6 +614,51 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
             await _inner.DisposeAsync();
         }
     }
+
+    [Fact]
+    public async Task CreateFolderAsync_CreatesRemoteFolderAndReloadsListing()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+
+        await vm.CreateFolderAsync("nuova");
+
+        Assert.Null(vm.ErrorMessage);
+        Assert.Contains(vm.Items, i => i.Name == "nuova" && i.IsDirectory);
+    }
+
+    [Fact]
+    public async Task RenameSelectedAsync_RenamesRemoteEntryAndReloadsListing()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        _client.AddFile("/vecchio.txt", "x");
+        await vm.RefreshAsync();
+        var entry = vm.Items.Single(i => i.Name == "vecchio.txt");
+
+        await vm.RenameSelectedAsync(entry, "nuovo.txt");
+
+        Assert.Null(vm.ErrorMessage);
+        Assert.Contains(vm.Items, i => i.Name == "nuovo.txt");
+    }
+
+    [Fact]
+    public async Task DeleteSelectedAsync_DeletesRemoteEntryAndReloadsListing()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        _client.AddFile("/dacancellare.txt", "x");
+        await vm.RefreshAsync();
+        var entry = vm.Items.Single(i => i.Name == "dacancellare.txt");
+
+        await vm.DeleteSelectedAsync(entry);
+
+        Assert.Null(vm.ErrorMessage);
+        Assert.DoesNotContain(vm.Items, i => i.Name == "dacancellare.txt");
+    }
 }
 
 public sealed class FakeRemoteClientFolderOpsTests

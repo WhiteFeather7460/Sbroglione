@@ -212,6 +212,7 @@ public static class StringsIt
         ["Str.RemoteBrowser.Error.PermissionDenied"] = "Permesso negato dal server.",
         ["Str.RemoteBrowser.Error.Timeout"] = "Timeout di connessione al server.",
         ["Str.RemoteBrowser.Error.HostUnreachable"] = "Server non raggiungibile.",
+        ["Str.RemoteBrowser.Error.AlreadyExists"] = "Esiste già un elemento con questo nome.",
         ["Str.RemoteBrowser.Error.HostKeyFirstConnectionFormat"] = "Prima connessione a {0}: verifica e accetta la fingerprint del server.",
         ["Str.RemoteBrowser.Error.HostKeyChangedFormat"] = "ATTENZIONE: la host key di {0} è CAMBIATA (possibile attacco). Accetta solo se il cambio è atteso.",
         ["Str.RemoteBrowser.Error.DownloadFailedFormat"] = "Download di {0} non riuscito.",

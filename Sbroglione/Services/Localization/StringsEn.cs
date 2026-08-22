@@ -208,6 +208,7 @@ public static class StringsEn
         ["Str.RemoteBrowser.Error.PermissionDenied"] = "Permission denied by the server.",
         ["Str.RemoteBrowser.Error.Timeout"] = "Connection to the server timed out.",
         ["Str.RemoteBrowser.Error.HostUnreachable"] = "Server unreachable.",
+        ["Str.RemoteBrowser.Error.AlreadyExists"] = "An item with this name already exists.",
         ["Str.RemoteBrowser.Error.HostKeyFirstConnectionFormat"] = "First connection to {0}: verify and accept the server's fingerprint.",
         ["Str.RemoteBrowser.Error.HostKeyChangedFormat"] = "WARNING: the host key for {0} has CHANGED (possible attack). Only accept if the change is expected.",
         ["Str.RemoteBrowser.Error.DownloadFailedFormat"] = "Download of {0} failed.",
