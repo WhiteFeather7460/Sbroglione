@@ -382,4 +382,80 @@ public sealed class FileCopyServiceTests : IDisposable
         Assert.True(File.Exists(Path.Combine(destination, "reale.bin")));
         Assert.False(Directory.Exists(Path.Combine(destination, "loop")));
     }
+
+    [Fact]
+    public async Task CopyDirectoryAsync_WhitelistFilter_OnlyCopiesMatchingExtensions()
+    {
+        string sourceRoot = Path.Combine(_root, "wl-src");
+        string destinationRoot = Path.Combine(_root, "wl-dst");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "b.txt"), "text");
+
+        var filter = ExtensionFilter.Parse(ExtensionFilterMode.Whitelist, "jpg");
+
+        await FileCopyService.CopyDirectoryAsync(
+            sourceRoot, destinationRoot, 1, null, CancellationToken.None,
+            extensionFilter: filter);
+
+        Assert.True(File.Exists(Path.Combine(destinationRoot, "a.jpg")));
+        Assert.False(File.Exists(Path.Combine(destinationRoot, "b.txt")));
+    }
+
+    [Fact]
+    public async Task CopyDirectoryAsync_BlacklistFilter_ExcludesMatchingExtensions()
+    {
+        string sourceRoot = Path.Combine(_root, "bl-src");
+        string destinationRoot = Path.Combine(_root, "bl-dst");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "b.tmp"), "temp");
+
+        var filter = ExtensionFilter.Parse(ExtensionFilterMode.Blacklist, "tmp");
+
+        await FileCopyService.CopyDirectoryAsync(
+            sourceRoot, destinationRoot, 1, null, CancellationToken.None,
+            extensionFilter: filter);
+
+        Assert.True(File.Exists(Path.Combine(destinationRoot, "a.jpg")));
+        Assert.False(File.Exists(Path.Combine(destinationRoot, "b.tmp")));
+    }
+
+    [Fact]
+    public async Task CopyDirectoryToManyAsync_WhitelistFilter_OnlyCopiesMatchingExtensionsToAllDestinations()
+    {
+        string sourceRoot = Path.Combine(_root, "wlm-src");
+        string dest1 = Path.Combine(_root, "wlm-dst1");
+        string dest2 = Path.Combine(_root, "wlm-dst2");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "b.txt"), "text");
+
+        var filter = ExtensionFilter.Parse(ExtensionFilterMode.Whitelist, "jpg");
+
+        await FileCopyService.CopyDirectoryToManyAsync(
+            sourceRoot, new[] { dest1, dest2 }, 1, null, CancellationToken.None,
+            extensionFilter: filter);
+
+        Assert.True(File.Exists(Path.Combine(dest1, "a.jpg")));
+        Assert.True(File.Exists(Path.Combine(dest2, "a.jpg")));
+        Assert.False(File.Exists(Path.Combine(dest1, "b.txt")));
+        Assert.False(File.Exists(Path.Combine(dest2, "b.txt")));
+    }
+
+    [Fact]
+    public async Task CopyDirectoryAsync_NullFilter_CopiesEverything()
+    {
+        string sourceRoot = Path.Combine(_root, "nf-src");
+        string destinationRoot = Path.Combine(_root, "nf-dst");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "b.txt"), "text");
+
+        await FileCopyService.CopyDirectoryAsync(
+            sourceRoot, destinationRoot, 1, null, CancellationToken.None);
+
+        Assert.True(File.Exists(Path.Combine(destinationRoot, "a.jpg")));
+        Assert.True(File.Exists(Path.Combine(destinationRoot, "b.txt")));
+    }
 }
