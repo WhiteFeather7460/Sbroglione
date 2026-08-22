@@ -218,6 +218,35 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task StartCopy_Directory_WhitelistFilterChecksumEnabled_VerifiesFilteredTreeAndMarksSuccess()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = true;
+
+        string sourceDir = Path.Combine(_root, "vwl-src");
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "b.txt"), "text");
+        string destinationDir = Path.Combine(_root, "vwl-dst");
+
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = sourceDir,
+            DestinationPath = destinationDir,
+            ExtensionFilterMode = ExtensionFilterMode.Whitelist,
+            ExtensionFilterText = "jpg"
+        };
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+        Assert.True(pair.IsVerified);
+        Assert.True(File.Exists(Path.Combine(destinationDir, "a.jpg")));
+        Assert.False(File.Exists(Path.Combine(destinationDir, "b.txt")));
+    }
+
+    [Fact]
     public async Task StartCopy_Directory_ChecksumEnabled_VerifiesTreeAndMarksSuccess()
     {
         AppSettingsStore.Current.VerifyChecksumAfterCopy = true;
@@ -636,6 +665,31 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveProfile_PersistsExtensionFilter()
+    {
+        InputDialogHelper.Override = (_, _, _) => Task.FromResult<string?>("Filtrato");
+
+        var vm = new CopyPairsViewModel();
+        await vm.ProfilesLoad;
+
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = Path.Combine(_root, "src"),
+            DestinationPath = Path.Combine(_root, "dst"),
+            ExtensionFilterMode = ExtensionFilterMode.Whitelist,
+            ExtensionFilterText = "jpg,png"
+        };
+        vm.PathPairs.Add(pair);
+
+        await vm.SaveProfileAsync();
+
+        var profile = Assert.Single(vm.Profiles);
+        var stored = Assert.Single(profile.Pairs);
+        Assert.Equal(ExtensionFilterMode.Whitelist, stored.ExtensionFilterMode);
+        Assert.Equal("jpg,png", stored.ExtensionFilterText);
+    }
+
+    [Fact]
     public async Task SaveProfile_InsertsAlphabeticallyBetweenExistingProfiles()
     {
         await CopyProfileStore.SaveAsync(new[]
@@ -726,6 +780,36 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.True(vm.PathPairs[0].SkipUnchanged);
         Assert.Equal("/extra1", Assert.Single(vm.PathPairs[0].ExtraDestinations).Path);
         Assert.Equal("/src2", vm.PathPairs[1].SourcePath);
+    }
+
+    [Fact]
+    public async Task ApplyProfile_RestoresExtensionFilter()
+    {
+        var vm = new CopyPairsViewModel();
+        await vm.ProfilesLoad;
+
+        var profile = new CopyProfile
+        {
+            Name = "Preset filtro",
+            Pairs =
+            {
+                new CopyProfilePair
+                {
+                    SourcePath = "/src1",
+                    DestinationPath = "/dst1",
+                    ExtensionFilterMode = ExtensionFilterMode.Blacklist,
+                    ExtensionFilterText = "tmp"
+                }
+            }
+        };
+        vm.Profiles.Add(profile);
+        vm.SelectedProfile = profile;
+
+        vm.ApplyProfile();
+
+        var restored = Assert.Single(vm.PathPairs);
+        Assert.Equal(ExtensionFilterMode.Blacklist, restored.ExtensionFilterMode);
+        Assert.Equal("tmp", restored.ExtensionFilterText);
     }
 
     [Fact]

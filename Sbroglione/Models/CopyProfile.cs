@@ -18,4 +18,6 @@ public class CopyProfilePair
     public string DestinationPath { get; set; } = "";
     public List<string> ExtraDestinations { get; set; } = new();
     public bool SkipUnchanged { get; set; }
+    public ExtensionFilterMode ExtensionFilterMode { get; set; } = ExtensionFilterMode.None;
+    public string ExtensionFilterText { get; set; } = "";
 }
