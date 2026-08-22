@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:conv="clr-namespace:Sbroglione.Converters"
+             x:Class="Sbroglione.Views.RemotePanelContent">
+
+  <UserControl.Resources>
+    <conv:EnumEqualsConverter x:Key="EnumEquals" />
+    <conv:LocalFileStatusConverter x:Key="LocalFileStatusText" />
+  </UserControl.Resources>
+
+  <!-- Lista file -->
+  <Panel Background="{DynamicResource Brush.Surface}">
+    <StackPanel IsVisible="{Binding !IsConnected}" VerticalAlignment="Center"
+                HorizontalAlignment="Center" Spacing="12">
+      <i:Icon Value="fa-solid fa-server" FontSize="52"
+              Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource Str.RemoteBrowser.NoActiveConnection}"
+                 FontSize="16" Foreground="{DynamicResource Brush.TextMuted}"
+                 HorizontalAlignment="Center" />
+    </StackPanel>
+
+    <ProgressBar IsIndeterminate="True" VerticalAlignment="Top"
+                 IsVisible="{Binding IsBusy}" />
+
+    <DataGrid x:Name="RemoteGrid"
+              ItemsSource="{Binding VisibleItems}"
+              SelectionMode="Extended"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              IsVisible="{Binding IsConnected}"
+              DoubleTapped="OnGridDoubleTapped"
+              Margin="20,4">
+      <DataGrid.ContextMenu>
+        <ContextMenu>
+          <MenuItem Header="{DynamicResource Str.RemoteBrowser.NewFolder}" Click="OnRemoteNewFolderClick" />
+          <MenuItem Header="{DynamicResource Str.RemoteBrowser.Rename}" Click="OnRemoteRenameClick" />
+          <MenuItem Header="{DynamicResource Str.RemoteBrowser.Delete}" Click="OnRemoteDeleteClick" />
+        </ContextMenu>
+      </DataGrid.ContextMenu>
+      <DataGrid.Columns>
+        <DataGridTemplateColumn Width="44">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <i:Icon Value="fa-solid fa-folder" IsVisible="{Binding IsDirectory}"
+                        Foreground="{DynamicResource Brush.WarningFg}" />
+                <i:Icon Value="fa-regular fa-file" IsVisible="{Binding !IsDirectory}"
+                        Foreground="{DynamicResource Brush.TextMuted}" />
+              </Panel>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="{DynamicResource Str.Common.Name}" Binding="{Binding Name}" Width="*" />
+        <DataGridTextColumn Header="{DynamicResource Str.Common.Size}" Binding="{Binding SizeDisplay}" Width="110" />
+        <DataGridTextColumn Header="{DynamicResource Str.RemoteBrowser.ColModified}" Binding="{Binding ModifiedDisplay}" Width="150" />
+        <DataGridTemplateColumn Header="{DynamicResource Str.RemoteBrowser.ColOnDisk}" Width="120">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Border Classes="badge" HorizontalAlignment="Left" VerticalAlignment="Center"
+                      IsVisible="{Binding LocalStatus, Converter={x:Static ObjectConverters.IsNotNull}}"
+                      Classes.success="{Binding LocalStatus, Converter={StaticResource EnumEquals}, ConverterParameter=Present}"
+                      Classes.warning="{Binding LocalStatus, Converter={StaticResource EnumEquals}, ConverterParameter=Different}"
+                      Classes.error="{Binding LocalStatus, Converter={StaticResource EnumEquals}, ConverterParameter=Missing}">
+                <TextBlock Text="{Binding LocalStatus, Converter={StaticResource LocalFileStatusText}}" />
+              </Border>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </Panel>
+</UserControl>

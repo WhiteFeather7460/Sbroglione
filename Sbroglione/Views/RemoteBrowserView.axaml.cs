@@ -2,7 +2,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Sbroglione.Models;
@@ -18,6 +17,9 @@ public partial class RemoteBrowserView : UserControl
     // profili, invece di essere ricreato a ogni apertura di "Gestisci profili"/"Nuovo profilo".
     private readonly ICredentialStore _credentialStore;
     private readonly RemoteBrowserViewModel _viewModel;
+    private readonly LocalPaneView _localPane;
+    private readonly RemotePanelContent _remotePane;
+    private bool _leftIsLocal;
 
     public RemoteBrowserView()
     {
@@ -26,6 +28,13 @@ public partial class RemoteBrowserView : UserControl
         _viewModel = new RemoteBrowserViewModel(
             RemoteClientFactory.Create, _credentialStore, ProfileStore.DefaultPath);
         DataContext = _viewModel;
+
+        _localPane = new LocalPaneView();
+        _remotePane = new RemotePanelContent { DataContext = _viewModel };
+        _leftIsLocal = true;
+        LeftPaneHost.Content = _localPane;
+        RightPaneHost.Content = _remotePane;
+
         // Loaded riscatta a ogni rientro della view nel visual tree (cambio scheda):
         // LoadProfilesAsync è idempotente, quindi solo la prima esecuzione carica davvero
         // e una connessione attiva non viene mai azzerata da un cambio scheda.
@@ -53,15 +62,9 @@ public partial class RemoteBrowserView : UserControl
     private void OnRejectFingerprintClick(object? sender, RoutedEventArgs e) =>
         _viewModel.RejectFingerprint();
 
-    private async void OnGridDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (RemoteGrid.SelectedItem is RemoteEntryViewModel entry && entry.IsDirectory)
-            await _viewModel.OpenDirectoryAsync(entry);
-    }
-
     private async void OnDownloadSelectedClick(object? sender, RoutedEventArgs e)
     {
-        var selected = RemoteGrid.SelectedItems.Cast<RemoteEntryViewModel>().ToList();
+        var selected = _remotePane.Grid.SelectedItems.Cast<RemoteEntryViewModel>().ToList();
         if (selected.Count > 0)
             await _viewModel.DownloadSelectedAsync(selected);
     }
@@ -165,5 +168,39 @@ public partial class RemoteBrowserView : UserControl
             if (isNew)
                 _viewModel.SelectedProfile = profile;
         }
+    }
+
+    private void OnSwapPanesClick(object? sender, RoutedEventArgs e)
+    {
+        _leftIsLocal = !_leftIsLocal;
+        LeftPaneHost.Content = _leftIsLocal ? (object)_localPane : _remotePane;
+        RightPaneHost.Content = _leftIsLocal ? (object)_remotePane : _localPane;
+    }
+
+    private async void OnBreadcrumbSegmentClicked(object? sender, string path)
+    {
+        // Naviga solo se il percorso è cambiato: evita un elenco superfluo se l'utente
+        // clicca il segmento finale (la cartella corrente).
+        if (path != _viewModel.CurrentPath)
+        {
+            // RemoteBrowserViewModel non espone Navigate diretto a un percorso: riusa la
+            // stessa strada di OpenDirectoryAsync passando per un giro breve su CurrentPath.
+            await NavigateRemoteToAsync(path);
+        }
+    }
+
+    private async Task NavigateRemoteToAsync(string path)
+    {
+        var target = _viewModel.Items.FirstOrDefault(i => i.Item.FullPath == path && i.IsDirectory);
+        if (target is not null)
+        {
+            await _viewModel.OpenDirectoryAsync(target);
+            return;
+        }
+        // Segmento non tra le voci correnti (es. radice, o un antenato più su): sale con
+        // NavigateUpAsync finché CurrentPath combacia, che è già l'unica primitiva di
+        // navigazione diretta esposta dalla viewmodel.
+        while (_viewModel.CurrentPath != path && _viewModel.CurrentPath != "/")
+            await _viewModel.NavigateUpAsync();
     }
 }
