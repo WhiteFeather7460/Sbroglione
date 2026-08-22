@@ -43,6 +43,33 @@ public partial class RemotePanelContent : UserControl
             await vm.DownloadEntryToFolderAsync(entry, getLocalPath());
     }
 
+    private async void OnGridPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(RemoteGrid).Properties.IsLeftButtonPressed)
+            return;
+        if (RemoteGrid.SelectedItem is not RemoteEntryViewModel { IsDirectory: false } entry)
+            return;
+
+        var data = new DataObject();
+        data.Set("sbroglione/remote-item", entry);
+        await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy);
+    }
+
+    private void OnGridDragEnter(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = e.Data.Contains("sbroglione/local-file-path")
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+    }
+
+    private async void OnGridDrop(object? sender, DragEventArgs e)
+    {
+        if (e.Data.Get("sbroglione/local-file-path") is not string localPath)
+            return;
+        if (ViewModel is { IsConnected: true } vm)
+            await vm.UploadFilesAsync(new[] { localPath });
+    }
+
     private async void OnRemoteNewFolderClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not { } vm)

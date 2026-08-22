@@ -30,6 +30,10 @@
               IsReadOnly="True"
               IsVisible="{Binding IsConnected}"
               DoubleTapped="OnGridDoubleTapped"
+              PointerPressed="OnGridPointerPressed"
+              DragDrop.AllowDrop="True"
+              DragDrop.DragEnter="OnGridDragEnter"
+              DragDrop.Drop="OnGridDrop"
               Margin="20,4">
       <DataGrid.ContextMenu>
         <ContextMenu>

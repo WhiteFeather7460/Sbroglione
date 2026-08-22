@@ -51,6 +51,36 @@ public partial class LocalPaneView : UserControl
             await remoteVm.UploadFilesAsync(new[] { item.FullPath });
     }
 
+    private async void OnGridPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(LocalGrid).Properties.IsLeftButtonPressed)
+            return;
+        if (ViewModel.SelectedItem is not { IsDirectory: false } item)
+            return;
+
+        var data = new DataObject();
+        data.Set("sbroglione/local-file-path", item.FullPath);
+        await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy);
+    }
+
+    private void OnGridDragEnter(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = e.Data.Contains("sbroglione/remote-item")
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+    }
+
+    private async void OnGridDrop(object? sender, DragEventArgs e)
+    {
+        if (e.Data.Get("sbroglione/remote-item") is not RemoteEntryViewModel entry)
+            return;
+        if (RemoteViewModel is { } remoteVm)
+        {
+            await remoteVm.DownloadEntryToFolderAsync(entry, ViewModel.CurrentPath);
+            await ViewModel.RefreshAsync();
+        }
+    }
+
     private async void OnNewFolderClick(object? sender, RoutedEventArgs e)
     {
         string? name = await InputDialogHelper.ShowAsync(

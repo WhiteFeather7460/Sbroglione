@@ -42,6 +42,10 @@
                 AutoGenerateColumns="False"
                 IsReadOnly="True"
                 DoubleTapped="OnGridDoubleTapped"
+                PointerPressed="OnGridPointerPressed"
+                DragDrop.AllowDrop="True"
+                DragDrop.DragEnter="OnGridDragEnter"
+                DragDrop.Drop="OnGridDrop"
                 Margin="12,4">
         <DataGrid.ContextMenu>
           <ContextMenu>
