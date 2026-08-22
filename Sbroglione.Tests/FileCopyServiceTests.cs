@@ -167,6 +167,35 @@ public sealed class FileCopyServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CopyFileToManyAsync_SourceMissing_PropagatesAndDoesNotLeakWriterTasks()
+    {
+        // La sorgente non esiste: l'apertura del FileStream fallisce prima di leggere qualunque
+        // blocco. I writer task sono già partiti e bloccati in ReadAllAsync in attesa di dati o
+        // del completamento del canale: senza il fix (channel.Writer.TryComplete() in finally)
+        // resterebbero bloccati per sempre con i FileStream di destinazione aperti e locked.
+        string source = Path.Combine(_root, "does-not-exist.bin");
+        var destinations = new List<string>
+        {
+            Path.Combine(_root, "leak-d1.bin"),
+            Path.Combine(_root, "leak-d2.bin")
+        };
+
+        var callTask = FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None);
+        var completed = await Task.WhenAny(callTask, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(callTask, completed); // non deve appendersi: i writer task devono uscire in tempo utile
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() => callTask);
+
+        // Se i writer task avessero il proprio FileStream (FileShare.None) ancora aperto,
+        // la Delete/apertura esclusiva qui sotto fallirebbe con IOException.
+        foreach (var destination in destinations)
+        {
+            Assert.True(File.Exists(destination));
+            File.Delete(destination);
+        }
+    }
+
+    [Fact]
     public async Task CopyDirectoryToManyAsync_ReplicatesTreeInEveryDestination()
     {
         string sourceRoot = Path.Combine(_root, "many-dir-src");

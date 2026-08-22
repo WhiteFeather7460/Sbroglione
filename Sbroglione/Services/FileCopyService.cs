@@ -89,10 +89,12 @@ public static class FileCopyService
     /// Copia un file verso più destinazioni con una sola lettura della sorgente: un task
     /// legge la sorgente e distribuisce ogni blocco su un <see cref="Channel{T}"/> bounded
     /// per destinazione; un task scrittore per destinazione consuma il proprio canale al
-    /// proprio ritmo, così una destinazione lenta non blocca le altre (solo, tramite il
-    /// backpressure del canale, rallenta la lettura una volta piena la coda di quella
-    /// destinazione). Se una destinazione fallisce, le altre proseguono; se falliscono
-    /// tutte, la prima eccezione viene rilanciata.
+    /// proprio ritmo, dando a ogni destinazione un margine di ~<see cref="DestinationChannelCapacity"/>
+    /// blocchi per procedere al proprio ritmo prima che il backpressure la riallinei alle
+    /// altre — non piena indipendenza, ma sufficiente perché una destinazione lenta non
+    /// blocchi istantaneamente le altre (esaurita la coda, la lettura si blocca finché
+    /// quella destinazione non libera spazio). Se una destinazione fallisce, le altre
+    /// proseguono; se falliscono tutte, la prima eccezione viene rilanciata.
     /// <paramref name="onBytesCopied"/> riceve (percorso destinazione, byte scritti) per
     /// ogni blocco effettivamente scritto su quella destinazione.
     /// </summary>
@@ -148,36 +150,46 @@ public static class FileCopyService
             }
         })).ToList();
 
-        var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        await using (input.ConfigureAwait(false))
+        try
         {
-            var buffer = new byte[bufferSize];
-            int read;
-            while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct).ConfigureAwait(false)) > 0)
+            var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using (input.ConfigureAwait(false))
             {
-                await IoThrottleService.WaitAsync(read, ct).ConfigureAwait(false);
-
-                var chunk = new byte[read];
-                Buffer.BlockCopy(buffer, 0, chunk, 0, read);
-
-                foreach (var destination in destinationPaths)
+                var buffer = new byte[bufferSize];
+                int read;
+                while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct).ConfigureAwait(false)) > 0)
                 {
-                    if (failed.ContainsKey(destination))
-                        continue;
-                    try
+                    await IoThrottleService.WaitAsync(read, ct).ConfigureAwait(false);
+
+                    var chunk = new byte[read];
+                    Buffer.BlockCopy(buffer, 0, chunk, 0, read);
+
+                    foreach (var destination in destinationPaths)
                     {
-                        await channels[destination].Writer.WriteAsync(chunk, ct).ConfigureAwait(false);
-                    }
-                    catch (ChannelClosedException)
-                    {
-                        // Il writer di questa destinazione ha già fallito e chiuso il canale.
+                        if (failed.ContainsKey(destination))
+                            continue;
+                        try
+                        {
+                            await channels[destination].Writer.WriteAsync(chunk, ct).ConfigureAwait(false);
+                        }
+                        catch (ChannelClosedException)
+                        {
+                            // Il writer di questa destinazione ha già fallito e chiuso il canale.
+                        }
                     }
                 }
             }
         }
-
-        foreach (var channel in channels.Values)
-            channel.Writer.TryComplete();
+        finally
+        {
+            // Garantisce che ogni writer task possa uscire dal proprio ReadAllAsync anche se
+            // l'apertura o la lettura della sorgente fallisce (file inesistente, errore di I/O,
+            // permessi): senza questo, i writer già avviati resterebbero bloccati per sempre in
+            // attesa di altri blocchi o del completamento del canale, con i FileStream di
+            // destinazione (aperti FileShare.None) mai chiusi e i task mai completati.
+            foreach (var channel in channels.Values)
+                channel.Writer.TryComplete();
+        }
 
         await Task.WhenAll(writerTasks).ConfigureAwait(false);
 
