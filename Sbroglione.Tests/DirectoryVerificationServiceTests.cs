@@ -1,3 +1,4 @@
+using Sbroglione.Models;
 using Sbroglione.Services;
 
 namespace Sbroglione.Tests;
@@ -71,6 +72,27 @@ public sealed class DirectoryVerificationServiceTests : IDisposable
         Assert.Equal(ExpectedMissingSingleA, result.MissingFiles);
         Assert.Equal(2, progressEvents.Count);
         Assert.Equal(new VerifyProgress(2, 2), progressEvents[^1]);
+    }
+
+    [Fact]
+    public async Task VerifyDirectoryAsync_WhitelistFilter_ExcludedSourceFilesNotReportedMissing()
+    {
+        string source = Path.Combine(_root, "wl-src");
+        string destination = Path.Combine(_root, "wl-dst");
+        Directory.CreateDirectory(source);
+        await File.WriteAllTextAsync(Path.Combine(source, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(source, "b.txt"), "text");
+
+        var filter = ExtensionFilter.Parse(ExtensionFilterMode.Whitelist, "jpg");
+        await FileCopyService.CopyDirectoryAsync(source, destination, 2, null, CancellationToken.None, extensionFilter: filter);
+
+        var result = await DirectoryVerificationService.VerifyDirectoryAsync(
+            source, destination, 2, null, CancellationToken.None, extensionFilter: filter);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.TotalFiles);
+        Assert.Empty(result.MissingFiles);
+        Assert.Empty(result.MismatchedFiles);
     }
 
     [Fact]

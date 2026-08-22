@@ -229,7 +229,9 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 SourcePath = p.SourcePath ?? string.Empty,
                 DestinationPath = p.DestinationPath ?? string.Empty,
                 ExtraDestinations = p.ExtraDestinations.Select(e => e.Path).ToList(),
-                SkipUnchanged = p.SkipUnchanged
+                SkipUnchanged = p.SkipUnchanged,
+                ExtensionFilterMode = p.ExtensionFilterMode,
+                ExtensionFilterText = p.ExtensionFilterText
             })
             .ToList();
 
@@ -275,7 +277,9 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             {
                 SourcePath = stored.SourcePath,
                 DestinationPath = stored.DestinationPath,
-                SkipUnchanged = stored.SkipUnchanged
+                SkipUnchanged = stored.SkipUnchanged,
+                ExtensionFilterMode = stored.ExtensionFilterMode,
+                ExtensionFilterText = stored.ExtensionFilterText
             };
             foreach (var extra in stored.ExtraDestinations)
                 pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, extra));
@@ -466,7 +470,8 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         try
         {
             var result = await CopySimulationService.SimulateAsync(
-                pair.SourcePath!, destinations, pair.SkipUnchanged, CancellationToken.None);
+                pair.SourcePath!, destinations, pair.SkipUnchanged, CancellationToken.None,
+                extensionFilter: pair.BuildExtensionFilter());
 
             var lines = new List<string>
             {
@@ -729,6 +734,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
             skipUnchanged: pair.SkipUnchanged,
+            extensionFilter: pair.BuildExtensionFilter(),
             onFileStarted: (destination, sourceFile) =>
             {
                 UiDispatch.Post(() =>
@@ -842,7 +848,8 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                             vm.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyingChecksumProgressFormat"), verified, total);
                     });
                 },
-                ct);
+                ct,
+                extensionFilter: pair.BuildExtensionFilter());
 
             totalVerified = verifyResult.TotalFiles;
             mismatchedTotal += verifyResult.MismatchedFiles.Count;

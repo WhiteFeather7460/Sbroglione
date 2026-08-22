@@ -120,6 +120,8 @@ public static class StringsIt
         ["Str.CopyPairs.ClearDestination"] = "Svuota destinazione prima di copiare",
         ["Str.CopyPairs.ClearDestinationTitle"] = "Svuotare le destinazioni?",
         ["Str.CopyPairs.ClearDestinationMessageFormat"] = "Tutto il contenuto delle seguenti cartelle verrà eliminato definitivamente prima della copia:\n{0}",
+        ["Str.CopyPairs.ExtensionFilterLabel"] = "Filtro estensioni:",
+        ["Str.CopyPairs.ExtensionFilterWatermark"] = "es. jpg,png,mp4",
         ["Str.CopyPairs.Interrupted"] = "Interrotto — premere Avvia per riprendere",
         ["Str.CopyPairs.SaveProfileTitle"] = "Salva profilo",
         ["Str.CopyPairs.SaveProfileMessage"] = "Nome del profilo di copia:",

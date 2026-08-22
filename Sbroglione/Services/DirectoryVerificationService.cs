@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Sbroglione.Models;
 
 namespace Sbroglione.Services;
 
@@ -45,7 +46,8 @@ public static class DirectoryVerificationService
         string destinationRoot,
         int maxDegreeOfParallelism,
         Action<VerifyProgress>? onProgress,
-        CancellationToken ct)
+        CancellationToken ct,
+        ExtensionFilter? extensionFilter = null)
     {
         List<string> files = await Task.Run(() =>
         {
@@ -53,6 +55,8 @@ public static class DirectoryVerificationService
             foreach (string file in Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration))
             {
                 ct.ThrowIfCancellationRequested();
+                if (extensionFilter is not null && !extensionFilter.Matches(file))
+                    continue;
                 list.Add(file);
             }
             return list;

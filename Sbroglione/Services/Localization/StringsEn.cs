@@ -116,6 +116,8 @@ public static class StringsEn
         ["Str.CopyPairs.ClearDestination"] = "Clear destination before copying",
         ["Str.CopyPairs.ClearDestinationTitle"] = "Clear destinations?",
         ["Str.CopyPairs.ClearDestinationMessageFormat"] = "All content of the following folders will be permanently deleted before copying:\n{0}",
+        ["Str.CopyPairs.ExtensionFilterLabel"] = "Extension filter:",
+        ["Str.CopyPairs.ExtensionFilterWatermark"] = "e.g. jpg,png,mp4",
         ["Str.CopyPairs.Interrupted"] = "Interrupted — press Start to resume",
         ["Str.CopyPairs.SaveProfileTitle"] = "Save profile",
         ["Str.CopyPairs.SaveProfileMessage"] = "Copy profile name:",

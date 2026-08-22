@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Sbroglione.Models;
 
 namespace Sbroglione.Services;
 
@@ -220,7 +221,8 @@ public static class FileCopyService
         int bufferSize = DefaultBufferSize,
         bool skipUnchanged = false,
         Action<string>? onFileStarted = null,
-        Action<string>? onFileCompleted = null)
+        Action<string>? onFileCompleted = null,
+        ExtensionFilter? extensionFilter = null)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -232,6 +234,8 @@ public static class FileCopyService
             foreach (string file in Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration))
             {
                 ct.ThrowIfCancellationRequested();
+                if (extensionFilter is not null && !extensionFilter.Matches(file))
+                    continue;
                 list.Add(file);
                 total += new FileInfo(file).Length;
             }
@@ -305,7 +309,8 @@ public static class FileCopyService
         bool skipUnchanged = false,
         Action<string, string>? onFileStarted = null,
         Action<string, string>? onFileCompleted = null,
-        Action<string, string, Exception>? onFileFailed = null)
+        Action<string, string, Exception>? onFileFailed = null,
+        ExtensionFilter? extensionFilter = null)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -317,6 +322,8 @@ public static class FileCopyService
             foreach (string file in Directory.EnumerateFiles(sourceRoot, "*", SafeEnumeration))
             {
                 ct.ThrowIfCancellationRequested();
+                if (extensionFilter is not null && !extensionFilter.Matches(file))
+                    continue;
                 list.Add(file);
                 total += new FileInfo(file).Length;
             }

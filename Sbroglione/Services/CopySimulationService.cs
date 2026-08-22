@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Sbroglione.Models;
 
 namespace Sbroglione.Services;
 
@@ -39,15 +40,17 @@ public static class CopySimulationService
         string sourcePath,
         IReadOnlyList<string> destinationRoots,
         bool skipUnchanged,
-        CancellationToken ct)
+        CancellationToken ct,
+        ExtensionFilter? extensionFilter = null)
     {
-        return Task.Run(() => Simulate(sourcePath, destinationRoots, skipUnchanged, ct), ct);
+        return Task.Run(() => Simulate(sourcePath, destinationRoots, skipUnchanged, extensionFilter, ct), ct);
     }
 
     private static CopySimulationResult Simulate(
         string sourcePath,
         IReadOnlyList<string> destinationRoots,
         bool skipUnchanged,
+        ExtensionFilter? extensionFilter,
         CancellationToken ct)
     {
         bool isDirectory = Directory.Exists(sourcePath);
@@ -57,13 +60,15 @@ public static class CopySimulationService
             throw new FileNotFoundException("Missing simulation source", sourcePath);
 
         // Sorgente file singolo: la copia reale (CopySingleFileAsync) risolve la destinazione in modo
-        // diverso da una directory e non applica mai SkipUnchanged (ricopia sempre). La simulazione deve
-        // rispecchiare questo comportamento, non quello del ramo directory.
+        // diverso da una directory e non applica mai SkipUnchanged (ricopia sempre), né il filtro
+        // per estensione (un file singolo selezionato esplicitamente si copia sempre). La simulazione
+        // deve rispecchiare questo comportamento, non quello del ramo directory.
         if (!isDirectory)
             return SimulateSingleFile(sourcePath, destinationRoots, ct);
 
         // Coppie (path sorgente, path relativo) da esaminare.
         List<(string Source, string Relative)> files = Directory.EnumerateFiles(sourcePath, "*", SafeEnumeration)
+            .Where(f => extensionFilter is null || extensionFilter.Matches(f))
             .Select(f => (f, Path.GetRelativePath(sourcePath, f)))
             .ToList();
 

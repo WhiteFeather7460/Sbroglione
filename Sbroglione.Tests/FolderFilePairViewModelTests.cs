@@ -352,4 +352,42 @@ public sealed class FolderFilePairViewModelTests : IDisposable
         pair.IsCopying = false;
         Assert.False(pair.ShowCopyingWidget); // nessun errore sulla nuova destinazione: nascosto
     }
+
+    [Fact]
+    public void ExtensionFilterMode_DefaultsToNone()
+    {
+        var pair = new FolderFilePairViewModel();
+        Assert.Equal(ExtensionFilterMode.None, pair.ExtensionFilterMode);
+        Assert.False(pair.IsExtensionFilterActive);
+    }
+
+    [Fact]
+    public void IsExtensionFilterActive_TrueWhenModeIsNotNone()
+    {
+        var pair = new FolderFilePairViewModel { ExtensionFilterMode = ExtensionFilterMode.Whitelist };
+        Assert.True(pair.IsExtensionFilterActive);
+    }
+
+    [Fact]
+    public void BuildExtensionFilter_ModeNone_ReturnsNull()
+    {
+        var pair = new FolderFilePairViewModel { ExtensionFilterText = "jpg,png" };
+        Assert.Null(pair.BuildExtensionFilter());
+    }
+
+    [Fact]
+    public void BuildExtensionFilter_WhitelistWithText_ReturnsMatchingFilter()
+    {
+        var pair = new FolderFilePairViewModel
+        {
+            ExtensionFilterMode = ExtensionFilterMode.Whitelist,
+            ExtensionFilterText = "jpg,png"
+        };
+
+        var filter = pair.BuildExtensionFilter();
+
+        Assert.NotNull(filter);
+        Assert.True(filter!.Matches(@"C:\a.jpg"));
+        Assert.False(filter.Matches(@"C:\a.txt"));
+    }
 }

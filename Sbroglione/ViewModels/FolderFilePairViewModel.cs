@@ -319,6 +319,34 @@ public class FolderFilePairViewModel : ReactiveObject
     /// <summary>Se true, prima di copiare svuota tutte le destinazioni (primaria + extra), previa conferma.</summary>
     public bool ClearDestinationBeforeCopy { get; set; }
 
+    private ExtensionFilterMode _extensionFilterMode = ExtensionFilterMode.None;
+
+    /// <summary>Modalità del filtro per estensione applicato alla copia di cartelle di questa coppia.</summary>
+    public ExtensionFilterMode ExtensionFilterMode
+    {
+        get => _extensionFilterMode;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _extensionFilterMode, value);
+            this.RaisePropertyChanged(nameof(IsExtensionFilterActive));
+        }
+    }
+
+    private string _extensionFilterText = string.Empty;
+
+    /// <summary>Estensioni separate da virgola (es. "jpg,png,mp4") usate da <see cref="ExtensionFilterMode"/>.</summary>
+    public string ExtensionFilterText
+    {
+        get => _extensionFilterText;
+        set => this.RaiseAndSetIfChanged(ref _extensionFilterText, value);
+    }
+
+    /// <summary>True quando il filtro per estensione è attivo (modalità diversa da None); pilota la visibilità del campo testo in UI.</summary>
+    public bool IsExtensionFilterActive => ExtensionFilterMode != ExtensionFilterMode.None;
+
+    /// <summary>Costruisce il filtro per estensione corrente, o null se non attivo/senza estensioni valide.</summary>
+    public ExtensionFilter? BuildExtensionFilter() => ExtensionFilter.Parse(ExtensionFilterMode, ExtensionFilterText);
+
     private bool _isCopying;
     public bool IsCopying
     {
