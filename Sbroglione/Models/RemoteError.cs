@@ -11,7 +11,10 @@ public enum RemoteErrorKind
     TransferFailed,
 
     /// <summary>Host key SFTP sconosciuta o diversa da quella accettata (possibile MITM).</summary>
-    HostKeyMismatch
+    HostKeyMismatch,
+
+    /// <summary>Il percorso di destinazione remoto esiste già (create/rename su un nome occupato).</summary>
+    AlreadyExists
 }
 
 /// <summary>
@@ -31,6 +34,9 @@ public static class RemoteErrorMessageKeys
     public const string PermissionDenied = "PermissionDenied";
     public const string Timeout = "Timeout";
     public const string HostUnreachable = "HostUnreachable";
+
+    /// <summary>Nessun detail: il nome del file/cartella remoto di destinazione esiste già.</summary>
+    public const string AlreadyExists = "AlreadyExists";
 
     /// <summary>Detail: host. Primo contatto con un server mai visto prima.</summary>
     public const string HostKeyFirstConnection = "HostKeyFirstConnection";

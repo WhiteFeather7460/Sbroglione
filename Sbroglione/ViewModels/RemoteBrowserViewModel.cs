@@ -450,6 +450,60 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     public Task RefreshAsync() => _client is null ? Task.CompletedTask : LoadListingAsync();
 
+    /// <summary>Crea una sottocartella nella cartella corrente e ricarica l'elenco.</summary>
+    public async Task CreateFolderAsync(string name)
+    {
+        if (_client is null || IsBusy || IsDownloading || IsUploading)
+            return;
+
+        string path = CurrentPath.TrimEnd('/') + "/" + name;
+        var error = await _client.CreateDirectoryAsync(path, CancellationToken.None);
+        ErrorMessage = error is null ? null : TranslateRemoteMessage(error.MessageKey, error.Detail);
+        if (error is null)
+            await LoadListingAsync();
+    }
+
+    /// <summary>Rinomina la voce indicata, restando nella cartella corrente, e ricarica l'elenco.</summary>
+    public async Task RenameSelectedAsync(RemoteEntryViewModel entry, string newName)
+    {
+        if (_client is null || IsBusy || IsDownloading || IsUploading)
+            return;
+
+        var error = await _client.RenameAsync(entry.Item.FullPath, newName, CancellationToken.None);
+        ErrorMessage = error is null ? null : TranslateRemoteMessage(error.MessageKey, error.Detail);
+        if (error is null)
+            await LoadListingAsync();
+    }
+
+    /// <summary>Elimina la voce indicata (ricorsivamente se cartella) e ricarica l'elenco.</summary>
+    public async Task DeleteSelectedAsync(RemoteEntryViewModel entry)
+    {
+        if (_client is null || IsBusy || IsDownloading || IsUploading)
+            return;
+
+        var error = await _client.DeleteAsync(entry.Item.FullPath, entry.IsDirectory, CancellationToken.None);
+        ErrorMessage = error is null ? null : TranslateRemoteMessage(error.MessageKey, error.Detail);
+        if (error is null)
+            await LoadListingAsync();
+    }
+
+    /// <summary>
+    /// Scarica una singola voce direttamente nella cartella indicata, senza passare dal batch
+    /// filtrato (<see cref="DestinationFolder"/>/filtri): usato dal trasferimento a doppio
+    /// click/drag&amp;drop tra i due pannelli, che copia esattamente quanto scelto dall'utente.
+    /// Ignorata se è una cartella: il trasferimento cartella-intera resta ai comandi esistenti
+    /// (Scarica directory).
+    /// </summary>
+    public async Task DownloadEntryToFolderAsync(RemoteEntryViewModel entry, string localFolder)
+    {
+        if (_client is null || entry.IsDirectory || IsBusy || IsDownloading || IsUploading)
+            return;
+
+        string localPath = Path.Combine(localFolder, entry.Item.Name);
+        var error = await _client.DownloadFileAsync(entry.Item, localPath, progress: null, CancellationToken.None);
+        ErrorMessage = error is null ? null : TranslateRemoteMessage(error.MessageKey, error.Detail);
+    }
+
     /// <summary>Azzera la fingerprint in sospeso e il profilo a cui era stata associata.</summary>
     private void ClearPendingFingerprint()
     {
@@ -899,6 +953,7 @@ public class RemoteBrowserViewModel : ViewModelBase
         RemoteErrorMessageKeys.PermissionDenied => LocalizationService.Tr("Str.RemoteBrowser.Error.PermissionDenied"),
         RemoteErrorMessageKeys.Timeout => LocalizationService.Tr("Str.RemoteBrowser.Error.Timeout"),
         RemoteErrorMessageKeys.HostUnreachable => LocalizationService.Tr("Str.RemoteBrowser.Error.HostUnreachable"),
+        RemoteErrorMessageKeys.AlreadyExists => LocalizationService.Tr("Str.RemoteBrowser.Error.AlreadyExists"),
         RemoteErrorMessageKeys.HostKeyFirstConnection => string.Format(
             LocalizationService.Tr("Str.RemoteBrowser.Error.HostKeyFirstConnectionFormat"), detail),
         RemoteErrorMessageKeys.HostKeyChanged => string.Format(

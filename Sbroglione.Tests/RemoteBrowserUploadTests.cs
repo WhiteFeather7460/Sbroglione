@@ -234,6 +234,15 @@ public sealed class RemoteBrowserUploadTests : IDisposable
             return result;
         }
 
+        public Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+            => _inner.CreateDirectoryAsync(path, ct);
+
+        public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+            => _inner.DeleteAsync(path, isDirectory, ct);
+
+        public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+            => _inner.RenameAsync(path, newName, ct);
+
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }
 
@@ -276,6 +285,15 @@ public sealed class RemoteBrowserUploadTests : IDisposable
                 await _gate.Task;
             return await _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
         }
+
+        public Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+            => _inner.CreateDirectoryAsync(path, ct);
+
+        public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+            => _inner.DeleteAsync(path, isDirectory, ct);
+
+        public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+            => _inner.RenameAsync(path, newName, ct);
 
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }

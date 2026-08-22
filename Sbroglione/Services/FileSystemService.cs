@@ -105,6 +105,83 @@ public static class FileSystemService
         });
 
     /// <summary>
+    /// Crea la sottocartella <paramref name="name"/> dentro <paramref name="parentPath"/>. Null = successo.
+    /// </summary>
+    public static Task<ListingError?> CreateDirectoryAsync(string parentPath, string name) =>
+        Task.Run(() =>
+        {
+            try
+            {
+                string target = Path.Combine(parentPath, name);
+                if (Directory.Exists(target) || File.Exists(target))
+                    return new ListingError(ListingErrorKind.AlreadyExists, ListingErrorMessageKeys.AlreadyExists);
+
+                Directory.CreateDirectory(target);
+                return (ListingError?)null;
+            }
+            catch (Exception ex)
+            {
+                return CreateListingError(ex);
+            }
+        });
+
+    /// <summary>
+    /// Rinomina il file o la cartella in <paramref name="path"/> in <paramref name="newName"/>,
+    /// restando nella stessa cartella padre. Null = successo.
+    /// </summary>
+    public static Task<ListingError?> RenameAsync(string path, string newName) =>
+        Task.Run(() =>
+        {
+            try
+            {
+                string? parent = Path.GetDirectoryName(path);
+                if (parent is null)
+                    return new ListingError(ListingErrorKind.NotFound, ListingErrorMessageKeys.NotFound);
+
+                string target = Path.Combine(parent, newName);
+                if (Directory.Exists(target) || File.Exists(target))
+                    return new ListingError(ListingErrorKind.AlreadyExists, ListingErrorMessageKeys.AlreadyExists);
+
+                if (Directory.Exists(path))
+                    Directory.Move(path, target);
+                else if (File.Exists(path))
+                    File.Move(path, target);
+                else
+                    return new ListingError(ListingErrorKind.NotFound, ListingErrorMessageKeys.NotFound);
+
+                return (ListingError?)null;
+            }
+            catch (Exception ex)
+            {
+                return CreateListingError(ex);
+            }
+        });
+
+    /// <summary>
+    /// Elimina il file o la cartella (ricorsivamente) in <paramref name="path"/>. Null = successo.
+    /// Nessun cestino: cancellazione diretta, la conferma va chiesta prima dal chiamante.
+    /// </summary>
+    public static Task<ListingError?> DeleteAsync(string path) =>
+        Task.Run(() =>
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                    Directory.Delete(path, recursive: true);
+                else if (File.Exists(path))
+                    File.Delete(path);
+                else
+                    return new ListingError(ListingErrorKind.NotFound, ListingErrorMessageKeys.NotFound);
+
+                return (ListingError?)null;
+            }
+            catch (Exception ex)
+            {
+                return CreateListingError(ex);
+            }
+        });
+
+    /// <summary>
     /// True se il percorso è in forma UNC (<c>\\server\condivisione</c>).
     /// </summary>
     public static bool IsUncPath(string? path) =>

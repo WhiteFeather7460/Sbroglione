@@ -100,6 +100,67 @@ public sealed class FakeRemoteClient : IRemoteFileClient
         return null;
     }
 
+    /// <summary>Percorsi remoti la cui operazione di cartella (create/delete/rename) deve fallire.</summary>
+    public HashSet<string> FailingFolderOps { get; } = new();
+
+    public Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (FailingFolderOps.Contains(path))
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.Generic, "Operazione fallita (simulata)."));
+        if (Entries.ContainsKey(path))
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.AlreadyExists, RemoteErrorMessageKeys.AlreadyExists));
+
+        string name = path.TrimEnd('/');
+        name = name[(name.LastIndexOf('/') + 1)..];
+        Entries[path] = (new RemoteItem(name, path, true, 0, new DateTime(2026, 6, 1)), Array.Empty<byte>());
+        return Task.FromResult<RemoteError?>(null);
+    }
+
+    public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (FailingFolderOps.Contains(path))
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.Generic, "Operazione fallita (simulata)."));
+        if (!Entries.Remove(path))
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.NotFound, RemoteErrorMessageKeys.NotFound));
+
+        if (isDirectory)
+        {
+            string prefix = path.TrimEnd('/') + "/";
+            foreach (var key in Entries.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
+                Entries.Remove(key);
+        }
+        return Task.FromResult<RemoteError?>(null);
+    }
+
+    /// <summary>
+    /// Rinomina solo la voce diretta: a differenza dei client reali non ricalcola ricorsivamente
+    /// i percorsi dei figli. Sufficiente per i test del ViewModel, che non rinominano cartelle
+    /// non vuote — annotato qui perché è una semplificazione deliberata del double.
+    /// </summary>
+    public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (FailingFolderOps.Contains(path))
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.Generic, "Operazione fallita (simulata)."));
+        if (!Entries.TryGetValue(path, out var entry))
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.NotFound, RemoteErrorMessageKeys.NotFound));
+
+        int lastSlash = path.TrimEnd('/').LastIndexOf('/');
+        string parent = lastSlash <= 0 ? "/" : path[..lastSlash];
+        string newPath = parent.TrimEnd('/') + "/" + newName;
+        if (Entries.ContainsKey(newPath))
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.AlreadyExists, RemoteErrorMessageKeys.AlreadyExists));
+
+        Entries.Remove(path);
+        Entries[newPath] = (entry.Item with { Name = newName, FullPath = newPath }, entry.Content);
+        return Task.FromResult<RemoteError?>(null);
+    }
+
     public ValueTask DisposeAsync()
     {
         IsConnected = false;

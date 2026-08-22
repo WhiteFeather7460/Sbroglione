@@ -227,6 +227,80 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         }
     }
 
+    public async Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
+
+        try
+        {
+            await _client.CreateDirectoryAsync(path, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
+    public async Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
+
+        try
+        {
+            // SSH.NET non offre varianti async di DeleteDirectory/DeleteFile: le eseguiamo
+            // su un thread di pool per non bloccare il thread UI chiamante.
+            await Task.Run(() =>
+            {
+                if (isDirectory)
+                    _client.DeleteDirectory(path);
+                else
+                    _client.DeleteFile(path);
+            }, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
+    public async Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
+
+        try
+        {
+            int lastSlash = path.TrimEnd('/').LastIndexOf('/');
+            string parent = lastSlash <= 0 ? "/" : path[..lastSlash];
+            string newPath = parent.TrimEnd('/') + "/" + newName;
+
+            // SSH.NET non offre una variante async di RenameFile: la eseguiamo su un
+            // thread di pool per non bloccare il thread UI chiamante.
+            await Task.Run(() => _client.RenameFile(path, newPath), ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
     /// <summary>
     /// Crea <paramref name="remoteDir"/> se manca, risalendo ricorsivamente i genitori mancanti:
     /// SSH.NET non offre una CreateDirectory ricorsiva ("mkdir -p") nativa.

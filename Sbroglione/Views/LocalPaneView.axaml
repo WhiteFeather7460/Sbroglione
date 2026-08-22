@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:controls="clr-namespace:Sbroglione.Views.Controls"
+             x:Class="Sbroglione.Views.LocalPaneView">
+
+  <DockPanel>
+
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="12,10">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <i:Icon Value="fa-solid fa-desktop" FontSize="16" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock Text="{DynamicResource Str.LocalPane.Title}" FontWeight="Bold"
+                   Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Top" Padding="12,6">
+      <Grid ColumnDefinitions="Auto,Auto,*">
+        <Button Grid.Column="0" Classes="iconbtn" i:Attached.Icon="fa-solid fa-arrow-up"
+                Click="OnNavigateUpClick" ToolTip.Tip="{DynamicResource Str.LocalPane.ParentFolderTooltip}" />
+        <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-rotate"
+                Click="OnRefreshClick" Margin="6,0,0,0"
+                ToolTip.Tip="{DynamicResource Str.LocalPane.RefreshTooltip}" />
+        <controls:BreadcrumbBar Grid.Column="2" x:Name="Breadcrumb" Margin="8,0,0,0"
+                                 SegmentClicked="OnBreadcrumbSegmentClicked" />
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Top" Classes="badge error" Margin="12,4" Padding="10,6"
+            IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+    </Border>
+
+    <Panel Background="{DynamicResource Brush.Surface}">
+      <ProgressBar IsIndeterminate="True" VerticalAlignment="Top" IsVisible="{Binding IsLoading}" />
+
+      <DataGrid x:Name="LocalGrid"
+                ItemsSource="{Binding Items}"
+                SelectedItem="{Binding SelectedItem}"
+                SelectionMode="Single"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                DoubleTapped="OnGridDoubleTapped"
+                PointerPressed="OnGridPointerPressed"
+                DragDrop.AllowDrop="True"
+                DragDrop.DragEnter="OnGridDragEnter"
+                DragDrop.Drop="OnGridDrop"
+                Margin="12,4">
+        <DataGrid.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="{DynamicResource Str.LocalPane.NewFolder}" Click="OnNewFolderClick" />
+            <MenuItem Header="{DynamicResource Str.LocalPane.Rename}" Click="OnRenameClick" />
+            <MenuItem Header="{DynamicResource Str.LocalPane.Delete}" Click="OnDeleteClick" />
+          </ContextMenu>
+        </DataGrid.ContextMenu>
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Width="36">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <i:Icon Value="fa-solid fa-folder" IsVisible="{Binding IsDirectory}"
+                          Foreground="{DynamicResource Brush.WarningFg}" />
+                  <i:Icon Value="fa-regular fa-file" IsVisible="{Binding !IsDirectory}"
+                          Foreground="{DynamicResource Brush.TextMuted}" />
+                </Panel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="{DynamicResource Str.Common.Name}" Binding="{Binding Name}" Width="*" />
+          <DataGridTextColumn Header="{DynamicResource Str.Common.Size}" Binding="{Binding Size}" Width="90" />
+          <DataGridTextColumn Header="{DynamicResource Str.Common.Modified}" Binding="{Binding LastModified}" Width="140" />
+        </DataGrid.Columns>
+      </DataGrid>
+    </Panel>
+
+  </DockPanel>
+</UserControl>

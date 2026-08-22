@@ -496,6 +496,15 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
             => _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
 
+        public Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+            => _inner.CreateDirectoryAsync(path, ct);
+
+        public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+            => _inner.DeleteAsync(path, isDirectory, ct);
+
+        public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+            => _inner.RenameAsync(path, newName, ct);
+
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }
 
@@ -538,6 +547,15 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
             => _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
 
+        public Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+            => _inner.CreateDirectoryAsync(path, ct);
+
+        public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+            => _inner.DeleteAsync(path, isDirectory, ct);
+
+        public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+            => _inner.RenameAsync(path, newName, ct);
+
         public ValueTask DisposeAsync() => _inner.DisposeAsync();
     }
 
@@ -578,6 +596,15 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct)
             => _inner.UploadFileAsync(localPath, remoteFullPath, progress, ct);
 
+        public Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+            => _inner.CreateDirectoryAsync(path, ct);
+
+        public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+            => _inner.DeleteAsync(path, isDirectory, ct);
+
+        public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+            => _inner.RenameAsync(path, newName, ct);
+
         public async ValueTask DisposeAsync()
         {
             DisposeCount++;
@@ -586,5 +613,129 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
                 await gate.Task;
             await _inner.DisposeAsync();
         }
+    }
+
+    [Fact]
+    public async Task CreateFolderAsync_CreatesRemoteFolderAndReloadsListing()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+
+        await vm.CreateFolderAsync("nuova");
+
+        Assert.Null(vm.ErrorMessage);
+        Assert.Contains(vm.Items, i => i.Name == "nuova" && i.IsDirectory);
+    }
+
+    [Fact]
+    public async Task RenameSelectedAsync_RenamesRemoteEntryAndReloadsListing()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        _client.AddFile("/vecchio.txt", "x");
+        await vm.RefreshAsync();
+        var entry = vm.Items.Single(i => i.Name == "vecchio.txt");
+
+        await vm.RenameSelectedAsync(entry, "nuovo.txt");
+
+        Assert.Null(vm.ErrorMessage);
+        Assert.Contains(vm.Items, i => i.Name == "nuovo.txt");
+    }
+
+    [Fact]
+    public async Task DeleteSelectedAsync_DeletesRemoteEntryAndReloadsListing()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        _client.AddFile("/dacancellare.txt", "x");
+        await vm.RefreshAsync();
+        var entry = vm.Items.Single(i => i.Name == "dacancellare.txt");
+
+        await vm.DeleteSelectedAsync(entry);
+
+        Assert.Null(vm.ErrorMessage);
+        Assert.DoesNotContain(vm.Items, i => i.Name == "dacancellare.txt");
+    }
+
+    [Fact]
+    public async Task DownloadEntryToFolderAsync_DownloadsFileToGivenFolder()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        _client.AddFile("/report.pdf", "contenuto");
+        await vm.RefreshAsync();
+        var entry = vm.Items.Single(i => i.Name == "report.pdf");
+        string destination = Path.Combine(Path.GetTempPath(), "sbroglione-dblclick-" + Guid.NewGuid());
+        Directory.CreateDirectory(destination);
+
+        try
+        {
+            await vm.DownloadEntryToFolderAsync(entry, destination);
+
+            Assert.Null(vm.ErrorMessage);
+            Assert.True(File.Exists(Path.Combine(destination, "report.pdf")));
+        }
+        finally
+        {
+            Directory.Delete(destination, recursive: true);
+        }
+    }
+}
+
+public sealed class FakeRemoteClientFolderOpsTests
+{
+    [Fact]
+    public async Task CreateDirectoryAsync_AddsDirectoryEntry()
+    {
+        var client = new FakeRemoteClient();
+
+        var error = await client.CreateDirectoryAsync("/home/nuova", CancellationToken.None);
+
+        Assert.Null(error);
+        var listing = await client.ListDirectoryAsync("/home", CancellationToken.None);
+        Assert.Contains(listing.Items, i => i.FullPath == "/home/nuova" && i.IsDirectory);
+    }
+
+    [Fact]
+    public async Task CreateDirectoryAsync_AlreadyExists_ReportsAlreadyExists()
+    {
+        var client = new FakeRemoteClient();
+        client.AddDirectory("/home/esistente");
+
+        var error = await client.CreateDirectoryAsync("/home/esistente", CancellationToken.None);
+
+        Assert.NotNull(error);
+        Assert.Equal(RemoteErrorKind.AlreadyExists, error!.Kind);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RemovesEntry()
+    {
+        var client = new FakeRemoteClient();
+        client.AddFile("/home/f.txt", "x");
+
+        var error = await client.DeleteAsync("/home/f.txt", isDirectory: false, CancellationToken.None);
+
+        Assert.Null(error);
+        var listing = await client.ListDirectoryAsync("/home", CancellationToken.None);
+        Assert.DoesNotContain(listing.Items, i => i.FullPath == "/home/f.txt");
+    }
+
+    [Fact]
+    public async Task RenameAsync_ChangesPath()
+    {
+        var client = new FakeRemoteClient();
+        client.AddFile("/home/vecchio.txt", "x");
+
+        var error = await client.RenameAsync("/home/vecchio.txt", "nuovo.txt", CancellationToken.None);
+
+        Assert.Null(error);
+        var listing = await client.ListDirectoryAsync("/home", CancellationToken.None);
+        Assert.Contains(listing.Items, i => i.FullPath == "/home/nuovo.txt");
+        Assert.DoesNotContain(listing.Items, i => i.FullPath == "/home/vecchio.txt");
     }
 }

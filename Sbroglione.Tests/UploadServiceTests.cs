@@ -179,6 +179,15 @@ public sealed class UploadServiceTests : IDisposable
         public Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct) =>
             Task.FromResult<RemoteError?>(null);
 
+        public Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct) =>
+            Task.FromResult<RemoteError?>(null);
+
+        public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct) =>
+            Task.FromResult<RemoteError?>(null);
+
+        public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct) =>
+            Task.FromResult<RemoteError?>(null);
+
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }
