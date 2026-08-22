@@ -277,6 +277,32 @@ public class RemoteBrowserViewModel : ViewModelBase
 
     private CancellationTokenSource? _uploadCts;
 
+    private RemoteEntryViewModel? _selectedItem;
+    public RemoteEntryViewModel? SelectedItem
+    {
+        get => _selectedItem;
+        set => this.RaiseAndSetIfChanged(ref _selectedItem, value);
+    }
+
+    private bool _localSelectionIsDirectory;
+
+    /// <summary>Aggiornata dal codice dietro le quinte di RemoteBrowserView in base alla
+    /// selezione corrente del pannello locale: serve solo al toggle Scarica/Carica cartella.</summary>
+    public bool LocalSelectionIsDirectory
+    {
+        get => _localSelectionIsDirectory;
+        set => this.RaiseAndSetIfChanged(ref _localSelectionIsDirectory, value);
+    }
+
+    private readonly ObservableAsPropertyHelper<bool> _isDownloadFolderEnabled;
+    /// <summary>Falso solo se è selezionata una cartella sul pannello locale ma non su quello
+    /// remoto: in quel caso l'intento dell'utente è chiaramente caricare, non scaricare.</summary>
+    public bool IsDownloadFolderEnabled => _isDownloadFolderEnabled.Value;
+
+    private readonly ObservableAsPropertyHelper<bool> _isUploadFolderEnabled;
+    /// <summary>Speculare a <see cref="IsDownloadFolderEnabled"/>.</summary>
+    public bool IsUploadFolderEnabled => _isUploadFolderEnabled.Value;
+
     /// <summary>Costruttore per la view: dipendenze reali.</summary>
     public RemoteBrowserViewModel()
         : this(RemoteClientFactory.Create, CredentialStoreFactory.Create(), ProfileStore.DefaultPath)
@@ -293,6 +319,20 @@ public class RemoteBrowserViewModel : ViewModelBase
         _credentialStore = credentialStore;
         _profilesFilePath = profilesFilePath;
         _savePassword = credentialStore.IsAvailable;
+
+        _isDownloadFolderEnabled = this.WhenAnyValue(
+                x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
+                x => x.SelectedItem, x => x.LocalSelectionIsDirectory,
+                (busy, downloading, uploading, selected, localDir) =>
+                    !busy && !downloading && !uploading && !(localDir && !(selected?.IsDirectory ?? false)))
+            .ToProperty(this, x => x.IsDownloadFolderEnabled);
+
+        _isUploadFolderEnabled = this.WhenAnyValue(
+                x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
+                x => x.SelectedItem, x => x.LocalSelectionIsDirectory,
+                (busy, downloading, uploading, selected, localDir) =>
+                    !busy && !downloading && !uploading && !((selected?.IsDirectory ?? false) && !localDir))
+            .ToProperty(this, x => x.IsUploadFolderEnabled);
     }
 
     /// <summary>
@@ -445,6 +485,16 @@ public class RemoteBrowserViewModel : ViewModelBase
 
         int lastSlash = CurrentPath.TrimEnd('/').LastIndexOf('/');
         CurrentPath = lastSlash <= 0 ? "/" : CurrentPath[..lastSlash];
+        await LoadListingAsync();
+    }
+
+    /// <summary>Naviga a un percorso assoluto digitato dall'utente nella barra indirizzo.</summary>
+    public async Task NavigateToAsync(string path)
+    {
+        if (_client is null || IsBusy || IsDownloading || IsUploading || path == CurrentPath)
+            return;
+
+        CurrentPath = string.IsNullOrWhiteSpace(path) ? "/" : path;
         await LoadListingAsync();
     }
 

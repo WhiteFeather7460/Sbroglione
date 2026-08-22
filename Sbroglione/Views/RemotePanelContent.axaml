@@ -7,10 +7,80 @@
   <UserControl.Resources>
     <conv:EnumEqualsConverter x:Key="EnumEquals" />
     <conv:LocalFileStatusConverter x:Key="LocalFileStatusText" />
+    <conv:NotAnyConverter x:Key="NotAny" />
   </UserControl.Resources>
 
-  <!-- Lista file -->
-  <Panel Background="{DynamicResource Brush.Surface}">
+  <DockPanel>
+
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="12,10">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <i:Icon Value="fa-solid fa-server" FontSize="16" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock Text="{DynamicResource Str.RemoteBrowser.PaneTitle}" FontWeight="Bold"
+                   Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Top" Padding="12,6" IsVisible="{Binding IsConnected}">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <Button Grid.Column="0" Classes="iconbtn" i:Attached.Icon="fa-solid fa-arrow-up"
+                Click="OnNavigateUpClick" ToolTip.Tip="{DynamicResource Str.RemoteBrowser.ParentFolderTooltip}">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+        </Button>
+        <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-rotate"
+                Click="OnRefreshClick" Margin="6,0,0,0"
+                ToolTip.Tip="{DynamicResource Str.RemoteBrowser.RefreshTooltip}">
+          <Button.IsEnabled>
+            <MultiBinding Converter="{StaticResource NotAny}">
+              <Binding Path="IsBusy" />
+              <Binding Path="IsDownloading" />
+              <Binding Path="IsUploading" />
+            </MultiBinding>
+          </Button.IsEnabled>
+        </Button>
+        <TextBox Grid.Column="2" x:Name="RemotePathBox" Margin="8,0,0,0"
+                 Text="{Binding CurrentPath, Mode=OneWay}" KeyDown="OnPathBoxKeyDown" />
+        <Button Grid.Column="3" Classes="iconbtn" i:Attached.Icon="fa-solid fa-filter" Margin="6,0,0,0"
+                ToolTip.Tip="{DynamicResource Str.Common.FiltersTooltip}">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <StackPanel Spacing="8" Width="360">
+                <Grid ColumnDefinitions="*,110,110">
+                  <TextBox Grid.Column="0" Text="{Binding FilterPattern}"
+                           Watermark="{DynamicResource Str.Common.FilterNamePatternWatermark}" />
+                  <TextBox Grid.Column="1" Text="{Binding FilterMinSizeKb}"
+                           Watermark="{DynamicResource Str.Common.FilterMinKbWatermark}" Margin="10,0,0,0" />
+                  <TextBox Grid.Column="2" Text="{Binding FilterMaxSizeKb}"
+                           Watermark="{DynamicResource Str.Common.FilterMaxKbWatermark}" Margin="10,0,0,0" />
+                </Grid>
+                <Grid ColumnDefinitions="Auto,*,Auto,*">
+                  <TextBlock Grid.Column="0" Text="{DynamicResource Str.Common.FilterModifiedAfter}" VerticalAlignment="Center"
+                             Foreground="{DynamicResource Brush.TextMuted}" />
+                  <DatePicker Grid.Column="1" SelectedDate="{Binding FilterModifiedAfter}" Margin="10,0,0,0" />
+                  <TextBlock Grid.Column="2" Text="{DynamicResource Str.Common.FilterModifiedBefore}" VerticalAlignment="Center" Margin="10,0,0,0"
+                             Foreground="{DynamicResource Brush.TextMuted}" />
+                  <DatePicker Grid.Column="3" SelectedDate="{Binding FilterModifiedBefore}" Margin="10,0,0,0" />
+                </Grid>
+                <StackPanel Spacing="4">
+                  <CheckBox Content="{DynamicResource Str.RemoteBrowser.OnlyMissingLocally}" IsChecked="{Binding OnlyMissing}" />
+                  <CheckBox Content="{DynamicResource Str.RemoteBrowser.IncludeSubfolders}" IsChecked="{Binding IncludeSubfolders}" />
+                  <CheckBox Content="{DynamicResource Str.RemoteBrowser.AlwaysOverwrite}" IsChecked="{Binding OverwriteAlways}" />
+                </StackPanel>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+      </Grid>
+    </Border>
+
+    <!-- Lista file -->
+    <Panel Background="{DynamicResource Brush.Surface}">
     <StackPanel IsVisible="{Binding !IsConnected}" VerticalAlignment="Center"
                 HorizontalAlignment="Center" Spacing="12">
       <i:Icon Value="fa-solid fa-server" FontSize="52"
@@ -25,6 +95,7 @@
 
     <DataGrid x:Name="RemoteGrid"
               ItemsSource="{Binding VisibleItems}"
+              SelectedItem="{Binding SelectedItem}"
               SelectionMode="Extended"
               AutoGenerateColumns="False"
               IsReadOnly="True"
@@ -33,6 +104,7 @@
               PointerPressed="OnGridPointerPressed"
               DragDrop.AllowDrop="True"
               DragDrop.DragEnter="OnGridDragEnter"
+              DragDrop.DragOver="OnGridDragEnter"
               DragDrop.Drop="OnGridDrop"
               Margin="20,4">
       <DataGrid.ContextMenu>
@@ -73,5 +145,7 @@
         </DataGridTemplateColumn>
       </DataGrid.Columns>
     </DataGrid>
-  </Panel>
+    </Panel>
+
+  </DockPanel>
 </UserControl>

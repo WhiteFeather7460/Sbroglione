@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
-             xmlns:controls="clr-namespace:Sbroglione.Views.Controls"
              x:Class="Sbroglione.Views.LocalPaneView">
 
   <DockPanel>
@@ -16,14 +15,39 @@
     </Border>
 
     <Border DockPanel.Dock="Top" Padding="12,6">
-      <Grid ColumnDefinitions="Auto,Auto,*">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
         <Button Grid.Column="0" Classes="iconbtn" i:Attached.Icon="fa-solid fa-arrow-up"
                 Click="OnNavigateUpClick" ToolTip.Tip="{DynamicResource Str.LocalPane.ParentFolderTooltip}" />
         <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-rotate"
                 Click="OnRefreshClick" Margin="6,0,0,0"
                 ToolTip.Tip="{DynamicResource Str.LocalPane.RefreshTooltip}" />
-        <controls:BreadcrumbBar Grid.Column="2" x:Name="Breadcrumb" Margin="8,0,0,0"
-                                 SegmentClicked="OnBreadcrumbSegmentClicked" />
+        <TextBox Grid.Column="2" x:Name="PathBox" Margin="8,0,0,0"
+                 Text="{Binding CurrentPath, Mode=OneWay}" KeyDown="OnPathBoxKeyDown" />
+        <Button Grid.Column="3" Classes="iconbtn" i:Attached.Icon="fa-solid fa-filter" Margin="6,0,0,0"
+                ToolTip.Tip="{DynamicResource Str.Common.FiltersTooltip}">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <StackPanel Spacing="8" Width="360">
+                <Grid ColumnDefinitions="*,110,110">
+                  <TextBox Grid.Column="0" Text="{Binding FilterPattern}"
+                           Watermark="{DynamicResource Str.Common.FilterNamePatternWatermark}" />
+                  <TextBox Grid.Column="1" Text="{Binding FilterMinSizeKb}"
+                           Watermark="{DynamicResource Str.Common.FilterMinKbWatermark}" Margin="10,0,0,0" />
+                  <TextBox Grid.Column="2" Text="{Binding FilterMaxSizeKb}"
+                           Watermark="{DynamicResource Str.Common.FilterMaxKbWatermark}" Margin="10,0,0,0" />
+                </Grid>
+                <Grid ColumnDefinitions="Auto,*,Auto,*">
+                  <TextBlock Grid.Column="0" Text="{DynamicResource Str.Common.FilterModifiedAfter}" VerticalAlignment="Center"
+                             Foreground="{DynamicResource Brush.TextMuted}" />
+                  <DatePicker Grid.Column="1" SelectedDate="{Binding FilterModifiedAfter}" Margin="10,0,0,0" />
+                  <TextBlock Grid.Column="2" Text="{DynamicResource Str.Common.FilterModifiedBefore}" VerticalAlignment="Center" Margin="10,0,0,0"
+                             Foreground="{DynamicResource Brush.TextMuted}" />
+                  <DatePicker Grid.Column="3" SelectedDate="{Binding FilterModifiedBefore}" Margin="10,0,0,0" />
+                </Grid>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
       </Grid>
     </Border>
 
@@ -36,7 +60,7 @@
       <ProgressBar IsIndeterminate="True" VerticalAlignment="Top" IsVisible="{Binding IsLoading}" />
 
       <DataGrid x:Name="LocalGrid"
-                ItemsSource="{Binding Items}"
+                ItemsSource="{Binding VisibleItems}"
                 SelectedItem="{Binding SelectedItem}"
                 SelectionMode="Single"
                 AutoGenerateColumns="False"
@@ -45,6 +69,7 @@
                 PointerPressed="OnGridPointerPressed"
                 DragDrop.AllowDrop="True"
                 DragDrop.DragEnter="OnGridDragEnter"
+                DragDrop.DragOver="OnGridDragEnter"
                 DragDrop.Drop="OnGridDrop"
                 Margin="12,4">
         <DataGrid.ContextMenu>
