@@ -126,6 +126,10 @@ Architettura a livelli: `Views` → `ViewModels` → `Services` (statici) → `M
 - Lo stile del codice è definito in `.editorconfig` (`dotnet format whitespace`).
 - Non committare direttamente su `main`: branch di feature + pull request.
 
+## Trasparenza
+
+Il codice di questo progetto è stato implementato interamente da Claude (Anthropic). Idee, requisiti e decisioni di design sono di WhiteFeather.
+
 ## Licenza
 
 [MIT](LICENSE)
