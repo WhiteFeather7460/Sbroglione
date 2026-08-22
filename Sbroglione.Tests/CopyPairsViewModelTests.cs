@@ -242,6 +242,54 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task StartCopy_SingleFile_WithExtraDestination_PopulatesDestinationsProgress()
+    {
+        string sourceFile = Path.Combine(_root, "dp-source.txt");
+        await File.WriteAllTextAsync(sourceFile, "dati");
+        string destination1 = Path.Combine(_root, "dp-dest1.txt");
+        string destination2 = Path.Combine(_root, "dp-dest2.txt");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceFile, DestinationPath = destination1 };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, destination2));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(2, pair.DestinationsProgress.Count);
+        Assert.All(pair.DestinationsProgress, d => Assert.Equal(CopyStateKind.Success, d.StateKind));
+        Assert.All(pair.DestinationsProgress, d => Assert.Equal(1, d.Progress, 3));
+        Assert.Equal(CopyStateKind.Success, pair.StateKind);
+    }
+
+    [Fact]
+    public async Task StartCopy_SingleFile_OneDestinationUnwritable_MarksThatDestinationErrorAndPairError()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = false;
+
+        string sourceFile = Path.Combine(_root, "dp-fail-source.txt");
+        await File.WriteAllTextAsync(sourceFile, "dati");
+        string goodDestination = Path.Combine(_root, "dp-fail-good.txt");
+        // Destinazione dentro una cartella inesistente: FileCopyService la marca fallita.
+        string badDestination = Path.Combine(_root, "dp-fail-missing-dir", "bad.txt");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceFile, DestinationPath = goodDestination };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, badDestination));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        var goodEntry = Assert.Single(pair.DestinationsProgress, d => d.Path == goodDestination);
+        var badEntry = Assert.Single(pair.DestinationsProgress, d => d.Path == badDestination);
+        Assert.Equal(CopyStateKind.Success, goodEntry.StateKind);
+        Assert.Equal(CopyStateKind.Error, badEntry.StateKind);
+        Assert.NotNull(badEntry.ErrorMessage);
+        Assert.Equal(CopyStateKind.Error, pair.StateKind);
+        Assert.Equal("dati", await File.ReadAllTextAsync(goodDestination));
+    }
+
+    [Fact]
     public async Task StartCopy_Directory_WithExtraDestination_VerifiesEveryDestination()
     {
         AppSettingsStore.Current.VerifyChecksumAfterCopy = true;

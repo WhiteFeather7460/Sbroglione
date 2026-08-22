@@ -143,6 +143,8 @@ public static class StringsIt
         ["Str.CopyPairs.VerifyingChecksumProgressFormat"] = "Verifica checksum… ({0}/{1})",
         ["Str.CopyPairs.CompletedVerifiedFormat"] = "Completato e verificato ({0} file)",
         ["Str.CopyPairs.VerifyFailedFormat"] = "Verifica fallita: {0} file diversi, {1} mancanti",
+        ["Str.CopyPairs.DestinationErrorFormat"] = "Errore: {0}",
+        ["Str.CopyPairs.CompletedWithErrorsFormat"] = "Completato con errori ({0}/{1} destinazioni)",
         ["Str.CopyPairs.NoFilesToCopy"] = "Nessun file da copiare",
         ["Str.CopyPairs.CopyingFolderFormat"] = "Copia cartella… ({0} file)",
         ["Str.CopyPairs.SpeedSummaryFormat"] = "{0} · media {1} · picco {2} · ETA {3}",

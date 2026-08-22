@@ -404,7 +404,9 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             pair.SpeedSamples = null;
             foreach (var item in pair.FilesToProcess)
                 item.Status = FileCopyStatus.Pending;
-            pair.CopyingFiles.Clear();
+            pair.DestinationsProgress.Clear();
+            foreach (var destination in destinations)
+                pair.DestinationsProgress.Add(new DestinationProgressViewModel(destination));
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
@@ -549,27 +551,23 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         }
 
         long totalBytes = new FileInfo(pair.SourcePath!).Length;
-        long copiedBytes = 0;
 
-        var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
-        tracker.Start(totalBytes);
-
-        // Il callback arriva da threadpool: contabilità inline (clamp monotono + tracker),
-        // set di proprietà su thread UI via UiDispatch.Post e gated dal throttle.
-        var uiThrottle = new UiProgressThrottle();
-        var trackerGate = new MonotonicProgressGate();
-        var uiGate = new MonotonicProgressGate();
-
-        // onBytesCopied ora spara per-destinazione: per contare i byte sorgente una sola volta
-        // (invariato rispetto a prima; il progresso per-destinazione arriva con task successivi)
-        // usiamo solo i callback della prima destinazione, che riceve gli stessi blocchi, nello
-        // stesso ordine, delle altre.
-        string firstDestinationFile = destinationFiles[0];
-        await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, (destination, deltaBytes) =>
+        // DestinationsProgress è stata popolata da StartCopyAsync nello stesso ordine di
+        // `destinations`: gli indici corrispondono a `destinationFiles`.
+        var vmByResolvedPath = new Dictionary<string, DestinationProgressViewModel>();
+        var trackers = new Dictionary<string, (SpeedTracker Tracker, MonotonicProgressGate TrackerGate, MonotonicProgressGate UiGate, UiProgressThrottle UiThrottle, StrongCopiedBytes CopiedBytes)>();
+        for (int i = 0; i < destinations.Count; i++)
         {
-            if (destination != firstDestinationFile)
-                return;
-            long total = Interlocked.Add(ref copiedBytes, deltaBytes);
+            var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+            tracker.Start(totalBytes);
+            vmByResolvedPath[destinationFiles[i]] = pair.DestinationsProgress[i];
+            trackers[destinationFiles[i]] = (tracker, new MonotonicProgressGate(), new MonotonicProgressGate(), new UiProgressThrottle(), new StrongCopiedBytes());
+        }
+
+        var copyResult = await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, (destinationFile, deltaBytes) =>
+        {
+            var (tracker, trackerGate, uiGate, uiThrottle, copiedBytes) = trackers[destinationFile];
+            long total = Interlocked.Add(ref copiedBytes.Value, deltaBytes);
             if (!trackerGate.TryAdvance(total))
                 return;
 
@@ -579,46 +577,110 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 return;
 
             double fraction = totalBytes > 0 ? (double)total / totalBytes : 1;
+            var target = vmByResolvedPath[destinationFile];
             UiDispatch.Post(() =>
             {
                 if (uiGate.TryAdvance(fraction))
-                    pair.Progress = fraction;
+                    target.Progress = fraction;
                 if (haveSnapshot)
-                    PublishSpeed(pair, snapshot);
+                    PublishDestinationSpeed(pair, target, snapshot);
+                RecomputePairAggregate(pair);
             });
         }, ct, AppSettingsStore.Current.BufferSizeBytes);
 
-        pair.SpeedText = string.Format(
-            LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
-            FormatSpeed(tracker.AverageBytesPerSecond),
-            FormatSpeed(tracker.PeakBytesPerSecond));
+        foreach (var destinationFile in copyResult.SucceededDestinations)
+        {
+            var target = vmByResolvedPath[destinationFile];
+            var tracker = trackers[destinationFile].Tracker;
+            target.SpeedText = string.Format(
+                LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
+                FormatSpeed(tracker.AverageBytesPerSecond),
+                FormatSpeed(tracker.PeakBytesPerSecond));
+            target.StateKind = CopyStateKind.Success;
+        }
+
+        foreach (var (destinationFile, error) in copyResult.FailedDestinations)
+        {
+            var target = vmByResolvedPath[destinationFile];
+            target.StateKind = CopyStateKind.Error;
+            target.ErrorMessage = error.Message;
+            target.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.DestinationErrorFormat"), error.Message);
+        }
 
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
-            pair.Status = LocalizationService.Tr("Str.CopyPairs.Completed");
-            pair.StateKind = CopyStateKind.Success;
+            pair.StateKind = AggregatePairState(pair);
+            pair.Status = pair.StateKind == CopyStateKind.Error
+                ? string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedWithErrorsFormat"), copyResult.SucceededDestinations.Count, destinations.Count)
+                : LocalizationService.Tr("Str.CopyPairs.Completed");
             return;
         }
 
-        // Verifica checksum di tutte le destinazioni.
+        // Verifica checksum solo sulle destinazioni riuscite.
         pair.Status = LocalizationService.Tr("Str.CopyPairs.VerifyingChecksum");
         pair.SourceChecksum ??= await ChecksumService.ComputeSha256Async(pair.SourcePath!, ct);
 
         bool allMatch = true;
-        foreach (var destinationFile in destinationFiles)
+        foreach (var destinationFile in copyResult.SucceededDestinations)
         {
             string destinationHash = await ChecksumService.ComputeSha256Async(destinationFile, ct);
             pair.DestinationChecksum = destinationHash;
-            allMatch &= string.Equals(pair.SourceChecksum, destinationHash, StringComparison.OrdinalIgnoreCase);
+            bool matches = string.Equals(pair.SourceChecksum, destinationHash, StringComparison.OrdinalIgnoreCase);
+            allMatch &= matches;
+            if (!matches)
+                vmByResolvedPath[destinationFile].StateKind = CopyStateKind.Warning;
         }
 
-        pair.IsVerified = allMatch;
+        pair.IsVerified = allMatch && copyResult.FailedDestinations.Count == 0;
         pair.Progress = 1;
-        pair.Status = allMatch
-            ? LocalizationService.Tr("Str.CopyPairs.Completed")
-            : LocalizationService.Tr("Str.CopyPairs.CompletedChecksumMismatch");
-        pair.StateKind = allMatch ? CopyStateKind.Success : CopyStateKind.Warning;
+        pair.StateKind = AggregatePairState(pair);
+        pair.Status = pair.StateKind switch
+        {
+            CopyStateKind.Error => string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedWithErrorsFormat"), copyResult.SucceededDestinations.Count, destinations.Count),
+            CopyStateKind.Warning => LocalizationService.Tr("Str.CopyPairs.CompletedChecksumMismatch"),
+            _ => LocalizationService.Tr("Str.CopyPairs.Completed")
+        };
+    }
+
+    /// <summary>Contenitore per un contatore byte mutabile per destinazione, target di <see cref="Interlocked.Add(ref long, long)"/>.</summary>
+    private sealed class StrongCopiedBytes
+    {
+        public long Value;
+    }
+
+    private static void PublishDestinationSpeed(FolderFilePairViewModel pair, DestinationProgressViewModel target, SpeedSnapshot snapshot)
+    {
+        target.SpeedText = string.Format(
+            LocalizationService.Tr("Str.CopyPairs.SpeedSummaryFormat"),
+            FormatSpeed(snapshot.CurrentBytesPerSecond),
+            FormatSpeed(snapshot.AverageBytesPerSecond),
+            FormatSpeed(snapshot.PeakBytesPerSecond),
+            FormatEta(snapshot.EtaSeconds));
+        target.CurrentBytesPerSecond = snapshot.CurrentBytesPerSecond;
+    }
+
+    /// <summary>Ricalcola gli aggregati del pair dalle sue destinazioni: la più lenta pilota il progresso, la somma la velocità mostrata.</summary>
+    private static void RecomputePairAggregate(FolderFilePairViewModel pair)
+    {
+        if (pair.DestinationsProgress.Count == 0)
+            return;
+
+        pair.Progress = pair.DestinationsProgress.Min(d => d.Progress);
+        double totalSpeed = pair.DestinationsProgress.Sum(d => d.CurrentBytesPerSecond);
+        pair.SpeedText = totalSpeed > 0
+            ? string.Format(LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"), FormatSpeed(totalSpeed), FormatSpeed(totalSpeed))
+            : pair.SpeedText;
+    }
+
+    /// <summary>Priorità Error > Warning > Success sulle destinazioni del pair.</summary>
+    private static CopyStateKind AggregatePairState(FolderFilePairViewModel pair)
+    {
+        if (pair.DestinationsProgress.Any(d => d.StateKind == CopyStateKind.Error))
+            return CopyStateKind.Error;
+        if (pair.DestinationsProgress.Any(d => d.StateKind == CopyStateKind.Warning))
+            return CopyStateKind.Warning;
+        return CopyStateKind.Success;
     }
 
     private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)

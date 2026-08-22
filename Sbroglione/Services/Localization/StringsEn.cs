@@ -139,6 +139,8 @@ public static class StringsEn
         ["Str.CopyPairs.VerifyingChecksumProgressFormat"] = "Verifying checksum… ({0}/{1})",
         ["Str.CopyPairs.CompletedVerifiedFormat"] = "Completed and verified ({0} files)",
         ["Str.CopyPairs.VerifyFailedFormat"] = "Verification failed: {0} different files, {1} missing",
+        ["Str.CopyPairs.DestinationErrorFormat"] = "Error: {0}",
+        ["Str.CopyPairs.CompletedWithErrorsFormat"] = "Completed with errors ({0}/{1} destinations)",
         ["Str.CopyPairs.NoFilesToCopy"] = "No files to copy",
         ["Str.CopyPairs.CopyingFolderFormat"] = "Copying folder… ({0} files)",
         ["Str.CopyPairs.SpeedSummaryFormat"] = "{0} · avg {1} · peak {2} · ETA {3}",
