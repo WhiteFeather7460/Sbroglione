@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sbroglione.Desktop", "Sbrog
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sbroglione.Tests", "Sbroglione.Tests\Sbroglione.Tests.csproj", "{A2E2E8CA-ADAA-413F-85F3-D6F85C3BD5C7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sbroglione.Android", "Sbroglione.Android\Sbroglione.Android.csproj", "{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{A2E2E8CA-ADAA-413F-85F3-D6F85C3BD5C7}.Release|x64.Build.0 = Release|Any CPU
 		{A2E2E8CA-ADAA-413F-85F3-D6F85C3BD5C7}.Release|x86.ActiveCfg = Release|Any CPU
 		{A2E2E8CA-ADAA-413F-85F3-D6F85C3BD5C7}.Release|x86.Build.0 = Release|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Debug|x64.Build.0 = Debug|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Debug|x86.Build.0 = Debug|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|x64.ActiveCfg = Release|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|x64.Build.0 = Release|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|x86.ActiveCfg = Release|Any CPU
+		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
