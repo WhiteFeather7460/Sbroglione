@@ -270,15 +270,26 @@ public sealed class CopyPairsViewModelTests : IDisposable
         string sourceFile = Path.Combine(_root, "dp-fail-source.txt");
         await File.WriteAllTextAsync(sourceFile, "dati");
         string goodDestination = Path.Combine(_root, "dp-fail-good.txt");
-        // Destinazione dentro una cartella inesistente: FileCopyService la marca fallita.
-        string badDestination = Path.Combine(_root, "dp-fail-missing-dir", "bad.txt");
+        // Destinazione bloccata da un handle esclusivo tenuto aperto per tutta la copia:
+        // FileCopyService.CopyFileToManyAsync apre ogni destinazione con
+        // new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None),
+        // quindi questo file "in uso" fa fallire solo questa destinazione con IOException.
+        // A differenza di una cartella padre mancante, questo fallimento sopravvive alla
+        // pre-creazione delle cartelle in StartCopyAsync (il file esiste già, la cartella
+        // padre è _root che esiste già) e al redirect "destinazione è una cartella" di
+        // CopySingleFileAsync (qui la destinazione è un file, non una cartella, quindi non
+        // c'è alcun redirect verso un percorso interno che tornerebbe scrivibile).
+        string badDestination = Path.Combine(_root, "dp-fail-locked.txt");
 
         var pair = new FolderFilePairViewModel { SourcePath = sourceFile, DestinationPath = goodDestination };
         pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, badDestination));
         await pair.SourceStateRefresh;
 
         var vm = new CopyPairsViewModel();
-        await vm.StartCopyAsync(pair);
+        using (new FileStream(badDestination, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await vm.StartCopyAsync(pair);
+        }
 
         var goodEntry = Assert.Single(pair.DestinationsProgress, d => d.Path == goodDestination);
         var badEntry = Assert.Single(pair.DestinationsProgress, d => d.Path == badDestination);
