@@ -31,6 +31,8 @@ public partial class RemoteBrowserView : UserControl
 
         _localPane = new LocalPaneView();
         _remotePane = new RemotePanelContent { DataContext = _viewModel };
+        _localPane.RemoteViewModel = _viewModel;
+        _remotePane.GetLocalCurrentPath = () => _localPane.ViewModel.CurrentPath;
         _leftIsLocal = true;
         LeftPaneHost.Content = _localPane;
         RightPaneHost.Content = _remotePane;

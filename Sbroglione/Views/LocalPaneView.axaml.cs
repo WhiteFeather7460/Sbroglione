@@ -13,6 +13,10 @@ public partial class LocalPaneView : UserControl
 {
     public LocalPaneViewModel ViewModel { get; }
 
+    /// <summary>Impostata dal genitore (RemoteBrowserView) dopo la costruzione: consente al
+    /// doppio click su un file locale di caricarlo nella cartella remota corrente.</summary>
+    public RemoteBrowserViewModel? RemoteViewModel { get; set; }
+
     public LocalPaneView() : this(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
     {
     }
@@ -38,8 +42,13 @@ public partial class LocalPaneView : UserControl
 
     private async void OnGridDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (ViewModel.SelectedItem is { IsDirectory: true } item)
+        if (ViewModel.SelectedItem is not { } item)
+            return;
+
+        if (item.IsDirectory)
             await ViewModel.NavigateToAsync(item.FullPath);
+        else if (RemoteViewModel is { IsConnected: true } remoteVm)
+            await remoteVm.UploadFilesAsync(new[] { item.FullPath });
     }
 
     private async void OnNewFolderClick(object? sender, RoutedEventArgs e)

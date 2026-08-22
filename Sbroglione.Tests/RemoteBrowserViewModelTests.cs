@@ -659,6 +659,31 @@ public sealed class RemoteBrowserViewModelTests : IDisposable
         Assert.Null(vm.ErrorMessage);
         Assert.DoesNotContain(vm.Items, i => i.Name == "dacancellare.txt");
     }
+
+    [Fact]
+    public async Task DownloadEntryToFolderAsync_DownloadsFileToGivenFolder()
+    {
+        var vm = CreateViewModel();
+        vm.PasswordInput = "pw";
+        await vm.ConnectAsync();
+        _client.AddFile("/report.pdf", "contenuto");
+        await vm.RefreshAsync();
+        var entry = vm.Items.Single(i => i.Name == "report.pdf");
+        string destination = Path.Combine(Path.GetTempPath(), "sbroglione-dblclick-" + Guid.NewGuid());
+        Directory.CreateDirectory(destination);
+
+        try
+        {
+            await vm.DownloadEntryToFolderAsync(entry, destination);
+
+            Assert.Null(vm.ErrorMessage);
+            Assert.True(File.Exists(Path.Combine(destination, "report.pdf")));
+        }
+        finally
+        {
+            Directory.Delete(destination, recursive: true);
+        }
+    }
 }
 
 public sealed class FakeRemoteClientFolderOpsTests

@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -19,6 +20,10 @@ public partial class RemotePanelContent : UserControl
 
     private RemoteBrowserViewModel? ViewModel => DataContext as RemoteBrowserViewModel;
 
+    /// <summary>Impostata dal genitore (RemoteBrowserView) dopo la costruzione: consente al
+    /// doppio click su un file remoto di scaricarlo nella cartella locale corrente.</summary>
+    public Func<string>? GetLocalCurrentPath { get; set; }
+
     public RemotePanelContent()
     {
         InitializeComponent();
@@ -29,8 +34,13 @@ public partial class RemotePanelContent : UserControl
         if (ViewModel is not { } vm)
             return;
 
-        if (RemoteGrid.SelectedItem is RemoteEntryViewModel entry && entry.IsDirectory)
+        if (RemoteGrid.SelectedItem is not RemoteEntryViewModel entry)
+            return;
+
+        if (entry.IsDirectory)
             await vm.OpenDirectoryAsync(entry);
+        else if (GetLocalCurrentPath is { } getLocalPath)
+            await vm.DownloadEntryToFolderAsync(entry, getLocalPath());
     }
 
     private async void OnRemoteNewFolderClick(object? sender, RoutedEventArgs e)

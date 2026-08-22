@@ -487,6 +487,23 @@ public class RemoteBrowserViewModel : ViewModelBase
             await LoadListingAsync();
     }
 
+    /// <summary>
+    /// Scarica una singola voce direttamente nella cartella indicata, senza passare dal batch
+    /// filtrato (<see cref="DestinationFolder"/>/filtri): usato dal trasferimento a doppio
+    /// click/drag&amp;drop tra i due pannelli, che copia esattamente quanto scelto dall'utente.
+    /// Ignorata se è una cartella: il trasferimento cartella-intera resta ai comandi esistenti
+    /// (Scarica directory).
+    /// </summary>
+    public async Task DownloadEntryToFolderAsync(RemoteEntryViewModel entry, string localFolder)
+    {
+        if (_client is null || entry.IsDirectory || IsBusy || IsDownloading || IsUploading)
+            return;
+
+        string localPath = Path.Combine(localFolder, entry.Item.Name);
+        var error = await _client.DownloadFileAsync(entry.Item, localPath, progress: null, CancellationToken.None);
+        ErrorMessage = error is null ? null : TranslateRemoteMessage(error.MessageKey, error.Detail);
+    }
+
     /// <summary>Azzera la fingerprint in sospeso e il profilo a cui era stata associata.</summary>
     private void ClearPendingFingerprint()
     {
