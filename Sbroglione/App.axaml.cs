@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
@@ -61,6 +62,18 @@ public partial class App : Application
                 DataContext = new MainWindowViewModel()
             };
         }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        {
+            AppSettingsStore.LoadCurrent();
+            LocalizationService.Apply(AppSettingsStore.Current.Language);
+
+            singleView.MainView = new TextBlock
+            {
+                Text = "Sbroglione — Android smoke test",
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+        }
 
         base.OnFrameworkInitializationCompleted();
     }
@@ -71,4 +84,7 @@ public partial class App : Application
         "Dark" => ThemeVariant.Dark,
         _ => ThemeVariant.Default
     };
+
+    internal void SetApplicationLifetimeForTests(Avalonia.Controls.ApplicationLifetimes.IApplicationLifetime lifetime)
+        => ApplicationLifetime = lifetime;
 }
