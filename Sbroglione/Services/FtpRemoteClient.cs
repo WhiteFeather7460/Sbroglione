@@ -191,8 +191,12 @@ public sealed class FtpRemoteClient : IRemoteFileClient
 
         try
         {
-            await _client.CreateDirectory(path, ct);
-            return null;
+            // FluentFTP.CreateDirectory è idempotente: ritorna false (senza eccezione) se la
+            // cartella esiste già, quindi va tradotto esplicitamente in AlreadyExists.
+            bool created = await _client.CreateDirectory(path, ct);
+            return created
+                ? null
+                : new RemoteError(RemoteErrorKind.AlreadyExists, RemoteErrorMessageKeys.AlreadyExists);
         }
         catch (OperationCanceledException)
         {

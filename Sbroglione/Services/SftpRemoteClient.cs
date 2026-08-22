@@ -247,41 +247,57 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         }
     }
 
-    public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+    public async Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
     {
         if (_client is null)
-            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected));
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
 
         try
         {
-            if (isDirectory)
-                _client.DeleteDirectory(path);
-            else
-                _client.DeleteFile(path);
-            return Task.FromResult<RemoteError?>(null);
+            // SSH.NET non offre varianti async di DeleteDirectory/DeleteFile: le eseguiamo
+            // su un thread di pool per non bloccare il thread UI chiamante.
+            await Task.Run(() =>
+            {
+                if (isDirectory)
+                    _client.DeleteDirectory(path);
+                else
+                    _client.DeleteFile(path);
+            }, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            return Task.FromResult<RemoteError?>(TranslateError(ex));
+            return TranslateError(ex);
         }
     }
 
-    public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+    public async Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
     {
         if (_client is null)
-            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected));
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
 
         try
         {
             int lastSlash = path.TrimEnd('/').LastIndexOf('/');
             string parent = lastSlash <= 0 ? "/" : path[..lastSlash];
             string newPath = parent.TrimEnd('/') + "/" + newName;
-            _client.RenameFile(path, newPath);
-            return Task.FromResult<RemoteError?>(null);
+
+            // SSH.NET non offre una variante async di RenameFile: la eseguiamo su un
+            // thread di pool per non bloccare il thread UI chiamante.
+            await Task.Run(() => _client.RenameFile(path, newPath), ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            return Task.FromResult<RemoteError?>(TranslateError(ex));
+            return TranslateError(ex);
         }
     }
 
