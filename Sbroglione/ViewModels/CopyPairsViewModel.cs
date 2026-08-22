@@ -387,6 +387,8 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             pair.SimulationSummary = null;
             pair.SpeedText = null;
             pair.SpeedSamples = null;
+            foreach (var item in pair.FilesToProcess)
+                item.Status = FileCopyStatus.Pending;
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
@@ -601,6 +603,10 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
         var publisher = new DirectoryCopyProgressPublisher(pair, tracker);
 
+        // Lookup per aggiornare lo stato per-file nella lista "File da elaborare": vuoto
+        // (no-op) se l'Expander non è mai stato aperto, FilesToProcess non è ancora caricata.
+        var filesByPath = pair.FilesToProcess.ToDictionary(f => f.FullPath, f => f);
+
         var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
         int parallelism = int.MaxValue;
         foreach (var destination in destinations)
@@ -618,7 +624,17 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             onProgress: publisher.Report,
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
-            skipUnchanged: pair.SkipUnchanged);
+            skipUnchanged: pair.SkipUnchanged,
+            onFileStarted: sourceFile =>
+            {
+                if (filesByPath.TryGetValue(sourceFile, out var item))
+                    UiDispatch.Post(() => item.Status = FileCopyStatus.Copying);
+            },
+            onFileCompleted: sourceFile =>
+            {
+                if (filesByPath.TryGetValue(sourceFile, out var item))
+                    UiDispatch.Post(() => item.Status = FileCopyStatus.Done);
+            });
 
         int knownFileCount = publisher.KnownFileCount;
         if (knownFileCount > 0)

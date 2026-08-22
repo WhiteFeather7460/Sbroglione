@@ -137,7 +137,9 @@ public static class FileCopyService
         Action<CopyProgress>? onProgress,
         CancellationToken ct,
         int bufferSize = DefaultBufferSize,
-        bool skipUnchanged = false)
+        bool skipUnchanged = false,
+        Action<string>? onFileStarted = null,
+        Action<string>? onFileCompleted = null)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -175,16 +177,19 @@ public static class FileCopyService
                 {
                     long skippedTotal = Interlocked.Add(ref copiedBytes, new FileInfo(sourceFile).Length);
                     onProgress?.Invoke(new CopyProgress(skippedTotal, totalBytes, files.Count));
+                    onFileCompleted?.Invoke(sourceFile);
                     return;
                 }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
 
+                onFileStarted?.Invoke(sourceFile);
                 await CopyFileAsync(sourceFile, destinationFile, deltaBytes =>
                 {
                     long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
                     onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
                 }, ct, bufferSize).ConfigureAwait(false);
+                onFileCompleted?.Invoke(sourceFile);
             }
             finally
             {
@@ -206,7 +211,9 @@ public static class FileCopyService
         Action<CopyProgress>? onProgress,
         CancellationToken ct,
         int bufferSize = DefaultBufferSize,
-        bool skipUnchanged = false)
+        bool skipUnchanged = false,
+        Action<string>? onFileStarted = null,
+        Action<string>? onFileCompleted = null)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -246,17 +253,20 @@ public static class FileCopyService
                 {
                     long skippedTotal = Interlocked.Add(ref copiedBytes, new FileInfo(sourceFile).Length);
                     onProgress?.Invoke(new CopyProgress(skippedTotal, totalBytes, files.Count));
+                    onFileCompleted?.Invoke(sourceFile);
                     return;
                 }
 
                 foreach (var destinationFile in destinationFiles)
                     Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
 
+                onFileStarted?.Invoke(sourceFile);
                 await CopyFileToManyAsync(sourceFile, destinationFiles, deltaBytes =>
                 {
                     long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
                     onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
                 }, ct, bufferSize).ConfigureAwait(false);
+                onFileCompleted?.Invoke(sourceFile);
             }
             finally
             {

@@ -212,6 +212,20 @@
                             </DataTemplate>
                           </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="34">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <i:Icon Value="fa-solid fa-arrows-rotate"
+                                        IsVisible="{Binding Status, Converter={StaticResource EnumEquals}, ConverterParameter=Copying}"
+                                        Foreground="{DynamicResource Brush.Accent}" />
+                                <i:Icon Value="fa-solid fa-check"
+                                        IsVisible="{Binding Status, Converter={StaticResource EnumEquals}, ConverterParameter=Done}"
+                                        Foreground="{DynamicResource Brush.SuccessFg}" />
+                              </Panel>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="{DynamicResource Str.Common.Name}" Binding="{Binding Name}" Width="*" />
                         <DataGridTextColumn Header="{DynamicResource Str.Common.Size}" Binding="{Binding Size}" Width="110" />
                         <DataGridTextColumn Header="{DynamicResource Str.Common.Modified}" Binding="{Binding LastModified}" Width="170" />

@@ -21,4 +21,11 @@ public class FileSystemItem : ReactiveObject
         get => _checkSum;
         set => this.RaiseAndSetIfChanged(ref _checkSum, value);
     }
+
+    private FileCopyStatus _status = FileCopyStatus.Pending;
+    public FileCopyStatus Status
+    {
+        get => _status;
+        set => this.RaiseAndSetIfChanged(ref _status, value);
+    }
 }
