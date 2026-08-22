@@ -112,6 +112,7 @@ public static class StringsEn
         ["Str.CopyPairs.Start"] = "Start",
         ["Str.CopyPairs.ShowFiles"] = "Show files to process",
         ["Str.CopyPairs.CopyingNowHeader"] = "Copying now",
+        ["Str.CopyPairs.DestinationErrorBadge"] = "Error",
         ["Str.CopyPairs.ClearDestination"] = "Clear destination before copying",
         ["Str.CopyPairs.ClearDestinationTitle"] = "Clear destinations?",
         ["Str.CopyPairs.ClearDestinationMessageFormat"] = "All content of the following folders will be permanently deleted before copying:\n{0}",
