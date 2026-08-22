@@ -23,11 +23,67 @@ public class ExtraDestinationViewModel
 }
 
 /// <summary>
+/// Avanzamento, velocità e stato di una singola destinazione durante una copia
+/// multi-destinazione: ogni destinazione procede al proprio ritmo e può fallire
+/// indipendentemente dalle altre.
+/// </summary>
+public sealed class DestinationProgressViewModel : ReactiveObject
+{
+    public DestinationProgressViewModel(string path) => Path = path;
+
+    public string Path { get; }
+
+    private double _progress;
+    public double Progress
+    {
+        get => _progress;
+        set => this.RaiseAndSetIfChanged(ref _progress, value);
+    }
+
+    private string? _status;
+    public string? Status
+    {
+        get => _status;
+        set => this.RaiseAndSetIfChanged(ref _status, value);
+    }
+
+    private string? _speedText;
+    public string? SpeedText
+    {
+        get => _speedText;
+        set => this.RaiseAndSetIfChanged(ref _speedText, value);
+    }
+
+    /// <summary>Velocità istantanea in byte/s: non a binding diretto, usata per aggregare la velocità totale del pair.</summary>
+    public double CurrentBytesPerSecond { get; set; }
+
+    private CopyStateKind _stateKind = CopyStateKind.Copying;
+    public CopyStateKind StateKind
+    {
+        get => _stateKind;
+        set => this.RaiseAndSetIfChanged(ref _stateKind, value);
+    }
+
+    private string? _errorMessage;
+    public string? ErrorMessage
+    {
+        get => _errorMessage;
+        set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+    }
+
+    /// <summary>File attualmente in copia verso questa destinazione (sottoinsieme di FilesToProcess).</summary>
+    public ObservableCollection<FileSystemItem> CopyingFiles { get; } = new();
+}
+
+/// <summary>
 /// Riga della lista di copie: coppia sorgente/destinazione con stato, avanzamento
 /// ed esito della verifica checksum.
 /// </summary>
 public class FolderFilePairViewModel : ReactiveObject
 {
+    // Temporary: for backward compatibility while CopyPairsViewModel still uses CopyingFiles
+    private ObservableCollection<FileSystemItem>? _copyingFilesCache;
+
     private IReadOnlyList<FileSystemItem> _filesToProcess = Array.Empty<FileSystemItem>();
 
     /// <summary>
@@ -207,8 +263,31 @@ public class FolderFilePairViewModel : ReactiveObject
     public IReadOnlyList<string> AllDestinations =>
         new[] { DestinationPath! }.Concat(ExtraDestinations.Select(e => e.Path)).ToList();
 
-    /// <summary>File attualmente in copia (sottoinsieme di <see cref="FilesToProcess"/>), per il widget "in corso".</summary>
-    public ObservableCollection<FileSystemItem> CopyingFiles { get; } = new();
+    /// <summary>Avanzamento per destinazione durante una copia, per il widget "in corso".</summary>
+    public ObservableCollection<DestinationProgressViewModel> DestinationsProgress { get; } = new();
+
+    /// <summary>Temporary bridge to CopyingFiles from the first destination (will be removed in Task 4-6).</summary>
+    [Obsolete("Use DestinationsProgress instead")]
+    public ObservableCollection<FileSystemItem> CopyingFiles
+    {
+        get
+        {
+            if (_copyingFilesCache == null)
+            {
+                if (DestinationsProgress.Count == 0)
+                {
+                    var dest = new DestinationProgressViewModel("temp");
+                    DestinationsProgress.Add(dest);
+                    _copyingFilesCache = dest.CopyingFiles;
+                }
+                else
+                {
+                    _copyingFilesCache = DestinationsProgress[0].CopyingFiles;
+                }
+            }
+            return _copyingFilesCache;
+        }
+    }
 
     /// <summary>
     /// True per le coppie ripristinate dal journal: la copia di cartelle salta

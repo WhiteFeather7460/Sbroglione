@@ -1,3 +1,4 @@
+using Sbroglione.Models;
 using Sbroglione.ViewModels;
 
 namespace Sbroglione.Tests;
@@ -231,5 +232,41 @@ public sealed class FolderFilePairViewModelTests : IDisposable
         await pair.SourceStateRefresh;
 
         Assert.False(pair.CanStart);
+    }
+
+    [Fact]
+    public void DestinationsProgress_StartsEmpty_AndAcceptsAddedEntries()
+    {
+        var pair = new FolderFilePairViewModel();
+        Assert.Empty(pair.DestinationsProgress);
+
+        var destination = new DestinationProgressViewModel(@"C:\dest");
+        pair.DestinationsProgress.Add(destination);
+
+        Assert.Equal(@"C:\dest", destination.Path);
+        Assert.Equal(CopyStateKind.Copying, destination.StateKind);
+        Assert.Equal(0, destination.Progress);
+        Assert.Empty(destination.CopyingFiles);
+        Assert.Single(pair.DestinationsProgress);
+    }
+
+    [Fact]
+    public void DestinationProgressViewModel_PropertySetters_RaisePropertyChanged()
+    {
+        var destination = new DestinationProgressViewModel("/dest");
+        var raised = new List<string>();
+        destination.PropertyChanged += (_, e) => raised.Add(e.PropertyName!);
+
+        destination.Progress = 0.5;
+        destination.Status = "Copia in corso";
+        destination.SpeedText = "10 MB/s";
+        destination.StateKind = CopyStateKind.Error;
+        destination.ErrorMessage = "disco pieno";
+
+        Assert.Contains(nameof(DestinationProgressViewModel.Progress), raised);
+        Assert.Contains(nameof(DestinationProgressViewModel.Status), raised);
+        Assert.Contains(nameof(DestinationProgressViewModel.SpeedText), raised);
+        Assert.Contains(nameof(DestinationProgressViewModel.StateKind), raised);
+        Assert.Contains(nameof(DestinationProgressViewModel.ErrorMessage), raised);
     }
 }
