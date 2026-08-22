@@ -3,6 +3,7 @@
              xmlns:i="https://github.com/projektanker/icons.avalonia"
              xmlns:conv="clr-namespace:Sbroglione.Converters"
              xmlns:views="clr-namespace:Sbroglione.Views"
+             xmlns:models="clr-namespace:Sbroglione.Models"
              x:Class="Sbroglione.Views.CopyPairsView">
 
   <UserControl.Resources>
@@ -147,6 +148,26 @@
                   <CheckBox Content="{DynamicResource Str.CopyPairs.ClearDestination}"
                             IsChecked="{Binding ClearDestinationBeforeCopy}"
                             IsEnabled="{Binding !IsCopying}" />
+
+                  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource Str.CopyPairs.ExtensionFilterLabel}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextMuted}" />
+                    <ComboBox SelectedItem="{Binding ExtensionFilterMode}"
+                              IsEnabled="{Binding !IsCopying}"
+                              MinWidth="120">
+                      <ComboBox.Items>
+                        <models:ExtensionFilterMode>None</models:ExtensionFilterMode>
+                        <models:ExtensionFilterMode>Whitelist</models:ExtensionFilterMode>
+                        <models:ExtensionFilterMode>Blacklist</models:ExtensionFilterMode>
+                      </ComboBox.Items>
+                    </ComboBox>
+                    <TextBox Text="{Binding ExtensionFilterText}"
+                             Watermark="{DynamicResource Str.CopyPairs.ExtensionFilterWatermark}"
+                             IsVisible="{Binding IsExtensionFilterActive}"
+                             IsEnabled="{Binding !IsCopying}"
+                             Width="220" />
+                  </StackPanel>
 
                   <!-- Stato + comandi -->
                   <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
