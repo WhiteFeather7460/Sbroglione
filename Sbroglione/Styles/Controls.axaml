@@ -57,6 +57,10 @@
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.ErrorFg}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.ErrorFg}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
 
   <!-- ===== Progress ===== -->
   <Style Selector="ProgressBar">

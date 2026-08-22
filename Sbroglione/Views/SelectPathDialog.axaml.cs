@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -62,7 +63,30 @@ public partial class SelectPathDialog : Window
             return;
 
         // Senza un elemento selezionato viene scelta la cartella corrente.
-        Close(vm.SelectedItem?.FullPath ?? vm.CurrentPath);
+        if (vm.SelectedItem is null)
+        {
+            if (!vm.FilesOnly)
+                Close(vm.CurrentPath);
+            return;
+        }
+
+        // FilesOnly: una cartella selezionata non è una risposta valida, la si apre invece.
+        if (vm.FilesOnly && vm.SelectedItem.IsDirectory)
+        {
+            _ = OpenDirectoryAsync(vm.SelectedItem.FullPath);
+            return;
+        }
+
+        Close(vm.SelectedItem.FullPath);
+    }
+
+    private async Task OpenDirectoryAsync(string path)
+    {
+        if (ViewModel is not { } vm)
+            return;
+
+        await vm.NavigateToAsync(path);
+        UpdatePathBarErrorClass();
     }
 
     /// <summary>
