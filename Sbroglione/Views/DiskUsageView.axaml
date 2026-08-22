@@ -35,20 +35,6 @@
       </Grid>
     </Border>
 
-    <!-- Selettore vista -->
-    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,0,20,8">
-      <StackPanel Orientation="Horizontal" Spacing="6">
-        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-chart-pie"
-                ToolTip.Tip="{DynamicResource Str.DiskUsage.ViewTreemap}"
-                Command="{Binding ShowTreemapCommand}"
-                IsEnabled="{Binding IsListView}" />
-        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-list"
-                ToolTip.Tip="{DynamicResource Str.DiskUsage.ViewList}"
-                Command="{Binding ShowListViewCommand}"
-                IsEnabled="{Binding !IsListView}" />
-      </StackPanel>
-    </Border>
-
     <!-- Stato e percorso corrente -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,0,20,8">
       <StackPanel Spacing="2">
@@ -58,12 +44,9 @@
       </StackPanel>
     </Border>
 
-    <!-- Treemap / lista gerarchica -->
+    <!-- Lista gerarchica con barre inline -->
     <Border Background="{DynamicResource Brush.Surface}" Padding="20,0,20,20">
-      <Grid>
-        <views:TreemapControl x:Name="Treemap" Node="{Binding CurrentNode}" IsVisible="{Binding !IsListView}" />
-        <views:HierarchyListControl x:Name="HierarchyList" Node="{Binding CurrentNode}" IsVisible="{Binding IsListView}" />
-      </Grid>
+      <views:HierarchyListControl x:Name="HierarchyList" Node="{Binding CurrentNode}" />
     </Border>
   </DockPanel>
 

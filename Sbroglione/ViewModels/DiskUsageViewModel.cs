@@ -11,7 +11,7 @@ using ReactiveUI;
 namespace Sbroglione.ViewModels;
 
 /// <summary>
-/// Scheda "Spazio disco": scansione di una cartella e navigazione della treemap
+/// Scheda "Spazio disco": scansione di una cartella e navigazione della lista gerarchica
 /// (drill-down nei nodi cartella, risalita lungo la catena visitata).
 /// </summary>
 public class DiskUsageViewModel : ViewModelBase, IDisposable
@@ -58,20 +58,10 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
 
     public bool CanNavigateUp => _breadcrumb.Count > 0;
 
-    private bool _isListView;
-    /// <summary>Vista attiva: treemap (false, default) o lista gerarchica con barre inline (true).</summary>
-    public bool IsListView
-    {
-        get => _isListView;
-        set => this.RaiseAndSetIfChanged(ref _isListView, value);
-    }
-
     public ReactiveCommand<Unit, Unit> BrowseRootCommand { get; }
     public ReactiveCommand<Unit, Unit> ScanCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelScanCommand { get; }
     public ReactiveCommand<Unit, Unit> NavigateUpCommand { get; }
-    public ReactiveCommand<Unit, Unit> ShowTreemapCommand { get; }
-    public ReactiveCommand<Unit, Unit> ShowListViewCommand { get; }
 
     public DiskUsageViewModel()
     {
@@ -79,8 +69,6 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
         CancelScanCommand = ReactiveCommand.Create(() => { _scanCts?.Cancel(); });
         NavigateUpCommand = ReactiveCommand.Create(NavigateUp);
-        ShowTreemapCommand = ReactiveCommand.Create(() => { IsListView = false; });
-        ShowListViewCommand = ReactiveCommand.Create(() => { IsListView = true; });
     }
 
     private async Task BrowseRootAsync()
