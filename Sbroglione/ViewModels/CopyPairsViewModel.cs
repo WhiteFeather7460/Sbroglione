@@ -560,8 +560,15 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         var trackerGate = new MonotonicProgressGate();
         var uiGate = new MonotonicProgressGate();
 
-        await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, deltaBytes =>
+        // onBytesCopied ora spara per-destinazione: per contare i byte sorgente una sola volta
+        // (invariato rispetto a prima; il progresso per-destinazione arriva con task successivi)
+        // usiamo solo i callback della prima destinazione, che riceve gli stessi blocchi, nello
+        // stesso ordine, delle altre.
+        string firstDestinationFile = destinationFiles[0];
+        await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, (destination, deltaBytes) =>
         {
+            if (destination != firstDestinationFile)
+                return;
             long total = Interlocked.Add(ref copiedBytes, deltaBytes);
             if (!trackerGate.TryAdvance(total))
                 return;

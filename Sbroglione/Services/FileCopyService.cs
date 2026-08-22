@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Sbroglione.Services;
@@ -73,56 +75,123 @@ public static class FileCopyService
         File.SetLastWriteTimeUtc(destinationPath, File.GetLastWriteTimeUtc(sourcePath));
     }
 
+    private const int DestinationChannelCapacity = 8;
+
     /// <summary>
-    /// Copia un file verso più destinazioni con una sola lettura della sorgente:
-    /// ogni blocco letto viene scritto in parallelo su tutte le destinazioni.
-    /// <paramref name="onBytesCopied"/> conta i byte letti (una volta sola, non per destinazione).
+    /// Risultato di una copia verso più destinazioni: quali sono riuscite e, per quelle
+    /// fallite, l'eccezione che le ha fatte fallire.
     /// </summary>
-    public static async Task CopyFileToManyAsync(
+    public readonly record struct CopyToManyResult(
+        IReadOnlyList<string> SucceededDestinations,
+        IReadOnlyDictionary<string, Exception> FailedDestinations);
+
+    /// <summary>
+    /// Copia un file verso più destinazioni con una sola lettura della sorgente: un task
+    /// legge la sorgente e distribuisce ogni blocco su un <see cref="Channel{T}"/> bounded
+    /// per destinazione; un task scrittore per destinazione consuma il proprio canale al
+    /// proprio ritmo, così una destinazione lenta non blocca le altre (solo, tramite il
+    /// backpressure del canale, rallenta la lettura una volta piena la coda di quella
+    /// destinazione). Se una destinazione fallisce, le altre proseguono; se falliscono
+    /// tutte, la prima eccezione viene rilanciata.
+    /// <paramref name="onBytesCopied"/> riceve (percorso destinazione, byte scritti) per
+    /// ogni blocco effettivamente scritto su quella destinazione.
+    /// </summary>
+    public static async Task<CopyToManyResult> CopyFileToManyAsync(
         string sourcePath,
         IReadOnlyList<string> destinationPaths,
-        Action<long>? onBytesCopied,
+        Action<string, long>? onBytesCopied,
         CancellationToken ct,
         int bufferSize = DefaultBufferSize)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
-        var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        await using var inputScope = input.ConfigureAwait(false);
+        if (destinationPaths.Count == 0)
+            return new CopyToManyResult(Array.Empty<string>(), new Dictionary<string, Exception>());
 
-        var outputs = new List<FileStream>(destinationPaths.Count);
-        try
+        var channels = destinationPaths.ToDictionary(
+            d => d,
+            _ => Channel.CreateBounded<byte[]>(new BoundedChannelOptions(DestinationChannelCapacity)
+            {
+                SingleReader = true,
+                SingleWriter = true
+            }));
+        var failed = new ConcurrentDictionary<string, Exception>();
+
+        var writerTasks = destinationPaths.Select(destination => Task.Run(async () =>
         {
-            foreach (var destination in destinationPaths)
-                outputs.Add(new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None));
+            ChannelReader<byte[]> reader = channels[destination].Reader;
+            try
+            {
+                var output = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
+                await using (output.ConfigureAwait(false))
+                {
+                    await foreach (byte[] chunk in reader.ReadAllAsync(ct).ConfigureAwait(false))
+                    {
+                        await output.WriteAsync(chunk, ct).ConfigureAwait(false);
+                        onBytesCopied?.Invoke(destination, chunk.Length);
+                    }
 
+                    await output.FlushAsync(ct).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                failed[destination] = ex;
+                // Smaltisce il resto del canale: il reader potrebbe essere bloccato in
+                // WriteAsync per backpressure e deve poter continuare con le altre destinazioni.
+                try
+                {
+                    await foreach (var _ in reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false)) { }
+                }
+                catch { /* canale già completato o cancellato: nulla da smaltire */ }
+            }
+        })).ToList();
+
+        var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using (input.ConfigureAwait(false))
+        {
             var buffer = new byte[bufferSize];
             int read;
             while ((read = await input.ReadAsync(buffer.AsMemory(0, bufferSize), ct).ConfigureAwait(false)) > 0)
             {
-                // Limite sulla lettura della sorgente: i byte sono contati una sola volta per
-                // blocco (non per destinazione), coerente con onBytesCopied.
                 await IoThrottleService.WaitAsync(read, ct).ConfigureAwait(false);
-                await Task.WhenAll(outputs.Select(o => o.WriteAsync(buffer.AsMemory(0, read), ct).AsTask()))
-                    .ConfigureAwait(false);
-                onBytesCopied?.Invoke(read);
-            }
 
-            foreach (var output in outputs)
-                await output.FlushAsync(ct).ConfigureAwait(false);
+                var chunk = new byte[read];
+                Buffer.BlockCopy(buffer, 0, chunk, 0, read);
+
+                foreach (var destination in destinationPaths)
+                {
+                    if (failed.ContainsKey(destination))
+                        continue;
+                    try
+                    {
+                        await channels[destination].Writer.WriteAsync(chunk, ct).ConfigureAwait(false);
+                    }
+                    catch (ChannelClosedException)
+                    {
+                        // Il writer di questa destinazione ha già fallito e chiuso il canale.
+                    }
+                }
+            }
         }
-        finally
-        {
-            foreach (var output in outputs)
-                await output.DisposeAsync().ConfigureAwait(false);
-        }
+
+        foreach (var channel in channels.Values)
+            channel.Writer.TryComplete();
+
+        await Task.WhenAll(writerTasks).ConfigureAwait(false);
+
+        var succeeded = destinationPaths.Where(d => !failed.ContainsKey(d)).ToList();
+        if (succeeded.Count == 0)
+            throw failed.Values.First();
 
         // La ripresa (skipUnchanged) confronta dimensione + mtime: il timestamp va preservato
-        // su tutte le destinazioni, ma solo se la copia è andata a buon fine.
+        // solo sulle destinazioni riuscite.
         DateTime sourceTime = File.GetLastWriteTimeUtc(sourcePath);
-        foreach (var destination in destinationPaths)
+        foreach (var destination in succeeded)
             File.SetLastWriteTimeUtc(destination, sourceTime);
+
+        return new CopyToManyResult(succeeded, failed);
     }
 
     /// <summary>
@@ -261,8 +330,14 @@ public static class FileCopyService
                     Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
 
                 onFileStarted?.Invoke(sourceFile);
-                await CopyFileToManyAsync(sourceFile, destinationFiles, deltaBytes =>
+                // onBytesCopied ora spara per-destinazione: per contare i byte sorgente una sola
+                // volta (invariato rispetto a prima) usiamo solo i callback della prima
+                // destinazione, che riceve gli stessi blocchi, nello stesso ordine, delle altre.
+                string firstDestination = destinationFiles[0];
+                await CopyFileToManyAsync(sourceFile, destinationFiles, (destination, deltaBytes) =>
                 {
+                    if (destination != firstDestination)
+                        return;
                     long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
                     onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
                 }, ct, bufferSize).ConfigureAwait(false);
