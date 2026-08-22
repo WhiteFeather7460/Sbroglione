@@ -227,6 +227,64 @@ public sealed class SftpRemoteClient : IRemoteFileClient
         }
     }
 
+    public async Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct)
+    {
+        if (_client is null)
+            return new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected);
+
+        try
+        {
+            await _client.CreateDirectoryAsync(path, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return TranslateError(ex);
+        }
+    }
+
+    public Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct)
+    {
+        if (_client is null)
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected));
+
+        try
+        {
+            if (isDirectory)
+                _client.DeleteDirectory(path);
+            else
+                _client.DeleteFile(path);
+            return Task.FromResult<RemoteError?>(null);
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult<RemoteError?>(TranslateError(ex));
+        }
+    }
+
+    public Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct)
+    {
+        if (_client is null)
+            return Task.FromResult<RemoteError?>(new RemoteError(RemoteErrorKind.TransferFailed, RemoteErrorMessageKeys.NotConnected));
+
+        try
+        {
+            int lastSlash = path.TrimEnd('/').LastIndexOf('/');
+            string parent = lastSlash <= 0 ? "/" : path[..lastSlash];
+            string newPath = parent.TrimEnd('/') + "/" + newName;
+            _client.RenameFile(path, newPath);
+            return Task.FromResult<RemoteError?>(null);
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult<RemoteError?>(TranslateError(ex));
+        }
+    }
+
     /// <summary>
     /// Crea <paramref name="remoteDir"/> se manca, risalendo ricorsivamente i genitori mancanti:
     /// SSH.NET non offre una CreateDirectory ricorsiva ("mkdir -p") nativa.
