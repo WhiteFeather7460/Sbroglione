@@ -22,6 +22,8 @@
 
 ### Task 1: `FileCopyService.CopyFileToManyAsync` — writer disaccoppiati via channel
 
+**Model:** sonnet
+
 **Files:**
 - Modify: `Sbroglione/Services/FileCopyService.cs:76-126` (metodo `CopyFileToManyAsync`)
 - Test: `Sbroglione.Tests/FileCopyServiceTests.cs`
@@ -263,6 +265,8 @@ git commit -m "feat: CopyFileToManyAsync usa writer per-destinazione disaccoppia
 ---
 
 ### Task 2: `FileCopyService.CopyDirectoryToManyAsync` — progresso/skip/errore per destinazione
+
+**Model:** sonnet
 
 **Files:**
 - Modify: `Sbroglione/Services/FileCopyService.cs:203-278` (metodo `CopyDirectoryToManyAsync`)
@@ -550,6 +554,8 @@ git commit -m "feat: CopyDirectoryToManyAsync valuta skip/errore/progresso per d
 
 ### Task 3: `DestinationProgressViewModel` e `FolderFilePairViewModel.DestinationsProgress`
 
+**Model:** haiku
+
 **Files:**
 - Modify: `Sbroglione/ViewModels/FolderFilePairViewModel.cs`
 - Test: `Sbroglione.Tests/FolderFilePairViewModelTests.cs` (crea se non esiste — verifica prima con `find Sbroglione.Tests -iname "FolderFilePairViewModelTests.cs"`; se assente aggiungi i nuovi `[Fact]` nel file di test più vicino all'esistente organizzazione, es. nuovo file dedicato)
@@ -694,6 +700,8 @@ git commit -m "feat: DestinationProgressViewModel per stato per-destinazione, so
 ---
 
 ### Task 4: `CopyPairsViewModel.CopySingleFileAsync` — progresso/velocità/errore per destinazione
+
+**Model:** sonnet
 
 **Files:**
 - Modify: `Sbroglione/ViewModels/CopyPairsViewModel.cs:341-444` (`StartCopyAsync`) e `:539-615` (`CopySingleFileAsync`)
@@ -966,6 +974,8 @@ git commit -m "feat: CopySingleFileAsync traccia progresso/velocita/errore per d
 ---
 
 ### Task 5: `CopyPairsViewModel.CopyDirectoryAsync` + `DirectoryCopyProgressPublisher` per destinazione
+
+**Model:** sonnet
 
 **Files:**
 - Modify: `Sbroglione/ViewModels/CopyPairsViewModel.cs:617-816` (`CopyDirectoryAsync` e `DirectoryCopyProgressPublisher`)
@@ -1331,6 +1341,8 @@ git commit -m "feat: CopyDirectoryAsync e DirectoryCopyProgressPublisher traccia
 
 ### Task 6: Widget "in copia adesso" — barra/velocità/errore per destinazione
 
+**Model:** haiku
+
 **Files:**
 - Modify: `Sbroglione/Views/CopyPairsView.axaml:188-229`
 
@@ -1437,6 +1449,8 @@ git commit -m "feat: widget in copia adesso mostra barra/velocita/errore per des
 ---
 
 ### Task 7: Verifica finale e pulizia IDEE.md
+
+**Model:** haiku
 
 **Files:**
 - Modify: `IDEE.md` (marca l'idea 25 come fatta)
