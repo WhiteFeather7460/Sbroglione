@@ -49,19 +49,20 @@ public sealed class CopyPairsViewModelTests : IDisposable
     public void DirectoryProgress_StaleCumulativeReport_DoesNotRegressProgress()
     {
         var pair = new FolderFilePairViewModel();
+        var destination = new DestinationProgressViewModel("/dest");
         var tracker = new SpeedTracker(() => 0);      // orologio fermo: fuori scopo qui
         var publisher = new CopyPairsViewModel.DirectoryCopyProgressPublisher(
-            pair, tracker, new UiProgressThrottle(TimeSpan.Zero));   // niente throttle nei test
+            pair, destination, tracker, new UiProgressThrottle(TimeSpan.Zero));   // niente throttle nei test
 
         publisher.Report(new CopyProgress(CopiedBytes: 6, TotalBytes: 10, TotalFiles: 3));
-        Assert.Equal(string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), 3), pair.Status);
-        Assert.Equal(0.6, pair.Progress, 3);
+        Assert.Equal(string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), 3), destination.Status);
+        Assert.Equal(0.6, destination.Progress, 3);
 
         publisher.Report(new CopyProgress(CopiedBytes: 5, TotalBytes: 10, TotalFiles: 3));
-        Assert.Equal(0.6, pair.Progress, 3);          // cumulativo stantio: ignorato
+        Assert.Equal(0.6, destination.Progress, 3);          // cumulativo stantio: ignorato
 
         publisher.Report(new CopyProgress(CopiedBytes: 9, TotalBytes: 10, TotalFiles: 3));
-        Assert.Equal(0.9, pair.Progress, 3);
+        Assert.Equal(0.9, destination.Progress, 3);
         Assert.Equal(3, publisher.KnownFileCount);
     }
 
@@ -76,20 +77,58 @@ public sealed class CopyPairsViewModelTests : IDisposable
         UiDispatch.Override = posted.Add;             // marshaling differito, non inline
 
         var pair = new FolderFilePairViewModel();
+        var destination = new DestinationProgressViewModel("/dest");
         var tracker = new SpeedTracker(() => 0);
         var publisher = new CopyPairsViewModel.DirectoryCopyProgressPublisher(
-            pair, tracker, new UiProgressThrottle(TimeSpan.Zero));
+            pair, destination, tracker, new UiProgressThrottle(TimeSpan.Zero));
 
         publisher.Report(new CopyProgress(CopiedBytes: 4, TotalBytes: 10, TotalFiles: 2));
         publisher.Report(new CopyProgress(CopiedBytes: 8, TotalBytes: 10, TotalFiles: 2));
-        Assert.Equal(0, pair.Progress);               // nulla applicato finché i Post non girano
+        Assert.Equal(0, destination.Progress);               // nulla applicato finché i Post non girano
 
         posted.Reverse();                             // il dispatcher li esegue al contrario
         foreach (Action action in posted)
             action();
 
-        Assert.Equal(0.8, pair.Progress, 3);          // mai regredito a 0.4
-        Assert.Equal(string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), 2), pair.Status);
+        Assert.Equal(0.8, destination.Progress, 3);          // mai regredito a 0.4
+        Assert.Equal(string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), 2), destination.Status);
+    }
+
+    [Fact]
+    public async Task StartCopy_Directory_OneDestinationFails_OtherSucceedsAndPairIsError()
+    {
+        AppSettingsStore.Current.VerifyChecksumAfterCopy = false;
+
+        string sourceDir = Path.Combine(_root, "dir-fail-src");
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.txt"), "aaa");
+
+        string goodDestination = Path.Combine(_root, "dir-fail-good");
+        // A differenza di una cartella padre mancante (che farebbe fallire la pre-creazione
+        // in StartCopyAsync prima ancora di raggiungere CopyDirectoryToManyAsync), questa
+        // cartella destinazione esiste già: la pre-creazione la trova e non fa nulla. Il file
+        // "a.txt" al suo interno viene invece tenuto aperto con handle esclusivo, quindi solo
+        // la copia del singolo file dentro questa destinazione fallisce con IOException.
+        string badDestination = Path.Combine(_root, "dir-fail-bad");
+        Directory.CreateDirectory(badDestination);
+        string badFile = Path.Combine(badDestination, "a.txt");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceDir, DestinationPath = goodDestination };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, badDestination));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        using (new FileStream(badFile, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await vm.StartCopyAsync(pair);
+        }
+
+        Assert.True(File.Exists(Path.Combine(goodDestination, "a.txt")));
+        var goodEntry = Assert.Single(pair.DestinationsProgress, d => d.Path == goodDestination);
+        var badEntry = Assert.Single(pair.DestinationsProgress, d => d.Path == badDestination);
+        Assert.Equal(CopyStateKind.Success, goodEntry.StateKind);
+        Assert.Equal(CopyStateKind.Error, badEntry.StateKind);
+        Assert.Equal(CopyStateKind.Error, pair.StateKind);
     }
 
     [Fact]
