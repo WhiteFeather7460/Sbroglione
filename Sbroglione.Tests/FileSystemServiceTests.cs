@@ -148,4 +148,83 @@ public sealed class FileSystemServiceTests : IDisposable
         Assert.Equal(ListingErrorKind.Unavailable,
             FileSystemService.CreateListingError(new IOException("rete non raggiungibile")).Kind);
     }
+
+    [Fact]
+    public async Task CreateDirectoryAsync_CreatesFolder()
+    {
+        var error = await FileSystemService.CreateDirectoryAsync(_root, "nuova");
+
+        Assert.Null(error);
+        Assert.True(Directory.Exists(Path.Combine(_root, "nuova")));
+    }
+
+    [Fact]
+    public async Task CreateDirectoryAsync_NameAlreadyExists_ReportsAlreadyExists()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, "esistente"));
+
+        var error = await FileSystemService.CreateDirectoryAsync(_root, "esistente");
+
+        Assert.NotNull(error);
+        Assert.Equal(ListingErrorKind.AlreadyExists, error!.Kind);
+    }
+
+    [Fact]
+    public async Task RenameAsync_RenamesFolder()
+    {
+        string original = Path.Combine(_root, "vecchio");
+        Directory.CreateDirectory(original);
+
+        var error = await FileSystemService.RenameAsync(original, "nuovo");
+
+        Assert.Null(error);
+        Assert.False(Directory.Exists(original));
+        Assert.True(Directory.Exists(Path.Combine(_root, "nuovo")));
+    }
+
+    [Fact]
+    public async Task RenameAsync_TargetNameAlreadyExists_ReportsAlreadyExists()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, "a"));
+        Directory.CreateDirectory(Path.Combine(_root, "b"));
+
+        var error = await FileSystemService.RenameAsync(Path.Combine(_root, "a"), "b");
+
+        Assert.NotNull(error);
+        Assert.Equal(ListingErrorKind.AlreadyExists, error!.Kind);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DeletesFolderRecursively()
+    {
+        string dir = Path.Combine(_root, "dacancellare");
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+        await File.WriteAllTextAsync(Path.Combine(dir, "sub", "f.txt"), "x");
+
+        var error = await FileSystemService.DeleteAsync(dir);
+
+        Assert.Null(error);
+        Assert.False(Directory.Exists(dir));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DeletesFile()
+    {
+        string file = Path.Combine(_root, "f.txt");
+        await File.WriteAllTextAsync(file, "x");
+
+        var error = await FileSystemService.DeleteAsync(file);
+
+        Assert.Null(error);
+        Assert.False(File.Exists(file));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_MissingPath_ReportsNotFound()
+    {
+        var error = await FileSystemService.DeleteAsync(Path.Combine(_root, "non-esiste"));
+
+        Assert.NotNull(error);
+        Assert.Equal(ListingErrorKind.NotFound, error!.Kind);
+    }
 }
