@@ -401,10 +401,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             pair.IsVerified = null;
             pair.SimulationSummary = null;
             pair.SpeedText = null;
-            pair.SpeedSamples = null;
+            pair.ResetSpeedSamples();
             foreach (var item in pair.FilesToProcess)
                 item.Status = FileCopyStatus.Pending;
-            pair.CopyingFiles.Clear();
+            pair.DestinationsProgress.Clear();
+            foreach (var destination in destinations)
+                pair.DestinationsProgress.Add(new DestinationProgressViewModel(destination));
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
@@ -525,17 +527,6 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             : time.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static void PublishSpeed(FolderFilePairViewModel pair, SpeedSnapshot snapshot)
-    {
-        pair.SpeedText = string.Format(
-            LocalizationService.Tr("Str.CopyPairs.SpeedSummaryFormat"),
-            FormatSpeed(snapshot.CurrentBytesPerSecond),
-            FormatSpeed(snapshot.AverageBytesPerSecond),
-            FormatSpeed(snapshot.PeakBytesPerSecond),
-            FormatEta(snapshot.EtaSeconds));
-        pair.SpeedSamples = snapshot.Samples;
-    }
-
     private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         // Se la sorgente è un file e una destinazione è una cartella, il file viene copiato dentro la cartella.
@@ -549,20 +540,23 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         }
 
         long totalBytes = new FileInfo(pair.SourcePath!).Length;
-        long copiedBytes = 0;
 
-        var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
-        tracker.Start(totalBytes);
-
-        // Il callback arriva da threadpool: contabilità inline (clamp monotono + tracker),
-        // set di proprietà su thread UI via UiDispatch.Post e gated dal throttle.
-        var uiThrottle = new UiProgressThrottle();
-        var trackerGate = new MonotonicProgressGate();
-        var uiGate = new MonotonicProgressGate();
-
-        await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, deltaBytes =>
+        // DestinationsProgress è stata popolata da StartCopyAsync nello stesso ordine di
+        // `destinations`: gli indici corrispondono a `destinationFiles`.
+        var vmByResolvedPath = new Dictionary<string, DestinationProgressViewModel>();
+        var trackers = new Dictionary<string, (SpeedTracker Tracker, MonotonicProgressGate TrackerGate, MonotonicProgressGate UiGate, UiProgressThrottle UiThrottle, StrongCopiedBytes CopiedBytes)>();
+        for (int i = 0; i < destinations.Count; i++)
         {
-            long total = Interlocked.Add(ref copiedBytes, deltaBytes);
+            var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+            tracker.Start(totalBytes);
+            vmByResolvedPath[destinationFiles[i]] = pair.DestinationsProgress[i];
+            trackers[destinationFiles[i]] = (tracker, new MonotonicProgressGate(), new MonotonicProgressGate(), new UiProgressThrottle(), new StrongCopiedBytes());
+        }
+
+        var copyResult = await FileCopyService.CopyFileToManyAsync(pair.SourcePath!, destinationFiles, (destinationFile, deltaBytes) =>
+        {
+            var (tracker, trackerGate, uiGate, uiThrottle, copiedBytes) = trackers[destinationFile];
+            long total = Interlocked.Add(ref copiedBytes.Value, deltaBytes);
             if (!trackerGate.TryAdvance(total))
                 return;
 
@@ -572,56 +566,150 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 return;
 
             double fraction = totalBytes > 0 ? (double)total / totalBytes : 1;
+            var target = vmByResolvedPath[destinationFile];
             UiDispatch.Post(() =>
             {
                 if (uiGate.TryAdvance(fraction))
-                    pair.Progress = fraction;
+                    target.Progress = fraction;
                 if (haveSnapshot)
-                    PublishSpeed(pair, snapshot);
+                    PublishDestinationSpeed(pair, target, snapshot);
+                RecomputePairAggregate(pair);
             });
         }, ct, AppSettingsStore.Current.BufferSizeBytes);
 
-        pair.SpeedText = string.Format(
-            LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
-            FormatSpeed(tracker.AverageBytesPerSecond),
-            FormatSpeed(tracker.PeakBytesPerSecond));
+        foreach (var destinationFile in copyResult.SucceededDestinations)
+        {
+            var target = vmByResolvedPath[destinationFile];
+            var tracker = trackers[destinationFile].Tracker;
+            target.SpeedText = string.Format(
+                LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
+                FormatSpeed(tracker.AverageBytesPerSecond),
+                FormatSpeed(tracker.PeakBytesPerSecond));
+            target.StateKind = CopyStateKind.Success;
+        }
+
+        foreach (var (destinationFile, error) in copyResult.FailedDestinations)
+        {
+            var target = vmByResolvedPath[destinationFile];
+            target.StateKind = CopyStateKind.Error;
+            target.ErrorMessage = error.Message;
+            target.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.DestinationErrorFormat"), error.Message);
+        }
+
+        // Aggregato del pair a fine copia: la somma delle medie e il picco più alto tra le
+        // destinazioni, sullo stesso modello di CopyDirectoryAsync. RecomputePairAggregate
+        // (chiamata durante i Report) usa la velocità istantanea e può non essere mai
+        // scattata per copie troppo rapide (nessuno snapshot pubblicato prima del
+        // completamento): senza questo, pair.SpeedText resterebbe null e la riga di
+        // velocità non comparirebbe mai per una copia di file singolo veloce.
+        if (destinationFiles.Count > 0)
+            pair.SpeedText = string.Format(
+                LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
+                FormatSpeed(destinationFiles.Sum(destinationFile => trackers[destinationFile].Tracker.AverageBytesPerSecond)),
+                FormatSpeed(destinationFiles.Max(destinationFile => trackers[destinationFile].Tracker.PeakBytesPerSecond)));
 
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
-            pair.Status = LocalizationService.Tr("Str.CopyPairs.Completed");
-            pair.StateKind = CopyStateKind.Success;
+            pair.StateKind = AggregatePairState(pair);
+            pair.Status = pair.StateKind == CopyStateKind.Error
+                ? string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedWithErrorsFormat"), copyResult.SucceededDestinations.Count, destinations.Count)
+                : LocalizationService.Tr("Str.CopyPairs.Completed");
             return;
         }
 
-        // Verifica checksum di tutte le destinazioni.
+        // Verifica checksum solo sulle destinazioni riuscite.
         pair.Status = LocalizationService.Tr("Str.CopyPairs.VerifyingChecksum");
         pair.SourceChecksum ??= await ChecksumService.ComputeSha256Async(pair.SourcePath!, ct);
 
         bool allMatch = true;
-        foreach (var destinationFile in destinationFiles)
+        foreach (var destinationFile in copyResult.SucceededDestinations)
         {
             string destinationHash = await ChecksumService.ComputeSha256Async(destinationFile, ct);
             pair.DestinationChecksum = destinationHash;
-            allMatch &= string.Equals(pair.SourceChecksum, destinationHash, StringComparison.OrdinalIgnoreCase);
+            bool matches = string.Equals(pair.SourceChecksum, destinationHash, StringComparison.OrdinalIgnoreCase);
+            allMatch &= matches;
+            if (!matches)
+                vmByResolvedPath[destinationFile].StateKind = CopyStateKind.Warning;
         }
 
-        pair.IsVerified = allMatch;
+        pair.IsVerified = allMatch && copyResult.FailedDestinations.Count == 0;
         pair.Progress = 1;
-        pair.Status = allMatch
-            ? LocalizationService.Tr("Str.CopyPairs.Completed")
-            : LocalizationService.Tr("Str.CopyPairs.CompletedChecksumMismatch");
-        pair.StateKind = allMatch ? CopyStateKind.Success : CopyStateKind.Warning;
+        pair.StateKind = AggregatePairState(pair);
+        pair.Status = pair.StateKind switch
+        {
+            CopyStateKind.Error => string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedWithErrorsFormat"), copyResult.SucceededDestinations.Count, destinations.Count),
+            CopyStateKind.Warning => LocalizationService.Tr("Str.CopyPairs.CompletedChecksumMismatch"),
+            _ => LocalizationService.Tr("Str.CopyPairs.Completed")
+        };
+    }
+
+    /// <summary>Contenitore per un contatore byte mutabile per destinazione, target di <see cref="Interlocked.Add(ref long, long)"/>.</summary>
+    private sealed class StrongCopiedBytes
+    {
+        public long Value;
+    }
+
+    private static void PublishDestinationSpeed(FolderFilePairViewModel pair, DestinationProgressViewModel target, SpeedSnapshot snapshot)
+    {
+        target.SpeedText = string.Format(
+            LocalizationService.Tr("Str.CopyPairs.SpeedSummaryFormat"),
+            FormatSpeed(snapshot.CurrentBytesPerSecond),
+            FormatSpeed(snapshot.AverageBytesPerSecond),
+            FormatSpeed(snapshot.PeakBytesPerSecond),
+            FormatEta(snapshot.EtaSeconds));
+        target.CurrentBytesPerSecond = snapshot.CurrentBytesPerSecond;
+    }
+
+    /// <summary>
+    /// Ricalcola gli aggregati del pair dalle sue destinazioni: la più lenta pilota il
+    /// progresso, la somma delle velocità istantanee pilota la riga di velocità e la
+    /// sparkline. Non è né una media né un picco (per quello vedi il testo finale impostato
+    /// a fine copia): è la velocità combinata "adesso", quindi usa un formato dedicato invece
+    /// di riusare SpeedAveragePeakFormat con lo stesso valore in entrambi i placeholder.
+    /// </summary>
+    private static void RecomputePairAggregate(FolderFilePairViewModel pair)
+    {
+        if (pair.DestinationsProgress.Count == 0)
+            return;
+
+        pair.Progress = pair.DestinationsProgress.Min(d => d.Progress);
+        double totalSpeed = pair.DestinationsProgress.Sum(d => d.CurrentBytesPerSecond);
+        if (totalSpeed > 0)
+        {
+            pair.SpeedText = string.Format(LocalizationService.Tr("Str.CopyPairs.SpeedCombinedFormat"), FormatSpeed(totalSpeed));
+            pair.AppendSpeedSample(totalSpeed / (1024.0 * 1024.0));
+        }
+    }
+
+    /// <summary>Priorità Error > Warning > Success sulle destinazioni del pair.</summary>
+    private static CopyStateKind AggregatePairState(FolderFilePairViewModel pair)
+    {
+        if (pair.DestinationsProgress.Any(d => d.StateKind == CopyStateKind.Error))
+            return CopyStateKind.Error;
+        if (pair.DestinationsProgress.Any(d => d.StateKind == CopyStateKind.Warning))
+            return CopyStateKind.Warning;
+        return CopyStateKind.Success;
     }
 
     private static async Task CopyDirectoryAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
-        var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
-        var publisher = new DirectoryCopyProgressPublisher(pair, tracker);
+        var vmByRoot = new Dictionary<string, DestinationProgressViewModel>();
+        var trackerByRoot = new Dictionary<string, SpeedTracker>();
+        var publisherByRoot = new Dictionary<string, DirectoryCopyProgressPublisher>();
+        for (int i = 0; i < destinations.Count; i++)
+        {
+            var vm = pair.DestinationsProgress[i];
+            vmByRoot[destinations[i]] = vm;
+            var tracker = new SpeedTracker(() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+            trackerByRoot[destinations[i]] = tracker;
+            publisherByRoot[destinations[i]] = new DirectoryCopyProgressPublisher(pair, vm, tracker);
+        }
 
         // Lookup per aggiornare lo stato per-file nella lista "File da elaborare": vuoto
         // (no-op) se l'Expander non è mai stato aperto, FilesToProcess non è ancora caricata.
         var filesByPath = pair.FilesToProcess.ToDictionary(f => f.FullPath, f => f);
+        string primaryDestination = destinations[0];
 
         var sourceType = await DiskTypeService.GetDiskTypeAsync(pair.SourcePath, ct);
         int parallelism = int.MaxValue;
@@ -633,46 +721,77 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 CopyParallelismResolver.Resolve(AppSettingsStore.Current, sourceType, destinationType));
         }
 
-        await FileCopyService.CopyDirectoryToManyAsync(
+        var result = await FileCopyService.CopyDirectoryToManyAsync(
             pair.SourcePath!,
             destinations,
             maxDegreeOfParallelism: parallelism,
-            onProgress: publisher.Report,
+            onProgress: (destination, progress) => publisherByRoot[destination].Report(progress),
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
             skipUnchanged: pair.SkipUnchanged,
-            onFileStarted: sourceFile =>
+            onFileStarted: (destination, sourceFile) =>
             {
                 UiDispatch.Post(() =>
                 {
+                    var vm = vmByRoot[destination];
                     // filesByPath è vuoto se l'Expander "File da elaborare" non è mai stato
                     // aperto: il widget "In copia adesso" deve funzionare comunque, quindi
                     // qui costruiamo un item al volo invece di dipendere da quel listing.
                     var item = filesByPath.TryGetValue(sourceFile, out var existing)
                         ? existing
                         : new FileSystemItem { Name = Path.GetFileName(sourceFile), FullPath = sourceFile };
-                    item.Status = FileCopyStatus.Copying;
-                    pair.CopyingFiles.Add(item);
+                    if (destination == primaryDestination)
+                        item.Status = FileCopyStatus.Copying;
+                    vm.CopyingFiles.Add(item);
                 });
             },
-            onFileCompleted: sourceFile =>
+            onFileCompleted: (destination, sourceFile) =>
             {
-                if (filesByPath.TryGetValue(sourceFile, out var item))
-                    UiDispatch.Post(() => item.Status = FileCopyStatus.Done);
                 UiDispatch.Post(() =>
                 {
-                    var toRemove = pair.CopyingFiles.FirstOrDefault(f => f.FullPath == sourceFile);
+                    var vm = vmByRoot[destination];
+                    var toRemove = vm.CopyingFiles.FirstOrDefault(f => f.FullPath == sourceFile);
                     if (toRemove is not null)
-                        pair.CopyingFiles.Remove(toRemove);
+                        vm.CopyingFiles.Remove(toRemove);
+                    if (destination == primaryDestination && filesByPath.TryGetValue(sourceFile, out var item))
+                        item.Status = FileCopyStatus.Done;
+                });
+            },
+            onFileFailed: (destination, sourceFile, error) =>
+            {
+                UiDispatch.Post(() =>
+                {
+                    var vm = vmByRoot[destination];
+                    vm.StateKind = CopyStateKind.Error;
+                    vm.ErrorMessage = error.Message;
+                    vm.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.DestinationErrorFormat"), error.Message);
                 });
             });
 
-        int knownFileCount = publisher.KnownFileCount;
+        int knownFileCount = publisherByRoot.Values.Max(p => p.KnownFileCount);
+
+        foreach (var destination in destinations)
+        {
+            var vm = vmByRoot[destination];
+            var tracker = trackerByRoot[destination];
+            if (publisherByRoot[destination].KnownFileCount > 0)
+                vm.SpeedText = string.Format(
+                    LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
+                    FormatSpeed(tracker.AverageBytesPerSecond),
+                    FormatSpeed(tracker.PeakBytesPerSecond));
+            if (vm.StateKind != CopyStateKind.Error)
+                vm.StateKind = CopyStateKind.Success;
+        }
+
+        // Aggregato del pair a fine copia: la somma delle medie e il picco più alto tra le
+        // destinazioni. RecomputePairAggregate (chiamata durante i Report) usa la velocità
+        // istantanea e può non essere mai scattata per copie troppo rapide (nessuno snapshot
+        // pubblicato prima del completamento), quindi qui il testo va ricalcolato esplicitamente.
         if (knownFileCount > 0)
             pair.SpeedText = string.Format(
                 LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
-                FormatSpeed(tracker.AverageBytesPerSecond),
-                FormatSpeed(tracker.PeakBytesPerSecond));
+                FormatSpeed(destinations.Sum(destination => trackerByRoot[destination].AverageBytesPerSecond)),
+                FormatSpeed(destinations.Max(destination => trackerByRoot[destination].PeakBytesPerSecond)));
 
         if (ct.IsCancellationRequested || knownFileCount == 0)
         {
@@ -684,8 +803,11 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
-            pair.Status = LocalizationService.Tr("Str.CopyPairs.Completed");
-            pair.StateKind = CopyStateKind.Success;
+            pair.StateKind = AggregatePairState(pair);
+            pair.Status = pair.StateKind == CopyStateKind.Error
+                ? string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedWithErrorsFormat"),
+                    result.DestinationSucceeded.Values.Count(succeeded => succeeded), result.DestinationSucceeded.Count)
+                : LocalizationService.Tr("Str.CopyPairs.Completed");
             return;
         }
 
@@ -696,8 +818,10 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
         foreach (var destination in destinations)
         {
-            // Un gate e un throttle per destinazione: il contatore verificati riparte da 1
-            // a ogni destinazione, quindi lo stato monotono non va condiviso tra i cicli.
+            if (!result.DestinationSucceeded[destination])
+                continue; // destinazione fallita durante la copia: niente verifica, resta Error
+
+            var vm = vmByRoot[destination];
             var verifyThrottle = new UiProgressThrottle();
             var verifyGate = new MonotonicProgressGate();
 
@@ -715,7 +839,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                     UiDispatch.Post(() =>
                     {
                         if (verifyGate.TryAdvance(verified))
-                            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyingChecksumProgressFormat"), verified, total);
+                            vm.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyingChecksumProgressFormat"), verified, total);
                     });
                 },
                 ct);
@@ -723,35 +847,39 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             totalVerified = verifyResult.TotalFiles;
             mismatchedTotal += verifyResult.MismatchedFiles.Count;
             missingTotal += verifyResult.MissingFiles.Count;
+
+            bool destinationVerified = verifyResult.MismatchedFiles.Count == 0 && verifyResult.MissingFiles.Count == 0;
+            vm.StateKind = destinationVerified ? CopyStateKind.Success : CopyStateKind.Warning;
+            vm.Status = destinationVerified
+                ? string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedVerifiedFormat"), verifyResult.TotalFiles)
+                : string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyFailedFormat"), verifyResult.MismatchedFiles.Count, verifyResult.MissingFiles.Count);
         }
 
         pair.Progress = 1;
-        pair.IsVerified = mismatchedTotal == 0 && missingTotal == 0;
-
-        if (pair.IsVerified == true)
+        pair.IsVerified = mismatchedTotal == 0 && missingTotal == 0 && result.DestinationSucceeded.Values.All(succeeded => succeeded);
+        pair.StateKind = AggregatePairState(pair);
+        pair.Status = pair.StateKind switch
         {
-            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedVerifiedFormat"), totalVerified);
-            pair.StateKind = CopyStateKind.Success;
-        }
-        else
-        {
-            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyFailedFormat"), mismatchedTotal, missingTotal);
-            pair.StateKind = CopyStateKind.Warning;
-        }
+            CopyStateKind.Error => string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedWithErrorsFormat"),
+                result.DestinationSucceeded.Values.Count(succeeded => succeeded), result.DestinationSucceeded.Count),
+            CopyStateKind.Warning => string.Format(LocalizationService.Tr("Str.CopyPairs.VerifyFailedFormat"), mismatchedTotal, missingTotal),
+            _ => string.Format(LocalizationService.Tr("Str.CopyPairs.CompletedVerifiedFormat"), totalVerified)
+        };
     }
 
     /// <summary>
-    /// Contabilità e pubblicazione del progresso di una copia cartella: clamp monotono,
-    /// tracker di velocità, throttle e marshaling sul thread UI in un punto solo.
-    /// Classe (e non lambda) per avere un seam testabile: i callback del servizio arrivano
-    /// da threadpool e in parallelo, quindi i cumulativi possono presentarsi fuori ordine
-    /// (prima 6, poi 5) — condizione impossibile da provocare in modo deterministico
-    /// passando da una copia reale.
-    /// Un'istanza per copia.
+    /// Contabilità e pubblicazione del progresso di una destinazione durante una copia
+    /// cartella: clamp monotono, tracker di velocità, throttle e marshaling sul thread UI
+    /// in un punto solo. Classe (e non lambda) per avere un seam testabile: i callback del
+    /// servizio arrivano da threadpool e in parallelo, quindi i cumulativi possono
+    /// presentarsi fuori ordine (prima 6, poi 5) — condizione impossibile da provocare in
+    /// modo deterministico passando da una copia reale.
+    /// Un'istanza per (pair, destinazione).
     /// </summary>
     internal sealed class DirectoryCopyProgressPublisher
     {
         private readonly FolderFilePairViewModel _pair;
+        private readonly DestinationProgressViewModel _target;
         private readonly SpeedTracker _tracker;
         private readonly UiProgressThrottle _uiThrottle;
         private readonly MonotonicProgressGate _trackerGate = new();
@@ -764,10 +892,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         /// </param>
         public DirectoryCopyProgressPublisher(
             FolderFilePairViewModel pair,
+            DestinationProgressViewModel target,
             SpeedTracker tracker,
             UiProgressThrottle? uiThrottle = null)
         {
             _pair = pair;
+            _target = target;
             _tracker = tracker;
             _uiThrottle = uiThrottle ?? new UiProgressThrottle();
         }
@@ -797,19 +927,21 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             double fraction = progress.Fraction;
             int totalFiles = progress.TotalFiles;
             FolderFilePairViewModel pair = _pair;
+            DestinationProgressViewModel target = _target;
             MonotonicProgressGate uiGate = _uiGate;
             UiDispatch.Post(() =>
             {
                 if (firstReport)
-                    pair.Status = totalFiles == 0
+                    target.Status = totalFiles == 0
                         ? LocalizationService.Tr("Str.CopyPairs.NoFilesToCopy")
                         : string.Format(LocalizationService.Tr("Str.CopyPairs.CopyingFolderFormat"), totalFiles);
                 // Secondo clamp lato UI: anche due Post partiti in ordine possono essere
                 // eseguiti fuori ordine dal dispatcher.
                 if (advanced && uiGate.TryAdvance(fraction))
-                    pair.Progress = fraction;
+                    target.Progress = fraction;
                 if (haveSnapshot)
-                    PublishSpeed(pair, snapshot);
+                    PublishDestinationSpeed(pair, target, snapshot);
+                RecomputePairAggregate(pair);
             });
         }
     }

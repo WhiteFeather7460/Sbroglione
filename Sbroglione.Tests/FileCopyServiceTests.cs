@@ -97,14 +97,16 @@ public sealed class FileCopyServiceTests : IDisposable
         var destinations = ManyDestinationNames
             .Select(name => Path.Combine(_root, name)).ToList();
 
-        await FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None);
+        var result = await FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None);
 
         foreach (var destination in destinations)
             Assert.Equal(content, await File.ReadAllBytesAsync(destination));
+        Assert.Equal(destinations.Count, result.SucceededDestinations.Count);
+        Assert.Empty(result.FailedDestinations);
     }
 
     [Fact]
-    public async Task CopyFileToManyAsync_CountsSourceBytesOnce()
+    public async Task CopyFileToManyAsync_CountsBytesPerDestination()
     {
         string source = Path.Combine(_root, "many-src2.bin");
         await File.WriteAllBytesAsync(source, new byte[20]);
@@ -114,11 +116,83 @@ public sealed class FileCopyServiceTests : IDisposable
             Path.Combine(_root, "m2.bin")
         };
 
-        long totalReported = 0;
+        var totalByDestination = new Dictionary<string, long>();
         await FileCopyService.CopyFileToManyAsync(
-            source, destinations, delta => totalReported += delta, CancellationToken.None, bufferSize: 8);
+            source, destinations,
+            (destination, delta) =>
+            {
+                lock (totalByDestination)
+                    totalByDestination[destination] = totalByDestination.GetValueOrDefault(destination) + delta;
+            },
+            CancellationToken.None, bufferSize: 8);
 
-        Assert.Equal(20, totalReported);
+        Assert.Equal(20, totalByDestination[destinations[0]]);
+        Assert.Equal(20, totalByDestination[destinations[1]]);
+    }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_OneDestinationFails_OthersStillComplete()
+    {
+        string source = Path.Combine(_root, "partial-fail-src.bin");
+        byte[] content = Enumerable.Range(0, 50).Select(i => (byte)i).ToArray();
+        await File.WriteAllBytesAsync(source, content);
+
+        string goodDestination = Path.Combine(_root, "good.bin");
+        // Directory inesistente come "destinazione": FileStream fallisce all'apertura → simula
+        // un errore di scrittura (disco pieno, permessi) senza dipendere da mock del filesystem.
+        string badDestination = Path.Combine(_root, "missing-dir", "bad.bin");
+
+        var result = await FileCopyService.CopyFileToManyAsync(
+            source, new[] { goodDestination, badDestination }, null, CancellationToken.None, bufferSize: 8);
+
+        Assert.Equal(content, await File.ReadAllBytesAsync(goodDestination));
+        Assert.Contains(goodDestination, result.SucceededDestinations);
+        Assert.True(result.FailedDestinations.ContainsKey(badDestination));
+    }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_AllDestinationsFail_ThrowsFirstException()
+    {
+        string source = Path.Combine(_root, "all-fail-src.bin");
+        await File.WriteAllBytesAsync(source, new byte[10]);
+
+        var destinations = new[]
+        {
+            Path.Combine(_root, "missing1", "a.bin"),
+            Path.Combine(_root, "missing2", "b.bin")
+        };
+
+        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
+            FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_SourceMissing_PropagatesAndDoesNotLeakWriterTasks()
+    {
+        // La sorgente non esiste: l'apertura del FileStream fallisce prima di leggere qualunque
+        // blocco. I writer task sono già partiti e bloccati in ReadAllAsync in attesa di dati o
+        // del completamento del canale: senza il fix (channel.Writer.TryComplete() in finally)
+        // resterebbero bloccati per sempre con i FileStream di destinazione aperti e locked.
+        string source = Path.Combine(_root, "does-not-exist.bin");
+        var destinations = new List<string>
+        {
+            Path.Combine(_root, "leak-d1.bin"),
+            Path.Combine(_root, "leak-d2.bin")
+        };
+
+        var callTask = FileCopyService.CopyFileToManyAsync(source, destinations, null, CancellationToken.None);
+        var completed = await Task.WhenAny(callTask, Task.Delay(TimeSpan.FromSeconds(10)));
+        Assert.Same(callTask, completed); // non deve appendersi: i writer task devono uscire in tempo utile
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() => callTask);
+
+        // Se i writer task avessero il proprio FileStream (FileShare.None) ancora aperto,
+        // la Delete/apertura esclusiva qui sotto fallirebbe con IOException.
+        foreach (var destination in destinations)
+        {
+            Assert.True(File.Exists(destination));
+            File.Delete(destination);
+        }
     }
 
     [Fact]
@@ -135,20 +209,92 @@ public sealed class FileCopyServiceTests : IDisposable
             Path.Combine(_root, "many-dir-d2")
         };
 
-        var progressEvents = new List<CopyProgress>();
-        await FileCopyService.CopyDirectoryToManyAsync(
+        var progressByDestination = new Dictionary<string, List<CopyProgress>>();
+        var result = await FileCopyService.CopyDirectoryToManyAsync(
             sourceRoot, destinationRoots, 2,
-            progress => { lock (progressEvents) progressEvents.Add(progress); },
+            (destination, progress) =>
+            {
+                lock (progressByDestination)
+                {
+                    if (!progressByDestination.TryGetValue(destination, out var list))
+                        progressByDestination[destination] = list = new List<CopyProgress>();
+                    list.Add(progress);
+                }
+            },
             CancellationToken.None);
 
         foreach (var destinationRoot in destinationRoots)
         {
             Assert.Equal("alfa", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "a.txt")));
             Assert.Equal("beta", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "sub", "b.txt")));
+            Assert.Equal(2, progressByDestination[destinationRoot][0].TotalFiles);
+            Assert.Equal(8, progressByDestination[destinationRoot].Max(p => p.CopiedBytes));
+            Assert.True(result.DestinationSucceeded[destinationRoot]);
         }
+    }
 
-        Assert.Equal(2, progressEvents[0].TotalFiles);
-        Assert.Equal(8, progressEvents.Max(p => p.CopiedBytes)); // "alfa" + "beta" contati una sola volta
+    [Fact]
+    public async Task CopyDirectoryToManyAsync_SkipUnchanged_EvaluatedPerDestination()
+    {
+        string sourceRoot = Path.Combine(_root, "skip-many-src");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "same.txt"), "12345");
+
+        string upToDateDestination = Path.Combine(_root, "skip-many-uptodate");
+        Directory.CreateDirectory(upToDateDestination);
+        await File.WriteAllTextAsync(Path.Combine(upToDateDestination, "same.txt"), "MARKR");
+        File.SetLastWriteTimeUtc(
+            Path.Combine(upToDateDestination, "same.txt"),
+            File.GetLastWriteTimeUtc(Path.Combine(sourceRoot, "same.txt")));
+
+        string staleDestination = Path.Combine(_root, "skip-many-stale");
+
+        var completedByDestination = new Dictionary<string, List<string>>();
+        await FileCopyService.CopyDirectoryToManyAsync(
+            sourceRoot, new[] { upToDateDestination, staleDestination }, 1,
+            null, CancellationToken.None, skipUnchanged: true,
+            onFileCompleted: (destination, file) =>
+            {
+                lock (completedByDestination)
+                {
+                    if (!completedByDestination.TryGetValue(destination, out var list))
+                        completedByDestination[destination] = list = new List<string>();
+                    list.Add(file);
+                }
+            });
+
+        Assert.Equal("MARKR", await File.ReadAllTextAsync(Path.Combine(upToDateDestination, "same.txt"))); // saltato: intatto
+        Assert.Equal("12345", await File.ReadAllTextAsync(Path.Combine(staleDestination, "same.txt")));     // copiato
+    }
+
+    [Fact]
+    public async Task CopyDirectoryToManyAsync_OneDestinationFails_OthersComplete()
+    {
+        string sourceRoot = Path.Combine(_root, "dir-fail-src");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.txt"), "aaa");
+
+        string goodDestination = Path.Combine(_root, "dir-fail-good");
+        // Un file (non una cartella) nel punto in cui dovrebbe crearsi la destinazione:
+        // Directory.CreateDirectory fallisce con IOException, simulando un errore per-destinazione.
+        string badDestinationParent = Path.Combine(_root, "dir-fail-bad-parent");
+        await File.WriteAllTextAsync(badDestinationParent, "sono un file, non una cartella");
+        string badDestination = Path.Combine(badDestinationParent, "sub");
+
+        var failures = new List<(string destination, string file)>();
+        var result = await FileCopyService.CopyDirectoryToManyAsync(
+            sourceRoot, new[] { goodDestination, badDestination }, 1,
+            null, CancellationToken.None,
+            onFileFailed: (destination, file, _) =>
+            {
+                lock (failures) failures.Add((destination, file));
+            });
+
+        Assert.Equal("aaa", await File.ReadAllTextAsync(Path.Combine(goodDestination, "a.txt")));
+        Assert.True(result.DestinationSucceeded[goodDestination]);
+        Assert.False(result.DestinationSucceeded[badDestination]);
+        Assert.Single(failures);
+        Assert.Equal(badDestination, failures[0].destination);
     }
 
     [Fact]
