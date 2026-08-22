@@ -278,6 +278,28 @@ public static class FileCopyService
     }
 
     /// <summary>
+    /// Cancella tutto il contenuto (file e sottocartelle) di <paramref name="directory"/>,
+    /// lasciando intatta la cartella stessa. No-op se non esiste.
+    /// </summary>
+    public static Task ClearDirectoryContentsAsync(string directory, CancellationToken ct) => Task.Run(() =>
+    {
+        if (!Directory.Exists(directory))
+            return;
+
+        foreach (string file in Directory.EnumerateFiles(directory, "*", SafeEnumeration))
+        {
+            ct.ThrowIfCancellationRequested();
+            File.Delete(file);
+        }
+
+        foreach (string dir in Directory.EnumerateDirectories(directory, "*", SearchOption.TopDirectoryOnly))
+        {
+            ct.ThrowIfCancellationRequested();
+            Directory.Delete(dir, recursive: true);
+        }
+    }, ct);
+
+    /// <summary>
     /// True se la destinazione esiste con la stessa dimensione della sorgente e
     /// LastWriteTimeUtc entro 2 secondi (tolleranza per filesystem a granularità grossa).
     /// </summary>

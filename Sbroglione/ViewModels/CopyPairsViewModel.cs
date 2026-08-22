@@ -349,6 +349,21 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
         IReadOnlyList<string> destinations = pair.AllDestinations;
 
+        if (pair.ClearDestinationBeforeCopy)
+        {
+            bool confirmed = await ConfirmDialogHelper.ShowAsync(
+                LocalizationService.Tr("Str.CopyPairs.ClearDestinationTitle"),
+                string.Format(
+                    LocalizationService.Tr("Str.CopyPairs.ClearDestinationMessageFormat"),
+                    string.Join(Environment.NewLine, destinations)),
+                LocalizationService.Tr("Str.Common.Delete"));
+            if (!confirmed)
+                return;
+
+            foreach (var destination in destinations)
+                await FileCopyService.ClearDirectoryContentsAsync(destination, CancellationToken.None);
+        }
+
         var journalRecord = new CopyJobRecord
         {
             SourcePath = pair.SourcePath!,
@@ -389,6 +404,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             pair.SpeedSamples = null;
             foreach (var item in pair.FilesToProcess)
                 item.Status = FileCopyStatus.Pending;
+            pair.CopyingFiles.Clear();
 
             if (await FileSystemService.GetPathTypeAsync(pair.SourcePath) == PathType.Directory)
             {
@@ -627,13 +643,28 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             skipUnchanged: pair.SkipUnchanged,
             onFileStarted: sourceFile =>
             {
-                if (filesByPath.TryGetValue(sourceFile, out var item))
-                    UiDispatch.Post(() => item.Status = FileCopyStatus.Copying);
+                UiDispatch.Post(() =>
+                {
+                    // filesByPath è vuoto se l'Expander "File da elaborare" non è mai stato
+                    // aperto: il widget "In copia adesso" deve funzionare comunque, quindi
+                    // qui costruiamo un item al volo invece di dipendere da quel listing.
+                    var item = filesByPath.TryGetValue(sourceFile, out var existing)
+                        ? existing
+                        : new FileSystemItem { Name = Path.GetFileName(sourceFile), FullPath = sourceFile };
+                    item.Status = FileCopyStatus.Copying;
+                    pair.CopyingFiles.Add(item);
+                });
             },
             onFileCompleted: sourceFile =>
             {
                 if (filesByPath.TryGetValue(sourceFile, out var item))
                     UiDispatch.Post(() => item.Status = FileCopyStatus.Done);
+                UiDispatch.Post(() =>
+                {
+                    var toRemove = pair.CopyingFiles.FirstOrDefault(f => f.FullPath == sourceFile);
+                    if (toRemove is not null)
+                        pair.CopyingFiles.Remove(toRemove);
+                });
             });
 
         int knownFileCount = publisher.KnownFileCount;

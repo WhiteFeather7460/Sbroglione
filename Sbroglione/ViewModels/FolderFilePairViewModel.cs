@@ -207,11 +207,17 @@ public class FolderFilePairViewModel : ReactiveObject
     public IReadOnlyList<string> AllDestinations =>
         new[] { DestinationPath! }.Concat(ExtraDestinations.Select(e => e.Path)).ToList();
 
+    /// <summary>File attualmente in copia (sottoinsieme di <see cref="FilesToProcess"/>), per il widget "in corso".</summary>
+    public ObservableCollection<FileSystemItem> CopyingFiles { get; } = new();
+
     /// <summary>
     /// True per le coppie ripristinate dal journal: la copia di cartelle salta
     /// i file già identici in destinazione (stessa dimensione e mtime).
     /// </summary>
     public bool SkipUnchanged { get; set; }
+
+    /// <summary>Se true, prima di copiare svuota tutte le destinazioni (primaria + extra), previa conferma.</summary>
+    public bool ClearDestinationBeforeCopy { get; set; }
 
     private bool _isCopying;
     public bool IsCopying
