@@ -44,7 +44,7 @@ jobs:
           cp -r Sbroglione.Desktop/bin/Release/net10.0/linux-x64/publish/* "$APPDIR/usr/bin/"
           chmod +x "$APPDIR/usr/bin/Sbroglione.Desktop"
 
-          convert Sbroglione/Assets/avalonia-logo.ico -resize 256x256 "$APPDIR/usr/share/pixmaps/Sbroglione.png"
+          convert "Sbroglione/Assets/avalonia-logo.ico[0]" -resize 256x256 "$APPDIR/usr/share/pixmaps/Sbroglione.png"
           cp "$APPDIR/usr/share/pixmaps/Sbroglione.png" "$APPDIR/Sbroglione.png"
 
           {
