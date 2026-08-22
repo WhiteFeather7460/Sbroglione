@@ -61,7 +61,7 @@ Prerequisiti: `appimagetool` installato e `wget`/`curl`.
 
 ```bash
 # 1. Pubblica per Linux
-dotnet publish Sbroglione.Desktop -c Release -r linux-x64 --self-contained -p:PublishTrimmed=true
+dotnet publish Sbroglione.Desktop -c Release -r linux-x64 --self-contained
 
 # 2. Prepara la struttura AppImage
 APPDIR="Sbroglione.AppDir"
@@ -90,7 +90,7 @@ Output: `Sbroglione-x86_64.AppImage` (portable, eseguibile direttamente)
 ### macOS (.app)
 
 ```bash
-dotnet publish Sbroglione.Desktop -c Release -r osx-x64 --self-contained -p:PublishTrimmed=true
+dotnet publish Sbroglione.Desktop -c Release -r osx-x64 --self-contained
 ```
 
 Avvolgi l'output in un bundle `.app` usando lo script ufficiale Avalonia (vedi docs).
