@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Sbroglione.Models;
 using Sbroglione.Services;
 using Xunit;
 
@@ -183,5 +184,56 @@ public sealed class CopySimulationServiceTests : IDisposable
 
         Assert.Equal(result.TotalFiles, result.SkippedFiles);
         Assert.True(Assert.Single(result.Destinations).Fits);
+    }
+
+    [Fact]
+    public async Task SimulateAsync_WhitelistFilter_OnlyCountsMatchingExtensions()
+    {
+        string sourcePath = Path.Combine(_tempDir, "sim-wl-src");
+        string destination = Path.Combine(_tempDir, "sim-wl-dst");
+        Directory.CreateDirectory(sourcePath);
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "b.txt"), "text");
+
+        var filter = ExtensionFilter.Parse(ExtensionFilterMode.Whitelist, "jpg");
+
+        var result = await CopySimulationService.SimulateAsync(
+            sourcePath, new[] { destination }, skipUnchanged: false, CancellationToken.None,
+            extensionFilter: filter);
+
+        Assert.Equal(1, result.TotalFiles);
+    }
+
+    [Fact]
+    public async Task SimulateAsync_BlacklistFilter_ExcludesMatchingExtensions()
+    {
+        string sourcePath = Path.Combine(_tempDir, "sim-bl-src");
+        string destination = Path.Combine(_tempDir, "sim-bl-dst");
+        Directory.CreateDirectory(sourcePath);
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "b.tmp"), "temp");
+
+        var filter = ExtensionFilter.Parse(ExtensionFilterMode.Blacklist, "tmp");
+
+        var result = await CopySimulationService.SimulateAsync(
+            sourcePath, new[] { destination }, skipUnchanged: false, CancellationToken.None,
+            extensionFilter: filter);
+
+        Assert.Equal(1, result.TotalFiles);
+    }
+
+    [Fact]
+    public async Task SimulateAsync_NullFilter_CountsAllFiles()
+    {
+        string sourcePath = Path.Combine(_tempDir, "sim-nf-src");
+        string destination = Path.Combine(_tempDir, "sim-nf-dst");
+        Directory.CreateDirectory(sourcePath);
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "b.txt"), "text");
+
+        var result = await CopySimulationService.SimulateAsync(
+            sourcePath, new[] { destination }, skipUnchanged: false, CancellationToken.None);
+
+        Assert.Equal(2, result.TotalFiles);
     }
 }
