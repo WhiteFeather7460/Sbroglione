@@ -640,16 +640,28 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 CopyParallelismResolver.Resolve(AppSettingsStore.Current, sourceType, destinationType));
         }
 
+        // Stopgap analogo a quello introdotto per CopyFileToManyAsync (Task 1): i callback di
+        // CopyDirectoryToManyAsync sono ora per-destinazione, ma questo metodo aggiorna un solo
+        // widget di stato per la coppia. Fino a quando questa vista non gestirà destinazioni
+        // multiple con progresso indipendente (task successivo), filtriamo sulla prima
+        // destinazione, che riceve gli stessi eventi, nello stesso ordine, delle altre.
+        string firstDestination = destinations[0];
         await FileCopyService.CopyDirectoryToManyAsync(
             pair.SourcePath!,
             destinations,
             maxDegreeOfParallelism: parallelism,
-            onProgress: publisher.Report,
+            onProgress: (destination, progress) =>
+            {
+                if (destination == firstDestination)
+                    publisher.Report(progress);
+            },
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
             skipUnchanged: pair.SkipUnchanged,
-            onFileStarted: sourceFile =>
+            onFileStarted: (destination, sourceFile) =>
             {
+                if (destination != firstDestination)
+                    return;
                 UiDispatch.Post(() =>
                 {
                     // filesByPath è vuoto se l'Expander "File da elaborare" non è mai stato
@@ -662,8 +674,10 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                     pair.CopyingFiles.Add(item);
                 });
             },
-            onFileCompleted: sourceFile =>
+            onFileCompleted: (destination, sourceFile) =>
             {
+                if (destination != firstDestination)
+                    return;
                 if (filesByPath.TryGetValue(sourceFile, out var item))
                     UiDispatch.Post(() => item.Status = FileCopyStatus.Done);
                 UiDispatch.Post(() =>

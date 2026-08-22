@@ -281,20 +281,31 @@ public static class FileCopyService
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
+    /// <summary>Esito di una copia cartella verso più destinazioni: quali sono riuscite (nessun file fallito).</summary>
+    public readonly record struct CopyDirectoryToManyResult(IReadOnlyDictionary<string, bool> DestinationSucceeded);
+
+    private sealed class ByteCounter
+    {
+        public long Value;
+    }
+
     /// <summary>
     /// Copia ricorsivamente una cartella verso più destinazioni (più file in parallelo),
-    /// leggendo ogni file sorgente una sola volta. L'avanzamento conta i byte della sorgente.
+    /// leggendo ogni file sorgente una sola volta per file. Ogni destinazione avanza in modo
+    /// indipendente: lo skip-unchanged è valutato per singola coppia sorgente/destinazione, e
+    /// il fallimento di una destinazione (per un singolo file) non ferma le altre.
     /// </summary>
-    public static async Task CopyDirectoryToManyAsync(
+    public static async Task<CopyDirectoryToManyResult> CopyDirectoryToManyAsync(
         string sourceRoot,
         IReadOnlyList<string> destinationRoots,
         int maxDegreeOfParallelism,
-        Action<CopyProgress>? onProgress,
+        Action<string, CopyProgress>? onProgress,
         CancellationToken ct,
         int bufferSize = DefaultBufferSize,
         bool skipUnchanged = false,
-        Action<string>? onFileStarted = null,
-        Action<string>? onFileCompleted = null)
+        Action<string, string>? onFileStarted = null,
+        Action<string, string>? onFileCompleted = null,
+        Action<string, string, Exception>? onFileFailed = null)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -312,12 +323,16 @@ public static class FileCopyService
             return (list, total);
         }, ct).ConfigureAwait(false);
 
-        onProgress?.Invoke(new CopyProgress(0, totalBytes, files.Count));
+        var counters = destinationRoots.ToDictionary(d => d, _ => new ByteCounter());
+        var destinationFailed = new ConcurrentDictionary<string, bool>(destinationRoots.ToDictionary(d => d, _ => false));
+
+        foreach (var destination in destinationRoots)
+            onProgress?.Invoke(destination, new CopyProgress(0, totalBytes, files.Count));
+
         if (files.Count == 0)
-            return;
+            return new CopyDirectoryToManyResult(destinationRoots.ToDictionary(d => d, d => true));
 
         using var semaphore = new SemaphoreSlim(maxDegreeOfParallelism);
-        long copiedBytes = 0;
 
         var tasks = files.Select(async sourceFile =>
         {
@@ -326,34 +341,88 @@ public static class FileCopyService
             try
             {
                 string relative = Path.GetRelativePath(sourceRoot, sourceFile);
-                var destinationFiles = destinationRoots
-                    .Select(root => Path.Combine(root, relative))
-                    .ToList();
+                var destinationFileByRoot = destinationRoots.ToDictionary(root => root, root => Path.Combine(root, relative));
 
-                if (skipUnchanged && destinationFiles.All(destination => IsUnchanged(sourceFile, destination)))
+                var toCopy = new List<string>();
+                var toSkip = new List<string>();
+                foreach (var root in destinationRoots)
                 {
-                    long skippedTotal = Interlocked.Add(ref copiedBytes, new FileInfo(sourceFile).Length);
-                    onProgress?.Invoke(new CopyProgress(skippedTotal, totalBytes, files.Count));
-                    onFileCompleted?.Invoke(sourceFile);
+                    if (skipUnchanged && IsUnchanged(sourceFile, destinationFileByRoot[root]))
+                        toSkip.Add(root);
+                    else
+                        toCopy.Add(root);
+                }
+
+                long sourceLength = new FileInfo(sourceFile).Length;
+                foreach (var root in toSkip)
+                {
+                    long newTotal = Interlocked.Add(ref counters[root].Value, sourceLength);
+                    onProgress?.Invoke(root, new CopyProgress(newTotal, totalBytes, files.Count));
+                    onFileCompleted?.Invoke(root, sourceFile);
+                }
+
+                if (toCopy.Count == 0)
+                    return;
+
+                // La creazione della cartella di destinazione può fallire per una singola
+                // destinazione (es. un file esistente al posto di una cartella intermedia):
+                // trattata come fallimento di quella destinazione per questo file, senza
+                // interrompere le altre destinazioni ancora da copiare.
+                var createDirFailed = new List<string>();
+                foreach (var root in toCopy)
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(destinationFileByRoot[root])!);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        destinationFailed[root] = true;
+                        onFileFailed?.Invoke(root, sourceFile, ex);
+                        createDirFailed.Add(root);
+                        continue;
+                    }
+                    onFileStarted?.Invoke(root, sourceFile);
+                }
+                foreach (var root in createDirFailed)
+                    toCopy.Remove(root);
+
+                if (toCopy.Count == 0)
+                    return;
+
+                var copyDestinationFiles = toCopy.Select(root => destinationFileByRoot[root]).ToList();
+                var rootByDestinationFile = toCopy.ToDictionary(root => destinationFileByRoot[root], root => root);
+
+                CopyToManyResult copyResult;
+                try
+                {
+                    copyResult = await CopyFileToManyAsync(sourceFile, copyDestinationFiles, (destinationFile, deltaBytes) =>
+                    {
+                        string root = rootByDestinationFile[destinationFile];
+                        long newTotal = Interlocked.Add(ref counters[root].Value, deltaBytes);
+                        onProgress?.Invoke(root, new CopyProgress(newTotal, totalBytes, files.Count));
+                    }, ct, bufferSize).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Tutte le destinazioni di questo file hanno fallito.
+                    foreach (var root in toCopy)
+                    {
+                        destinationFailed[root] = true;
+                        onFileFailed?.Invoke(root, sourceFile, ex);
+                    }
                     return;
                 }
 
-                foreach (var destinationFile in destinationFiles)
-                    Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
+                foreach (var destinationFile in copyResult.SucceededDestinations)
+                    onFileCompleted?.Invoke(rootByDestinationFile[destinationFile], sourceFile);
 
-                onFileStarted?.Invoke(sourceFile);
-                // onBytesCopied ora spara per-destinazione: per contare i byte sorgente una sola
-                // volta (invariato rispetto a prima) usiamo solo i callback della prima
-                // destinazione, che riceve gli stessi blocchi, nello stesso ordine, delle altre.
-                string firstDestination = destinationFiles[0];
-                await CopyFileToManyAsync(sourceFile, destinationFiles, (destination, deltaBytes) =>
+                foreach (var (destinationFile, error) in copyResult.FailedDestinations)
                 {
-                    if (destination != firstDestination)
-                        return;
-                    long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
-                    onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
-                }, ct, bufferSize).ConfigureAwait(false);
-                onFileCompleted?.Invoke(sourceFile);
+                    string root = rootByDestinationFile[destinationFile];
+                    destinationFailed[root] = true;
+                    onFileFailed?.Invoke(root, sourceFile, error);
+                }
             }
             finally
             {
@@ -362,6 +431,9 @@ public static class FileCopyService
         });
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        return new CopyDirectoryToManyResult(
+            destinationRoots.ToDictionary(d => d, d => !destinationFailed[d]));
     }
 
     /// <summary>

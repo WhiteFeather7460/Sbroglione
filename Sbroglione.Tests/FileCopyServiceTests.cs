@@ -209,20 +209,92 @@ public sealed class FileCopyServiceTests : IDisposable
             Path.Combine(_root, "many-dir-d2")
         };
 
-        var progressEvents = new List<CopyProgress>();
-        await FileCopyService.CopyDirectoryToManyAsync(
+        var progressByDestination = new Dictionary<string, List<CopyProgress>>();
+        var result = await FileCopyService.CopyDirectoryToManyAsync(
             sourceRoot, destinationRoots, 2,
-            progress => { lock (progressEvents) progressEvents.Add(progress); },
+            (destination, progress) =>
+            {
+                lock (progressByDestination)
+                {
+                    if (!progressByDestination.TryGetValue(destination, out var list))
+                        progressByDestination[destination] = list = new List<CopyProgress>();
+                    list.Add(progress);
+                }
+            },
             CancellationToken.None);
 
         foreach (var destinationRoot in destinationRoots)
         {
             Assert.Equal("alfa", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "a.txt")));
             Assert.Equal("beta", await File.ReadAllTextAsync(Path.Combine(destinationRoot, "sub", "b.txt")));
+            Assert.Equal(2, progressByDestination[destinationRoot][0].TotalFiles);
+            Assert.Equal(8, progressByDestination[destinationRoot].Max(p => p.CopiedBytes));
+            Assert.True(result.DestinationSucceeded[destinationRoot]);
         }
+    }
 
-        Assert.Equal(2, progressEvents[0].TotalFiles);
-        Assert.Equal(8, progressEvents.Max(p => p.CopiedBytes)); // "alfa" + "beta" contati una sola volta
+    [Fact]
+    public async Task CopyDirectoryToManyAsync_SkipUnchanged_EvaluatedPerDestination()
+    {
+        string sourceRoot = Path.Combine(_root, "skip-many-src");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "same.txt"), "12345");
+
+        string upToDateDestination = Path.Combine(_root, "skip-many-uptodate");
+        Directory.CreateDirectory(upToDateDestination);
+        await File.WriteAllTextAsync(Path.Combine(upToDateDestination, "same.txt"), "MARKR");
+        File.SetLastWriteTimeUtc(
+            Path.Combine(upToDateDestination, "same.txt"),
+            File.GetLastWriteTimeUtc(Path.Combine(sourceRoot, "same.txt")));
+
+        string staleDestination = Path.Combine(_root, "skip-many-stale");
+
+        var completedByDestination = new Dictionary<string, List<string>>();
+        await FileCopyService.CopyDirectoryToManyAsync(
+            sourceRoot, new[] { upToDateDestination, staleDestination }, 1,
+            null, CancellationToken.None, skipUnchanged: true,
+            onFileCompleted: (destination, file) =>
+            {
+                lock (completedByDestination)
+                {
+                    if (!completedByDestination.TryGetValue(destination, out var list))
+                        completedByDestination[destination] = list = new List<string>();
+                    list.Add(file);
+                }
+            });
+
+        Assert.Equal("MARKR", await File.ReadAllTextAsync(Path.Combine(upToDateDestination, "same.txt"))); // saltato: intatto
+        Assert.Equal("12345", await File.ReadAllTextAsync(Path.Combine(staleDestination, "same.txt")));     // copiato
+    }
+
+    [Fact]
+    public async Task CopyDirectoryToManyAsync_OneDestinationFails_OthersComplete()
+    {
+        string sourceRoot = Path.Combine(_root, "dir-fail-src");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.txt"), "aaa");
+
+        string goodDestination = Path.Combine(_root, "dir-fail-good");
+        // Un file (non una cartella) nel punto in cui dovrebbe crearsi la destinazione:
+        // Directory.CreateDirectory fallisce con IOException, simulando un errore per-destinazione.
+        string badDestinationParent = Path.Combine(_root, "dir-fail-bad-parent");
+        await File.WriteAllTextAsync(badDestinationParent, "sono un file, non una cartella");
+        string badDestination = Path.Combine(badDestinationParent, "sub");
+
+        var failures = new List<(string destination, string file)>();
+        var result = await FileCopyService.CopyDirectoryToManyAsync(
+            sourceRoot, new[] { goodDestination, badDestination }, 1,
+            null, CancellationToken.None,
+            onFileFailed: (destination, file, _) =>
+            {
+                lock (failures) failures.Add((destination, file));
+            });
+
+        Assert.Equal("aaa", await File.ReadAllTextAsync(Path.Combine(goodDestination, "a.txt")));
+        Assert.True(result.DestinationSucceeded[goodDestination]);
+        Assert.False(result.DestinationSucceeded[badDestination]);
+        Assert.Single(failures);
+        Assert.Equal(badDestination, failures[0].destination);
     }
 
     [Fact]
