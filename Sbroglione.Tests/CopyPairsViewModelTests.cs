@@ -193,6 +193,31 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task StartCopy_WhitelistExtensionFilter_OnlyCopiesMatchingFiles()
+    {
+        string sourceRoot = Path.Combine(_root, "vm-wl-src");
+        string destinationRoot = Path.Combine(_root, "vm-wl-dst");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "a.jpg"), "img");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "b.txt"), "text");
+
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = sourceRoot,
+            DestinationPath = destinationRoot,
+            ExtensionFilterMode = ExtensionFilterMode.Whitelist,
+            ExtensionFilterText = "jpg"
+        };
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.True(File.Exists(Path.Combine(destinationRoot, "a.jpg")));
+        Assert.False(File.Exists(Path.Combine(destinationRoot, "b.txt")));
+    }
+
+    [Fact]
     public async Task StartCopy_Directory_ChecksumEnabled_VerifiesTreeAndMarksSuccess()
     {
         AppSettingsStore.Current.VerifyChecksumAfterCopy = true;

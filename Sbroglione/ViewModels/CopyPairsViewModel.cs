@@ -466,7 +466,8 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         try
         {
             var result = await CopySimulationService.SimulateAsync(
-                pair.SourcePath!, destinations, pair.SkipUnchanged, CancellationToken.None);
+                pair.SourcePath!, destinations, pair.SkipUnchanged, CancellationToken.None,
+                extensionFilter: pair.BuildExtensionFilter());
 
             var lines = new List<string>
             {
@@ -729,6 +730,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
             skipUnchanged: pair.SkipUnchanged,
+            extensionFilter: pair.BuildExtensionFilter(),
             onFileStarted: (destination, sourceFile) =>
             {
                 UiDispatch.Post(() =>
