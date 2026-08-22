@@ -28,4 +28,13 @@ public interface IRemoteFileClient : IAsyncDisposable
 
     /// <summary>Carica un file locale su <paramref name="remoteFullPath"/>, creando le cartelle remote mancanti. Null = successo.</summary>
     Task<RemoteError?> UploadFileAsync(string localPath, string remoteFullPath, IProgress<long>? progress, CancellationToken ct);
+
+    /// <summary>Crea una cartella in <paramref name="path"/> remoto. Null = successo.</summary>
+    Task<RemoteError?> CreateDirectoryAsync(string path, CancellationToken ct);
+
+    /// <summary>Elimina file o cartella (ricorsivamente) in <paramref name="path"/> remoto. Null = successo.</summary>
+    Task<RemoteError?> DeleteAsync(string path, bool isDirectory, CancellationToken ct);
+
+    /// <summary>Rinomina l'elemento in <paramref name="path"/> in <paramref name="newName"/>, stessa cartella padre. Null = successo.</summary>
+    Task<RemoteError?> RenameAsync(string path, string newName, CancellationToken ct);
 }
