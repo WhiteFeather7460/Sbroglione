@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using ReactiveUI;
 using Sbroglione.Services;
 using Sbroglione.ViewModels;
 
@@ -26,9 +25,7 @@ public partial class LocalPaneView : UserControl
         InitializeComponent();
         ViewModel = new LocalPaneViewModel(startPath);
         DataContext = ViewModel;
-        Breadcrumb.Path = startPath;
         Loaded += async (_, _) => await ViewModel.RefreshAsync();
-        ViewModel.WhenAnyValue(vm => vm.CurrentPath).Subscribe(path => Breadcrumb.Path = path);
     }
 
     private async void OnNavigateUpClick(object? sender, RoutedEventArgs e) =>
@@ -37,8 +34,13 @@ public partial class LocalPaneView : UserControl
     private async void OnRefreshClick(object? sender, RoutedEventArgs e) =>
         await ViewModel.RefreshAsync();
 
-    private async void OnBreadcrumbSegmentClicked(object? sender, string path) =>
-        await ViewModel.NavigateToAsync(path);
+    private async void OnPathBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox box)
+            return;
+
+        await ViewModel.NavigateToAsync(box.Text ?? string.Empty);
+    }
 
     private async void OnGridDoubleTapped(object? sender, TappedEventArgs e)
     {

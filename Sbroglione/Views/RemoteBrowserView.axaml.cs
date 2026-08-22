@@ -1,9 +1,11 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using ReactiveUI;
 using Sbroglione.Models;
 using Sbroglione.Services;
 using Sbroglione.ViewModels;
@@ -33,6 +35,16 @@ public partial class RemoteBrowserView : UserControl
         _remotePane = new RemotePanelContent { DataContext = _viewModel };
         _localPane.RemoteViewModel = _viewModel;
         _remotePane.GetLocalCurrentPath = () => _localPane.ViewModel.CurrentPath;
+
+        // La destinazione dei download e il badge "su disco" seguono sempre la cartella
+        // locale visibile: niente più selezione manuale della destinazione.
+        _localPane.ViewModel.WhenAnyValue(vm => vm.CurrentPath)
+            .Subscribe(path => _viewModel.DestinationFolder = path);
+        // Serve al toggle mutuamente esclusivo Scarica/Carica cartella in base a dove
+        // l'utente ha selezionato una cartella (locale o remota).
+        _localPane.ViewModel.WhenAnyValue(vm => vm.SelectedItem)
+            .Subscribe(item => _viewModel.LocalSelectionIsDirectory = item?.IsDirectory ?? false);
+
         _leftIsLocal = true;
         LeftPaneHost.Content = _localPane;
         RightPaneHost.Content = _remotePane;
@@ -52,72 +64,14 @@ public partial class RemoteBrowserView : UserControl
     private async void OnDeleteProfileClick(object? sender, RoutedEventArgs e) =>
         await _viewModel.DeleteProfileAsync();
 
-    private async void OnNavigateUpClick(object? sender, RoutedEventArgs e) =>
-        await _viewModel.NavigateUpAsync();
-
-    private async void OnRefreshClick(object? sender, RoutedEventArgs e) =>
-        await _viewModel.RefreshAsync();
-
     private async void OnAcceptFingerprintClick(object? sender, RoutedEventArgs e) =>
         await _viewModel.AcceptFingerprintAsync();
 
     private void OnRejectFingerprintClick(object? sender, RoutedEventArgs e) =>
         _viewModel.RejectFingerprint();
 
-    private async void OnDownloadSelectedClick(object? sender, RoutedEventArgs e)
-    {
-        var selected = _remotePane.Grid.SelectedItems.Cast<RemoteEntryViewModel>().ToList();
-        if (selected.Count > 0)
-            await _viewModel.DownloadSelectedAsync(selected);
-    }
-
     private async void OnDownloadDirectoryClick(object? sender, RoutedEventArgs e) =>
         await _viewModel.DownloadCurrentDirectoryAsync();
-
-    private void OnCancelDownloadClick(object? sender, RoutedEventArgs e) =>
-        _viewModel.CancelDownload();
-
-    private async void OnBrowseDestinationClick(object? sender, RoutedEventArgs e)
-    {
-        var owner = this.FindAncestorOfType<Window>();
-        if (owner is null)
-            return;
-
-        // Contratto verificato di SelectPathDialog: costruttore senza parametri,
-        // DataContext assegnato dal chiamante, ShowDialog<string?> ritorna il percorso o null.
-        var dialog = new SelectPathDialog
-        {
-            DataContext = new SelectPathDialogViewModel(
-                directoriesOnly: true,
-                startPath: _viewModel.DestinationFolder
-                           ?? System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile))
-        };
-        var result = await dialog.ShowDialog<string?>(owner);
-        if (!string.IsNullOrWhiteSpace(result))
-            _viewModel.DestinationFolder = result;
-    }
-
-    private async void OnUploadFilesClick(object? sender, RoutedEventArgs e)
-    {
-        var owner = this.FindAncestorOfType<Window>();
-        if (owner is null)
-            return;
-
-        // Un file alla volta: stesso contratto di SelectPathDialog usato per la destinazione dei
-        // download (nessun file picker nativo multi-selezione nell'app). Ripetibile per più file.
-        var dialog = new SelectPathDialog
-        {
-            DataContext = new SelectPathDialogViewModel(
-                directoriesOnly: false,
-                startPath: System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile))
-        };
-        var result = await dialog.ShowDialog<string?>(owner);
-
-        // Senza elemento selezionato SelectPathDialog ritorna la cartella corrente: non è un file
-        // valido da caricare, va ignorato invece di far fallire l'upload.
-        if (!string.IsNullOrWhiteSpace(result) && !Directory.Exists(result))
-            await _viewModel.UploadFilesAsync(new[] { result });
-    }
 
     private async void OnUploadFolderClick(object? sender, RoutedEventArgs e)
     {
@@ -136,8 +90,11 @@ public partial class RemoteBrowserView : UserControl
             await _viewModel.UploadFolderAsync(result);
     }
 
-    private void OnCancelUploadClick(object? sender, RoutedEventArgs e) =>
+    private void OnCancelTransferClick(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.CancelDownload();
         _viewModel.CancelUpload();
+    }
 
     private async void OnNewProfileClick(object? sender, RoutedEventArgs e) =>
         await ManageProfileAsync(new ConnectionProfile(), isNew: true);
@@ -174,35 +131,12 @@ public partial class RemoteBrowserView : UserControl
 
     private void OnSwapPanesClick(object? sender, RoutedEventArgs e)
     {
+        // Detach first: a Control can't be reparented directly onto another
+        // host while still attached to its current one (Avalonia throws).
+        LeftPaneHost.Content = null;
+        RightPaneHost.Content = null;
         _leftIsLocal = !_leftIsLocal;
         LeftPaneHost.Content = _leftIsLocal ? (object)_localPane : _remotePane;
         RightPaneHost.Content = _leftIsLocal ? (object)_remotePane : _localPane;
-    }
-
-    private async void OnBreadcrumbSegmentClicked(object? sender, string path)
-    {
-        // Naviga solo se il percorso è cambiato: evita un elenco superfluo se l'utente
-        // clicca il segmento finale (la cartella corrente).
-        if (path != _viewModel.CurrentPath)
-        {
-            // RemoteBrowserViewModel non espone Navigate diretto a un percorso: riusa la
-            // stessa strada di OpenDirectoryAsync passando per un giro breve su CurrentPath.
-            await NavigateRemoteToAsync(path);
-        }
-    }
-
-    private async Task NavigateRemoteToAsync(string path)
-    {
-        var target = _viewModel.Items.FirstOrDefault(i => i.Item.FullPath == path && i.IsDirectory);
-        if (target is not null)
-        {
-            await _viewModel.OpenDirectoryAsync(target);
-            return;
-        }
-        // Segmento non tra le voci correnti (es. radice, o un antenato più su): sale con
-        // NavigateUpAsync finché CurrentPath combacia, che è già l'unica primitiva di
-        // navigazione diretta esposta dalla viewmodel.
-        while (_viewModel.CurrentPath != path && _viewModel.CurrentPath != "/")
-            await _viewModel.NavigateUpAsync();
     }
 }

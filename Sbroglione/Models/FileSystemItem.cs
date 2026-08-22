@@ -11,6 +11,10 @@ public class FileSystemItem : ReactiveObject
     public string Name { get; set; } = "";
     public string FullPath { get; set; } = "";
     public string? Size { get; set; }
+
+    /// <summary>Dimensione in byte usata per il filtro min/max KB; 0 per le cartelle.</summary>
+    public long SizeBytes { get; set; }
+
     public DateTime LastModified { get; set; }
     public bool IsDirectory { get; set; }
     public string Icon => IsDirectory ? "📁" : "📄";

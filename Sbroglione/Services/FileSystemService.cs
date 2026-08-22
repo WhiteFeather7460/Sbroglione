@@ -215,6 +215,7 @@ public static class FileSystemService
         Name = info.Name,
         IsDirectory = false,
         Size = $"{info.Length / 1024} KB",
+        SizeBytes = info.Length,
         LastModified = info.LastWriteTime,
         FullPath = info.FullName
     };

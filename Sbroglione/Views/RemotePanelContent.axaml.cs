@@ -29,6 +29,26 @@ public partial class RemotePanelContent : UserControl
         InitializeComponent();
     }
 
+    private async void OnNavigateUpClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is { } vm)
+            await vm.NavigateUpAsync();
+    }
+
+    private async void OnRefreshClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is { } vm)
+            await vm.RefreshAsync();
+    }
+
+    private async void OnPathBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox box || ViewModel is not { } vm)
+            return;
+
+        await vm.NavigateToAsync(box.Text ?? string.Empty);
+    }
+
     private async void OnGridDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (ViewModel is not { } vm)
