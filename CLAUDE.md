@@ -27,6 +27,8 @@ dotnet run --project Sbroglione.Desktop
 
 Tests: `Sbroglione.Tests` (xunit) — run with `dotnet test`. No CI. `.editorconfig` defines code style; `dotnet format whitespace` runs automatically on edited `.cs`/`.axaml` files via a PostToolUse hook.
 
+`Sbroglione.Android` (head project) is in the solution but excluded from `.Build.0` in `Sbroglione.sln`, so `dotnet build Sbroglione.sln`/`dotnet test` never build it. To build/deploy it explicitly you need the `android` workload (`dotnet workload install android`), a JDK 17, and `ANDROID_HOME`/`JAVA_HOME` set; then build it on its own with `dotnet build Sbroglione.Android/Sbroglione.Android.csproj`.
+
 ## Workflow
 
 For any non-trivial feature or change, always write an implementation plan first (superpowers writing-plans; plans live in `docs/superpowers/plans/`) and execute it with subagents (superpowers subagent-driven-development). After each completed task, mark it as done in the plan file before starting the next one.
