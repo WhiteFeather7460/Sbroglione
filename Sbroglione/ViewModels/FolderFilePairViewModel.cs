@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Sbroglione.Models;
@@ -81,6 +83,51 @@ public sealed class DestinationProgressViewModel : ReactiveObject
 /// </summary>
 public class FolderFilePairViewModel : ReactiveObject
 {
+    public FolderFilePairViewModel()
+    {
+        // Il widget "in copia adesso" deve restare visibile a fine copia se una destinazione
+        // è finita in errore (vedi ShowCopyingWidget): serve sapere quando cambia lo StateKind
+        // di una qualsiasi destinazione, non solo quando la collezione stessa cambia.
+        DestinationsProgress.CollectionChanged += OnDestinationsProgressCollectionChanged;
+    }
+
+    private void OnDestinationsProgressCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+            foreach (DestinationProgressViewModel item in e.OldItems)
+                item.PropertyChanged -= OnDestinationProgressItemChanged;
+        if (e.NewItems is not null)
+            foreach (DestinationProgressViewModel item in e.NewItems)
+                item.PropertyChanged += OnDestinationProgressItemChanged;
+
+        UpdateShowCopyingWidget();
+    }
+
+    private void OnDestinationProgressItemChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DestinationProgressViewModel.StateKind))
+            UpdateShowCopyingWidget();
+    }
+
+    private bool _showCopyingWidget;
+
+    /// <summary>
+    /// True mentre la copia è in corso (<see cref="IsCopying"/>) e resta true dopo il
+    /// completamento se almeno una destinazione è finita in <see cref="CopyStateKind.Error"/>,
+    /// così l'utente può ancora vedere QUALE destinazione ha fallito e perché. Torna false
+    /// (nasconde il widget) quando una copia interamente riuscita finisce, come prima.
+    /// </summary>
+    public bool ShowCopyingWidget
+    {
+        get => _showCopyingWidget;
+        private set => this.RaiseAndSetIfChanged(ref _showCopyingWidget, value);
+    }
+
+    private void UpdateShowCopyingWidget()
+    {
+        ShowCopyingWidget = IsCopying || DestinationsProgress.Any(d => d.StateKind == CopyStateKind.Error);
+    }
+
     private IReadOnlyList<FileSystemItem> _filesToProcess = Array.Empty<FileSystemItem>();
 
     /// <summary>
@@ -280,6 +327,7 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _isCopying, value);
             this.RaisePropertyChanged(nameof(CanStart));
+            UpdateShowCopyingWidget();
         }
     }
 
@@ -374,5 +422,31 @@ public class FolderFilePairViewModel : ReactiveObject
     {
         get => _speedSamples;
         set => this.RaiseAndSetIfChanged(ref _speedSamples, value);
+    }
+
+    // Stessa dimensione massima della finestra di SpeedTracker: mantiene la sparkline del
+    // pair coerente con quella (per-destinazione) da cui SpeedTracker prende i suoi campioni.
+    private const int MaxSpeedSamples = 60;
+    private readonly List<double> _speedSampleBuffer = new();
+
+    /// <summary>
+    /// Accoda un campione (MB/s) alla sparkline aggregata del pair e pubblica lo swap su
+    /// <see cref="SpeedSamples"/>. Chiamato da <see cref="CopyPairsViewModel"/> con la somma
+    /// delle velocità istantanee di tutte le destinazioni, alla stessa cadenza con cui
+    /// ricalcola l'aggregato del pair.
+    /// </summary>
+    internal void AppendSpeedSample(double megabytesPerSecond)
+    {
+        _speedSampleBuffer.Add(megabytesPerSecond);
+        if (_speedSampleBuffer.Count > MaxSpeedSamples)
+            _speedSampleBuffer.RemoveAt(0);
+        SpeedSamples = _speedSampleBuffer.ToList();
+    }
+
+    /// <summary>Svuota la sparkline aggregata: chiamato a ogni avvio di una nuova copia.</summary>
+    internal void ResetSpeedSamples()
+    {
+        _speedSampleBuffer.Clear();
+        SpeedSamples = null;
     }
 }

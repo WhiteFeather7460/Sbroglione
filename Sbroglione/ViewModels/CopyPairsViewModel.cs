@@ -401,7 +401,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             pair.IsVerified = null;
             pair.SimulationSummary = null;
             pair.SpeedText = null;
-            pair.SpeedSamples = null;
+            pair.ResetSpeedSamples();
             foreach (var item in pair.FilesToProcess)
                 item.Status = FileCopyStatus.Pending;
             pair.DestinationsProgress.Clear();
@@ -527,17 +527,6 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             : time.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static void PublishSpeed(FolderFilePairViewModel pair, SpeedSnapshot snapshot)
-    {
-        pair.SpeedText = string.Format(
-            LocalizationService.Tr("Str.CopyPairs.SpeedSummaryFormat"),
-            FormatSpeed(snapshot.CurrentBytesPerSecond),
-            FormatSpeed(snapshot.AverageBytesPerSecond),
-            FormatSpeed(snapshot.PeakBytesPerSecond),
-            FormatEta(snapshot.EtaSeconds));
-        pair.SpeedSamples = snapshot.Samples;
-    }
-
     private static async Task CopySingleFileAsync(FolderFilePairViewModel pair, IReadOnlyList<string> destinations, CancellationToken ct)
     {
         // Se la sorgente è un file e una destinazione è una cartella, il file viene copiato dentro la cartella.
@@ -607,6 +596,18 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             target.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.DestinationErrorFormat"), error.Message);
         }
 
+        // Aggregato del pair a fine copia: la somma delle medie e il picco più alto tra le
+        // destinazioni, sullo stesso modello di CopyDirectoryAsync. RecomputePairAggregate
+        // (chiamata durante i Report) usa la velocità istantanea e può non essere mai
+        // scattata per copie troppo rapide (nessuno snapshot pubblicato prima del
+        // completamento): senza questo, pair.SpeedText resterebbe null e la riga di
+        // velocità non comparirebbe mai per una copia di file singolo veloce.
+        if (destinationFiles.Count > 0)
+            pair.SpeedText = string.Format(
+                LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"),
+                FormatSpeed(destinationFiles.Sum(destinationFile => trackers[destinationFile].Tracker.AverageBytesPerSecond)),
+                FormatSpeed(destinationFiles.Max(destinationFile => trackers[destinationFile].Tracker.PeakBytesPerSecond)));
+
         if (!AppSettingsStore.Current.VerifyChecksumAfterCopy)
         {
             pair.Progress = 1;
@@ -660,7 +661,13 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         target.CurrentBytesPerSecond = snapshot.CurrentBytesPerSecond;
     }
 
-    /// <summary>Ricalcola gli aggregati del pair dalle sue destinazioni: la più lenta pilota il progresso, la somma la velocità mostrata.</summary>
+    /// <summary>
+    /// Ricalcola gli aggregati del pair dalle sue destinazioni: la più lenta pilota il
+    /// progresso, la somma delle velocità istantanee pilota la riga di velocità e la
+    /// sparkline. Non è né una media né un picco (per quello vedi il testo finale impostato
+    /// a fine copia): è la velocità combinata "adesso", quindi usa un formato dedicato invece
+    /// di riusare SpeedAveragePeakFormat con lo stesso valore in entrambi i placeholder.
+    /// </summary>
     private static void RecomputePairAggregate(FolderFilePairViewModel pair)
     {
         if (pair.DestinationsProgress.Count == 0)
@@ -668,9 +675,11 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
         pair.Progress = pair.DestinationsProgress.Min(d => d.Progress);
         double totalSpeed = pair.DestinationsProgress.Sum(d => d.CurrentBytesPerSecond);
-        pair.SpeedText = totalSpeed > 0
-            ? string.Format(LocalizationService.Tr("Str.CopyPairs.SpeedAveragePeakFormat"), FormatSpeed(totalSpeed), FormatSpeed(totalSpeed))
-            : pair.SpeedText;
+        if (totalSpeed > 0)
+        {
+            pair.SpeedText = string.Format(LocalizationService.Tr("Str.CopyPairs.SpeedCombinedFormat"), FormatSpeed(totalSpeed));
+            pair.AppendSpeedSample(totalSpeed / (1024.0 * 1024.0));
+        }
     }
 
     /// <summary>Priorità Error > Warning > Success sulle destinazioni del pair.</summary>

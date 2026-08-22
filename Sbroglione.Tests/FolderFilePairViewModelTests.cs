@@ -269,4 +269,87 @@ public sealed class FolderFilePairViewModelTests : IDisposable
         Assert.Contains(nameof(DestinationProgressViewModel.StateKind), raised);
         Assert.Contains(nameof(DestinationProgressViewModel.ErrorMessage), raised);
     }
+
+    [Fact]
+    public void ShowCopyingWidget_TrueWhileCopying_FalseAfterFullSuccess()
+    {
+        var pair = new FolderFilePairViewModel();
+        Assert.False(pair.ShowCopyingWidget);
+
+        pair.IsCopying = true;
+        Assert.True(pair.ShowCopyingWidget);
+
+        var destination = new DestinationProgressViewModel("/dest");
+        pair.DestinationsProgress.Add(destination);
+        destination.StateKind = CopyStateKind.Success;
+
+        pair.IsCopying = false;
+
+        // Copia interamente riuscita: il widget torna a nascondersi come prima di questo fix.
+        Assert.False(pair.ShowCopyingWidget);
+    }
+
+    [Fact]
+    public void ShowCopyingWidget_StaysTrueAfterCopyEnds_WhenADestinationFailed()
+    {
+        var pair = new FolderFilePairViewModel();
+        pair.IsCopying = true;
+
+        var good = new DestinationProgressViewModel("/good");
+        var bad = new DestinationProgressViewModel("/bad");
+        pair.DestinationsProgress.Add(good);
+        pair.DestinationsProgress.Add(bad);
+        good.StateKind = CopyStateKind.Success;
+        bad.StateKind = CopyStateKind.Error;
+
+        pair.IsCopying = false;
+
+        // Una destinazione in errore: il widget resta visibile anche a copia finita, così
+        // l'utente può vedere quale destinazione ha fallito e perché (Issue 1).
+        Assert.True(pair.ShowCopyingWidget);
+    }
+
+    [Fact]
+    public void ShowCopyingWidget_RaisesPropertyChanged_WhenDestinationStateKindChanges()
+    {
+        var pair = new FolderFilePairViewModel();
+        pair.IsCopying = true;
+
+        var destination = new DestinationProgressViewModel("/dest");
+        pair.DestinationsProgress.Add(destination);
+
+        pair.IsCopying = false;
+        Assert.False(pair.ShowCopyingWidget);
+
+        var raised = new List<string>();
+        pair.PropertyChanged += (_, e) => raised.Add(e.PropertyName!);
+
+        destination.StateKind = CopyStateKind.Error;
+
+        Assert.Contains(nameof(FolderFilePairViewModel.ShowCopyingWidget), raised);
+        Assert.True(pair.ShowCopyingWidget);
+    }
+
+    [Fact]
+    public void ShowCopyingWidget_ResetsOnNewCopy_WhenDestinationsProgressIsCleared()
+    {
+        var pair = new FolderFilePairViewModel();
+        pair.IsCopying = true;
+
+        var bad = new DestinationProgressViewModel("/bad") { StateKind = CopyStateKind.Error };
+        pair.DestinationsProgress.Add(bad);
+
+        pair.IsCopying = false;
+        Assert.True(pair.ShowCopyingWidget);
+
+        // Simula quanto fa StartCopyAsync per una nuova copia: IsCopying=true, poi
+        // Clear()+ripopolamento di DestinationsProgress.
+        pair.IsCopying = true;
+        pair.DestinationsProgress.Clear();
+        pair.DestinationsProgress.Add(new DestinationProgressViewModel("/new"));
+
+        Assert.True(pair.ShowCopyingWidget); // ancora in copia
+        pair.IsCopying = false;
+        Assert.False(pair.ShowCopyingWidget); // nessun errore sulla nuova destinazione: nascosto
+    }
 }

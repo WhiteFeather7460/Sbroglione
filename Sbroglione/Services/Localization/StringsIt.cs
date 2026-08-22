@@ -150,6 +150,7 @@ public static class StringsIt
         ["Str.CopyPairs.CopyingFolderFormat"] = "Copia cartella… ({0} file)",
         ["Str.CopyPairs.SpeedSummaryFormat"] = "{0} · media {1} · picco {2} · ETA {3}",
         ["Str.CopyPairs.SpeedAveragePeakFormat"] = "media {0} · picco {1}",
+        ["Str.CopyPairs.SpeedCombinedFormat"] = "{0} combinati",
         ["Str.RemoteBrowser.NewProfileTooltip"] = "Nuovo profilo",
         ["Str.RemoteBrowser.ManageProfilesTooltip"] = "Gestisci profili",
         ["Str.RemoteBrowser.DeleteProfileTooltip"] = "Elimina profilo",

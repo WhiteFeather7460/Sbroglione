@@ -302,6 +302,27 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task StartCopy_SingleFile_SetsFinalPairSpeedText()
+    {
+        // Issue 2 (final whole-branch review): una copia di file singolo veloce può finire
+        // prima che RecomputePairAggregate scatti mai (nessuno snapshot di velocità
+        // pubblicato), quindi pair.SpeedText deve essere impostato esplicitamente a fine
+        // copia, come già fa CopyDirectoryAsync — altrimenti la riga di velocità non compare
+        // mai per questo percorso.
+        string sourceFile = Path.Combine(_root, "speed-source.txt");
+        await File.WriteAllTextAsync(sourceFile, "dati di prova per la velocità finale");
+        string destination = Path.Combine(_root, "speed-dest.txt");
+
+        var pair = new FolderFilePairViewModel { SourcePath = sourceFile, DestinationPath = destination };
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        Assert.NotNull(pair.SpeedText);
+    }
+
+    [Fact]
     public async Task StartCopy_SingleFile_OneDestinationUnwritable_MarksThatDestinationErrorAndPairError()
     {
         AppSettingsStore.Current.VerifyChecksumAfterCopy = false;

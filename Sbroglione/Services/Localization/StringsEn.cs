@@ -146,6 +146,7 @@ public static class StringsEn
         ["Str.CopyPairs.CopyingFolderFormat"] = "Copying folder… ({0} files)",
         ["Str.CopyPairs.SpeedSummaryFormat"] = "{0} · avg {1} · peak {2} · ETA {3}",
         ["Str.CopyPairs.SpeedAveragePeakFormat"] = "avg {0} · peak {1}",
+        ["Str.CopyPairs.SpeedCombinedFormat"] = "{0} combined",
         ["Str.RemoteBrowser.NewProfileTooltip"] = "New profile",
         ["Str.RemoteBrowser.ManageProfilesTooltip"] = "Manage profiles",
         ["Str.RemoteBrowser.DeleteProfileTooltip"] = "Delete profile",

@@ -185,8 +185,10 @@
                                Foreground="{DynamicResource Brush.TextMuted}" FontSize="12" />
                   </StackPanel>
 
-                  <!-- File in copia adesso, divisi per destinazione -->
-                  <Border IsVisible="{Binding IsCopying}"
+                  <!-- File in copia adesso, divisi per destinazione. Resta visibile anche a copia
+                       finita se una destinazione è in errore (ShowCopyingWidget), così l'utente
+                       vede quale destinazione ha fallito e perché senza doverlo cogliere al volo. -->
+                  <Border IsVisible="{Binding ShowCopyingWidget}"
                           Background="{DynamicResource Brush.NeutralBg}"
                           CornerRadius="8"
                           Padding="10"
@@ -211,6 +213,10 @@
                                   <TextBlock Text="{DynamicResource Str.CopyPairs.DestinationErrorBadge}" FontSize="11" />
                                 </Border>
                               </StackPanel>
+                              <TextBlock Text="{Binding Status}" FontSize="11" Margin="20,0,0,0"
+                                         TextWrapping="Wrap"
+                                         Foreground="{DynamicResource Brush.TextMuted}"
+                                         IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
                               <StackPanel Orientation="Horizontal" Spacing="8" Margin="20,0,0,0">
                                 <ProgressBar Width="140" Height="6" Minimum="0" Maximum="1"
                                              Value="{Binding Progress}" VerticalAlignment="Center" />
