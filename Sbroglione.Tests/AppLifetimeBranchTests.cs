@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 using Avalonia.Controls;
@@ -14,6 +15,8 @@ namespace Sbroglione.Tests;
 // (CS0535 on an unspeakable member injected by Avalonia's analyzer). DispatchProxy sidesteps
 // this because the interface implementation is emitted by the runtime (Reflection.Emit), not
 // by Roslyn compiling a user-authored `: ISingleViewApplicationLifetime` declaration.
+// Cannot be sealed: it must derive from DispatchProxy, which DispatchProxy.Create<T,TProxy> requires unsealed.
+[SuppressMessage("Performance", "CA1852:Seal internal types", Justification = "Must stay unsealed: DispatchProxy.Create<T,TProxy> requires an unsealed TProxy to subclass at runtime.")]
 file class FakeSingleViewLifetime : DispatchProxy
 {
     public Control? MainView { get; set; }
@@ -49,7 +52,7 @@ public class AppLifetimeBranchTests
     {
         var app = new App();
         var (lifetime, fake) = FakeSingleViewLifetime.Create();
-        app.SetApplicationLifetimeForTests(lifetime);
+        app.ApplicationLifetime = lifetime;
 
         app.OnFrameworkInitializationCompleted();
 

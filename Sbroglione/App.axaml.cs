@@ -84,7 +84,4 @@ public partial class App : Application
         "Dark" => ThemeVariant.Dark,
         _ => ThemeVariant.Default
     };
-
-    internal void SetApplicationLifetimeForTests(Avalonia.Controls.ApplicationLifetimes.IApplicationLifetime lifetime)
-        => ApplicationLifetime = lifetime;
 }
