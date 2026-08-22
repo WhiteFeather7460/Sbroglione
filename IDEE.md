@@ -64,6 +64,8 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 24. `[ ]` **Rimuovere treemap a blocchi, tenere solo barre + menu contestuale righe** — nel grafico occupazione disco (punto 15/23), togliere vista treemap a blocchi e lasciare solo `HierarchyListControl` a barre. Aggiungere menu contestuale (click destro) sulle righe con azioni utili (da definire: apri cartella, elimina, copia path, mostra in esplora file, ecc.). *(B)*
 
+25. `[ ]` **Copia multi-destinazione con avanzamento indipendente per destinazione** — `CopyFileToManyAsync` oggi scrive ogni blocco su tutte le destinazioni in lockstep (`Task.WhenAll` per chunk): un file risulta "in copia"/"completato" nello stesso istante ovunque, quindi una destinazione lenta (es. rete) rallenta anche quelle veloci (es. SSD locale). Disaccoppiare i writer per destinazione (code/loop indipendenti invece di un `Task.WhenAll` sincrono) permetterebbe a ogni destinazione di avanzare al proprio ritmo — richiede ripensare calcolo progresso/velocità aggregati e il widget "in copia adesso" per stato per-file-per-destinazione. *(A)*
+
 ---
 
 ## Note di priorità
