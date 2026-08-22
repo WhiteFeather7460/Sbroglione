@@ -81,9 +81,6 @@ public sealed class DestinationProgressViewModel : ReactiveObject
 /// </summary>
 public class FolderFilePairViewModel : ReactiveObject
 {
-    // Temporary: for backward compatibility while CopyPairsViewModel still uses CopyingFiles
-    private ObservableCollection<FileSystemItem>? _copyingFilesCache;
-
     private IReadOnlyList<FileSystemItem> _filesToProcess = Array.Empty<FileSystemItem>();
 
     /// <summary>
@@ -265,29 +262,6 @@ public class FolderFilePairViewModel : ReactiveObject
 
     /// <summary>Avanzamento per destinazione durante una copia, per il widget "in corso".</summary>
     public ObservableCollection<DestinationProgressViewModel> DestinationsProgress { get; } = new();
-
-    /// <summary>Temporary bridge to CopyingFiles from the first destination (will be removed in Task 4-6).</summary>
-    [Obsolete("Use DestinationsProgress instead")]
-    public ObservableCollection<FileSystemItem> CopyingFiles
-    {
-        get
-        {
-            if (_copyingFilesCache == null)
-            {
-                if (DestinationsProgress.Count == 0)
-                {
-                    var dest = new DestinationProgressViewModel("temp");
-                    DestinationsProgress.Add(dest);
-                    _copyingFilesCache = dest.CopyingFiles;
-                }
-                else
-                {
-                    _copyingFilesCache = DestinationsProgress[0].CopyingFiles;
-                }
-            }
-            return _copyingFilesCache;
-        }
-    }
 
     /// <summary>
     /// True per le coppie ripristinate dal journal: la copia di cartelle salta
