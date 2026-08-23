@@ -2,6 +2,7 @@ using System;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Sbroglione.Services;
 using Sbroglione.ViewModels;
 
@@ -27,6 +28,21 @@ public partial class RemotePanelContent : UserControl
     public RemotePanelContent()
     {
         InitializeComponent();
+        RemoteGrid.AddHandler(InputElement.PointerPressedEvent, OnGridPointerPressedPreview, RoutingStrategies.Tunnel);
+    }
+
+    /// <summary>Intercetta il click in fase di tunnel, prima che il DataGrid applichi la sua
+    /// selezione: se la riga sotto il puntatore è già selezionata, la deseleziona e marca
+    /// l'evento come gestito così il DataGrid non la riseleziona subito dopo.</summary>
+    private void OnGridPointerPressedPreview(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(RemoteGrid).Position;
+        var row = RemoteGrid.GetVisualAt(point)?.FindAncestorOfType<DataGridRow>(includeSelf: true);
+        if (row?.IsSelected ?? false)
+        {
+            e.Handled = true;
+            RemoteGrid.SelectedIndex = -1;
+        }
     }
 
     private async void OnNavigateUpClick(object? sender, RoutedEventArgs e)
@@ -74,6 +90,7 @@ public partial class RemotePanelContent : UserControl
         data.Set("sbroglione/remote-item", entry);
         await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy);
     }
+
 
     private void OnGridDragEnter(object? sender, DragEventArgs e)
     {

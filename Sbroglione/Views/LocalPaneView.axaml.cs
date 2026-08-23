@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Sbroglione.Services;
 using Sbroglione.ViewModels;
 
@@ -26,6 +27,21 @@ public partial class LocalPaneView : UserControl
         ViewModel = new LocalPaneViewModel(startPath);
         DataContext = ViewModel;
         Loaded += async (_, _) => await ViewModel.RefreshAsync();
+        LocalGrid.AddHandler(InputElement.PointerPressedEvent, OnGridPointerPressedPreview, RoutingStrategies.Tunnel);
+    }
+
+    /// <summary>Intercetta il click in fase di tunnel, prima che il DataGrid applichi la sua
+    /// selezione: se la riga sotto il puntatore è già selezionata, la deseleziona e marca
+    /// l'evento come gestito così il DataGrid non la riseleziona subito dopo.</summary>
+    private void OnGridPointerPressedPreview(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(LocalGrid).Position;
+        var row = LocalGrid.GetVisualAt(point)?.FindAncestorOfType<DataGridRow>(includeSelf: true);
+        if (row?.IsSelected ?? false)
+        {
+            e.Handled = true;
+            LocalGrid.SelectedIndex = -1;
+        }
     }
 
     private async void OnNavigateUpClick(object? sender, RoutedEventArgs e) =>

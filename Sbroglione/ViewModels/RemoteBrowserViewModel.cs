@@ -295,12 +295,13 @@ public class RemoteBrowserViewModel : ViewModelBase
     }
 
     private readonly ObservableAsPropertyHelper<bool> _isDownloadFolderEnabled;
-    /// <summary>Falso solo se è selezionata una cartella sul pannello locale ma non su quello
-    /// remoto: in quel caso l'intento dell'utente è chiaramente caricare, non scaricare.</summary>
+    /// <summary>Vero quando è selezionata una cartella sul pannello remoto (e non c'è un
+    /// trasferimento/operazione in corso).</summary>
     public bool IsDownloadFolderEnabled => _isDownloadFolderEnabled.Value;
 
     private readonly ObservableAsPropertyHelper<bool> _isUploadFolderEnabled;
-    /// <summary>Speculare a <see cref="IsDownloadFolderEnabled"/>.</summary>
+    /// <summary>Vero quando è selezionata una cartella sul pannello locale (e non c'è un
+    /// trasferimento/operazione in corso).</summary>
     public bool IsUploadFolderEnabled => _isUploadFolderEnabled.Value;
 
     /// <summary>Costruttore per la view: dipendenze reali.</summary>
@@ -321,17 +322,17 @@ public class RemoteBrowserViewModel : ViewModelBase
         _savePassword = credentialStore.IsAvailable;
 
         _isDownloadFolderEnabled = this.WhenAnyValue(
-                x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
-                x => x.SelectedItem, x => x.LocalSelectionIsDirectory,
-                (busy, downloading, uploading, selected, localDir) =>
-                    !busy && !downloading && !uploading && !(localDir && !(selected?.IsDirectory ?? false)))
+                x => x.IsConnected, x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
+                x => x.SelectedItem,
+                (connected, busy, downloading, uploading, selected) =>
+                    connected && !busy && !downloading && !uploading && (selected?.IsDirectory ?? false))
             .ToProperty(this, x => x.IsDownloadFolderEnabled);
 
         _isUploadFolderEnabled = this.WhenAnyValue(
-                x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
-                x => x.SelectedItem, x => x.LocalSelectionIsDirectory,
-                (busy, downloading, uploading, selected, localDir) =>
-                    !busy && !downloading && !uploading && !((selected?.IsDirectory ?? false) && !localDir))
+                x => x.IsConnected, x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
+                x => x.LocalSelectionIsDirectory,
+                (connected, busy, downloading, uploading, localDir) =>
+                    connected && !busy && !downloading && !uploading && localDir)
             .ToProperty(this, x => x.IsUploadFolderEnabled);
     }
 

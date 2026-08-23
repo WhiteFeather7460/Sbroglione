@@ -66,6 +66,10 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 25. `[x]` **Copia multi-destinazione con avanzamento indipendente per destinazione** — `CopyFileToManyAsync` oggi scrive ogni blocco su tutte le destinazioni in lockstep (`Task.WhenAll` per chunk): un file risulta "in copia"/"completato" nello stesso istante ovunque, quindi una destinazione lenta (es. rete) rallenta anche quelle veloci (es. SSD locale). Disaccoppiare i writer per destinazione (code/loop indipendenti invece di un `Task.WhenAll` sincrono) permetterebbe a ogni destinazione di avanzare al proprio ritmo — richiede ripensare calcolo progresso/velocità aggregati e il widget "in copia adesso" per stato per-file-per-destinazione. *(A)*
 
+26. `[~]` **Porting su Android** — Effettuare il porting del progetto così che possa essere usato anche su Android. *(Fase 1 completata: scaffold `Sbroglione.Android`, branch `ISingleViewApplicationLifetime` con placeholder, build+deploy+smoke test verificati su emulatore — PR #37. Restano: layout responsive dual-pane→single-pane, storage scoped/SAF, `WatchFolderService` come foreground service, verifica FTP/SFTP su device.)*
+
+27. `[x]` **Sistemare logica di attivazione dei pulsanti nella vista FTP** — I pulsanti "Download Cartella" e "Upload Cartella" devono partire disabilitati. Inoltre la selezione deve essere per riga e non come adesso che puoi selezionare anche la cella (anche se poi viene comunque selezionata la riga di conseguenza). Aggiungere la possibilità di cliccare nuovamente sull'elemento selezionato per deselezionarlo; quindi distinguere la logica "doppio click" da quella "singolo click".
+
 ---
 
 ## Note di priorità

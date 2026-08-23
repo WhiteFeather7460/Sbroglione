@@ -72,6 +72,19 @@
                 DragDrop.DragOver="OnGridDragEnter"
                 DragDrop.Drop="OnGridDrop"
                 Margin="12,4">
+        <DataGrid.Styles>
+          <!-- Selezione solo per riga: nessun indicatore/border sulla singola cella corrente
+               (il rettangolo "CurrencyVisual" e il focus visual di DataGridCell). -->
+          <Style Selector="DataGridCell">
+            <Setter Property="Focusable" Value="False" />
+          </Style>
+          <Style Selector="DataGridCell:current /template/ Rectangle#CurrencyVisual">
+            <Setter Property="IsVisible" Value="False" />
+          </Style>
+          <Style Selector="DataGridCell:focus /template/ Grid#FocusVisual">
+            <Setter Property="IsVisible" Value="False" />
+          </Style>
+        </DataGrid.Styles>
         <DataGrid.ContextMenu>
           <ContextMenu>
             <MenuItem Header="{DynamicResource Str.LocalPane.NewFolder}" Click="OnNewFolderClick" />
