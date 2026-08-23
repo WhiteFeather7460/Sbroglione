@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Sbroglione.Models;
@@ -76,7 +78,7 @@ public class HierarchyListControl : Decorator
         if (ordered.Count == 0)
             return;
 
-        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(ordered, MaxChildrenPerLevel);
+        var (visible, hiddenCount, hiddenBytes) = CapNodes(ordered, MaxChildrenPerLevel);
 
         foreach (var child in visible)
         {
@@ -186,11 +188,14 @@ public class HierarchyListControl : Decorator
         if (!isAggregate)
         {
             ToolTip.SetTip(grid, string.Format(LocalizationService.Tr("Str.DiskUsage.NodeTooltipFormat"), node!.Name, SizeFormatter.Format(node.SizeBytes)));
+            grid.ContextMenu = BuildContextMenu(node);
 
             if (expandable)
             {
-                grid.PointerPressed += (_, _) =>
+                grid.PointerPressed += (_, e) =>
                 {
+                    if (!e.GetCurrentPoint(grid).Properties.IsLeftButtonPressed)
+                        return;
                     if (!_expanded.Remove(node))
                         _expanded.Add(node);
                     Rebuild();
@@ -198,7 +203,12 @@ public class HierarchyListControl : Decorator
             }
             else if (!node.IsDirectory)
             {
-                grid.PointerPressed += (_, _) => NodeActivated?.Invoke(node);
+                grid.PointerPressed += (_, e) =>
+                {
+                    if (!e.GetCurrentPoint(grid).Properties.IsLeftButtonPressed)
+                        return;
+                    NodeActivated?.Invoke(node);
+                };
             }
         }
         else
@@ -207,5 +217,44 @@ public class HierarchyListControl : Decorator
         }
 
         _rows.Children.Add(grid);
+    }
+
+    private ContextMenu BuildContextMenu(DiskUsageNode node)
+    {
+        var openFolder = new MenuItem { Header = LocalizationService.Tr("Str.DiskUsage.OpenFolder") };
+        openFolder.Click += (_, _) =>
+            FileManagerLauncher.OpenFolder(node.IsDirectory ? node.FullPath : Path.GetDirectoryName(node.FullPath) ?? node.FullPath);
+
+        var copyPath = new MenuItem { Header = LocalizationService.Tr("Str.DiskUsage.CopyPath") };
+        copyPath.Click += async (_, _) =>
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is not null)
+                await clipboard.SetTextAsync(node.FullPath);
+        };
+
+        var reveal = new MenuItem { Header = LocalizationService.Tr("Str.DiskUsage.RevealInFileManager") };
+        reveal.Click += (_, _) => FileManagerLauncher.RevealInFileManager(node.FullPath);
+
+        return new ContextMenu
+        {
+            ItemsSource = new[] { openFolder, copyPath, reveal }
+        };
+    }
+
+    /// <summary>
+    /// Limita le righe renderizzate a <paramref name="maxTiles"/>, tenendo le più grandi
+    /// (ordinati per <see cref="DiskUsageNode.SizeBytes"/> decrescente) e aggregando il resto.
+    /// </summary>
+    internal static (List<DiskUsageNode> Visible, int HiddenCount, long HiddenBytes) CapNodes(
+        IReadOnlyList<DiskUsageNode> children, int maxTiles)
+    {
+        var ordered = children.OrderByDescending(child => child.SizeBytes).ToList();
+        if (ordered.Count <= maxTiles)
+            return (ordered, 0, 0L);
+
+        var visible = ordered.Take(maxTiles).ToList();
+        var hidden = ordered.Skip(maxTiles).ToList();
+        return (visible, hidden.Count, hidden.Sum(child => child.SizeBytes));
     }
 }

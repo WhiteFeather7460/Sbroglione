@@ -3,7 +3,7 @@ using Sbroglione.Views;
 
 namespace Sbroglione.Tests;
 
-public sealed class TreemapControlTests
+public sealed class HierarchyListControlTests
 {
     [Fact]
     public void CapNodes_KeepsLargestAndAggregatesRest()
@@ -12,7 +12,7 @@ public sealed class TreemapControlTests
             .Select(i => new DiskUsageNode { Name = $"f{i}", SizeBytes = i })
             .ToList();
 
-        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+        var (visible, hiddenCount, hiddenBytes) = HierarchyListControl.CapNodes(children, maxTiles: 400);
 
         Assert.Equal(400, visible.Count);
         Assert.Equal(100, hiddenCount);
@@ -27,7 +27,7 @@ public sealed class TreemapControlTests
             .Select(i => new DiskUsageNode { Name = $"f{i}", SizeBytes = i })
             .ToList();
 
-        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+        var (visible, hiddenCount, hiddenBytes) = HierarchyListControl.CapNodes(children, maxTiles: 400);
 
         Assert.Equal(10, visible.Count);
         Assert.Equal(0, hiddenCount);
@@ -39,7 +39,7 @@ public sealed class TreemapControlTests
     {
         var children = new List<DiskUsageNode>();
 
-        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+        var (visible, hiddenCount, hiddenBytes) = HierarchyListControl.CapNodes(children, maxTiles: 400);
 
         Assert.Empty(visible);
         Assert.Equal(0, hiddenCount);
@@ -53,7 +53,7 @@ public sealed class TreemapControlTests
             .Select(i => new DiskUsageNode { Name = $"f{i}", SizeBytes = i })
             .ToList();
 
-        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+        var (visible, hiddenCount, hiddenBytes) = HierarchyListControl.CapNodes(children, maxTiles: 400);
 
         Assert.Equal(400, visible.Count);
         Assert.Equal(0, hiddenCount);
@@ -67,7 +67,7 @@ public sealed class TreemapControlTests
             .Select(i => new DiskUsageNode { Name = $"f{i}", SizeBytes = i })
             .ToList();
 
-        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(children, maxTiles: 400);
+        var (visible, hiddenCount, hiddenBytes) = HierarchyListControl.CapNodes(children, maxTiles: 400);
 
         Assert.Equal(400, visible.Count);
         Assert.Equal(1, hiddenCount);
