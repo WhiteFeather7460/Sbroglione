@@ -21,7 +21,7 @@ public sealed class FileManagerLauncherTests
         ProcessStartInfo psi = FileManagerLauncher.BuildOpenFolderStartInfo("/Users/foo/bar", FileManagerLauncher.Platform.MacOs);
 
         Assert.Equal("open", psi.FileName);
-        Assert.Equal("\"/Users/foo/bar\"", psi.Arguments);
+        Assert.Equal(new[] { "/Users/foo/bar" }, psi.ArgumentList);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class FileManagerLauncherTests
         ProcessStartInfo psi = FileManagerLauncher.BuildOpenFolderStartInfo("/home/foo/bar", FileManagerLauncher.Platform.Linux);
 
         Assert.Equal("xdg-open", psi.FileName);
-        Assert.Equal("\"/home/foo/bar\"", psi.Arguments);
+        Assert.Equal(new[] { "/home/foo/bar" }, psi.ArgumentList);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class FileManagerLauncherTests
         ProcessStartInfo psi = FileManagerLauncher.BuildRevealStartInfo("/Users/foo/bar/file.txt", FileManagerLauncher.Platform.MacOs);
 
         Assert.Equal("open", psi.FileName);
-        Assert.Equal("-R \"/Users/foo/bar/file.txt\"", psi.Arguments);
+        Assert.Equal(new[] { "-R", "/Users/foo/bar/file.txt" }, psi.ArgumentList);
     }
 
     [Fact]
@@ -57,6 +57,6 @@ public sealed class FileManagerLauncherTests
         ProcessStartInfo psi = FileManagerLauncher.BuildRevealStartInfo("/home/foo/bar/file.txt", FileManagerLauncher.Platform.Linux);
 
         Assert.Equal("xdg-open", psi.FileName);
-        Assert.Equal("\"/home/foo/bar\"", psi.Arguments);
+        Assert.Equal(new[] { "/home/foo/bar" }, psi.ArgumentList);
     }
 }

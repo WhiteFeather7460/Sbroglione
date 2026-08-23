@@ -5,6 +5,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Sbroglione.Models;
@@ -191,8 +192,10 @@ public class HierarchyListControl : Decorator
 
             if (expandable)
             {
-                grid.PointerPressed += (_, _) =>
+                grid.PointerPressed += (_, e) =>
                 {
+                    if (!e.GetCurrentPoint(grid).Properties.IsLeftButtonPressed)
+                        return;
                     if (!_expanded.Remove(node))
                         _expanded.Add(node);
                     Rebuild();
@@ -200,7 +203,12 @@ public class HierarchyListControl : Decorator
             }
             else if (!node.IsDirectory)
             {
-                grid.PointerPressed += (_, _) => NodeActivated?.Invoke(node);
+                grid.PointerPressed += (_, e) =>
+                {
+                    if (!e.GetCurrentPoint(grid).Properties.IsLeftButtonPressed)
+                        return;
+                    NodeActivated?.Invoke(node);
+                };
             }
         }
         else

@@ -31,18 +31,32 @@ public static class FileManagerLauncher
         RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? Platform.MacOs :
         Platform.Linux;
 
-    internal static ProcessStartInfo BuildOpenFolderStartInfo(string folderPath, Platform platform) => platform switch
+    internal static ProcessStartInfo BuildOpenFolderStartInfo(string folderPath, Platform platform)
     {
-        Platform.Windows => new ProcessStartInfo("explorer.exe", $"\"{folderPath}\"") { UseShellExecute = false },
-        Platform.MacOs => new ProcessStartInfo("open", $"\"{folderPath}\"") { UseShellExecute = false },
-        _ => new ProcessStartInfo("xdg-open", $"\"{folderPath}\"") { UseShellExecute = false }
-    };
+        if (platform == Platform.Windows)
+            return new ProcessStartInfo("explorer.exe", $"\"{folderPath}\"") { UseShellExecute = false };
 
-    internal static ProcessStartInfo BuildRevealStartInfo(string filePath, Platform platform) => platform switch
+        var psi = new ProcessStartInfo(platform == Platform.MacOs ? "open" : "xdg-open") { UseShellExecute = false };
+        psi.ArgumentList.Add(folderPath);
+        return psi;
+    }
+
+    internal static ProcessStartInfo BuildRevealStartInfo(string filePath, Platform platform)
     {
-        Platform.Windows => new ProcessStartInfo("explorer.exe", $"/select,\"{filePath}\"") { UseShellExecute = false },
-        Platform.MacOs => new ProcessStartInfo("open", $"-R \"{filePath}\"") { UseShellExecute = false },
+        if (platform == Platform.Windows)
+            return new ProcessStartInfo("explorer.exe", $"/select,\"{filePath}\"") { UseShellExecute = false };
+
+        if (platform == Platform.MacOs)
+        {
+            var psi = new ProcessStartInfo("open") { UseShellExecute = false };
+            psi.ArgumentList.Add("-R");
+            psi.ArgumentList.Add(filePath);
+            return psi;
+        }
+
         // Nessun file manager Linux ha un flag "seleziona" universale: apre la cartella padre.
-        _ => new ProcessStartInfo("xdg-open", $"\"{Path.GetDirectoryName(filePath)}\"") { UseShellExecute = false }
-    };
+        var xdg = new ProcessStartInfo("xdg-open") { UseShellExecute = false };
+        xdg.ArgumentList.Add(Path.GetDirectoryName(filePath) ?? filePath);
+        return xdg;
+    }
 }
