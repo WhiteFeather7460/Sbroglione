@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -186,6 +187,7 @@ public class HierarchyListControl : Decorator
         if (!isAggregate)
         {
             ToolTip.SetTip(grid, string.Format(LocalizationService.Tr("Str.DiskUsage.NodeTooltipFormat"), node!.Name, SizeFormatter.Format(node.SizeBytes)));
+            grid.ContextMenu = BuildContextMenu(node);
 
             if (expandable)
             {
@@ -207,6 +209,29 @@ public class HierarchyListControl : Decorator
         }
 
         _rows.Children.Add(grid);
+    }
+
+    private ContextMenu BuildContextMenu(DiskUsageNode node)
+    {
+        var openFolder = new MenuItem { Header = LocalizationService.Tr("Str.DiskUsage.OpenFolder") };
+        openFolder.Click += (_, _) =>
+            FileManagerLauncher.OpenFolder(node.IsDirectory ? node.FullPath : Path.GetDirectoryName(node.FullPath) ?? node.FullPath);
+
+        var copyPath = new MenuItem { Header = LocalizationService.Tr("Str.DiskUsage.CopyPath") };
+        copyPath.Click += async (_, _) =>
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is not null)
+                await clipboard.SetTextAsync(node.FullPath);
+        };
+
+        var reveal = new MenuItem { Header = LocalizationService.Tr("Str.DiskUsage.RevealInFileManager") };
+        reveal.Click += (_, _) => FileManagerLauncher.RevealInFileManager(node.FullPath);
+
+        return new ContextMenu
+        {
+            ItemsSource = new[] { openFolder, copyPath, reveal }
+        };
     }
 
     /// <summary>
