@@ -70,6 +70,8 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 27. `[x]` **Sistemare logica di attivazione dei pulsanti nella vista FTP** — I pulsanti "Download Cartella" e "Upload Cartella" devono partire disabilitati. Inoltre la selezione deve essere per riga e non come adesso che puoi selezionare anche la cella (anche se poi viene comunque selezionata la riga di conseguenza). Aggiungere la possibilità di cliccare nuovamente sull'elemento selezionato per deselezionarlo; quindi distinguere la logica "doppio click" da quella "singolo click".
 
+28. `[ ]` **Auto-updater** — Quando viene rilasciata una nuova versione su git deve fare notifica all'avvio. Aggiungere inoltre un pulsante nelle opzioni per fare l'update manuale.
+
 ---
 
 ## Note di priorità
