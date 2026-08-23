@@ -24,10 +24,19 @@ public partial class RemotePanelContent : UserControl
     /// doppio click su un file remoto di scaricarlo nella cartella locale corrente.</summary>
     public Func<string>? GetLocalCurrentPath { get; set; }
 
+    /// <summary>Selezione della griglia prima della pressione corrente, catturata in fase di tunnel
+    /// (prima che il DataGrid applichi internamente la nuova selezione): usata per riconoscere un
+    /// singolo click di ri-selezione sulla riga già selezionata e trattarlo come deselezione.</summary>
+    private RemoteEntryViewModel? _preClickSelection;
+
     public RemotePanelContent()
     {
         InitializeComponent();
+        RemoteGrid.AddHandler(InputElement.PointerPressedEvent, OnGridPointerPressedPreview, RoutingStrategies.Tunnel);
     }
+
+    private void OnGridPointerPressedPreview(object? sender, PointerPressedEventArgs e)
+        => _preClickSelection = RemoteGrid.SelectedItem as RemoteEntryViewModel;
 
     private async void OnNavigateUpClick(object? sender, RoutedEventArgs e)
     {
@@ -67,6 +76,14 @@ public partial class RemotePanelContent : UserControl
     {
         if (!e.GetCurrentPoint(RemoteGrid).Properties.IsLeftButtonPressed)
             return;
+
+        if (e.ClickCount == 1 && RemoteGrid.SelectedItem is RemoteEntryViewModel clicked
+            && ReferenceEquals(clicked, _preClickSelection))
+        {
+            RemoteGrid.SelectedItem = null;
+            return;
+        }
+
         if (RemoteGrid.SelectedItem is not RemoteEntryViewModel { IsDirectory: false } entry)
             return;
 

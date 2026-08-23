@@ -321,17 +321,17 @@ public class RemoteBrowserViewModel : ViewModelBase
         _savePassword = credentialStore.IsAvailable;
 
         _isDownloadFolderEnabled = this.WhenAnyValue(
-                x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
+                x => x.IsConnected, x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
                 x => x.SelectedItem, x => x.LocalSelectionIsDirectory,
-                (busy, downloading, uploading, selected, localDir) =>
-                    !busy && !downloading && !uploading && !(localDir && !(selected?.IsDirectory ?? false)))
+                (connected, busy, downloading, uploading, selected, localDir) =>
+                    connected && !busy && !downloading && !uploading && !(localDir && !(selected?.IsDirectory ?? false)))
             .ToProperty(this, x => x.IsDownloadFolderEnabled);
 
         _isUploadFolderEnabled = this.WhenAnyValue(
-                x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
+                x => x.IsConnected, x => x.IsBusy, x => x.IsDownloading, x => x.IsUploading,
                 x => x.SelectedItem, x => x.LocalSelectionIsDirectory,
-                (busy, downloading, uploading, selected, localDir) =>
-                    !busy && !downloading && !uploading && !((selected?.IsDirectory ?? false) && !localDir))
+                (connected, busy, downloading, uploading, selected, localDir) =>
+                    connected && !busy && !downloading && !uploading && !((selected?.IsDirectory ?? false) && !localDir))
             .ToProperty(this, x => x.IsUploadFolderEnabled);
     }
 

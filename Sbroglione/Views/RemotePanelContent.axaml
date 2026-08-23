@@ -107,6 +107,12 @@
               DragDrop.DragOver="OnGridDragEnter"
               DragDrop.Drop="OnGridDrop"
               Margin="20,4">
+      <DataGrid.Styles>
+        <!-- Selezione solo per riga: niente rettangolo di focus sulla singola cella. -->
+        <Style Selector="DataGridCell">
+          <Setter Property="Focusable" Value="False" />
+        </Style>
+      </DataGrid.Styles>
       <DataGrid.ContextMenu>
         <ContextMenu>
           <MenuItem Header="{DynamicResource Str.RemoteBrowser.NewFolder}" Click="OnRemoteNewFolderClick" />
