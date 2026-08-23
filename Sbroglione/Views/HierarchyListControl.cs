@@ -76,7 +76,7 @@ public class HierarchyListControl : Decorator
         if (ordered.Count == 0)
             return;
 
-        var (visible, hiddenCount, hiddenBytes) = TreemapControl.CapNodes(ordered, MaxChildrenPerLevel);
+        var (visible, hiddenCount, hiddenBytes) = CapNodes(ordered, MaxChildrenPerLevel);
 
         foreach (var child in visible)
         {
@@ -207,5 +207,21 @@ public class HierarchyListControl : Decorator
         }
 
         _rows.Children.Add(grid);
+    }
+
+    /// <summary>
+    /// Limita le righe renderizzate a <paramref name="maxTiles"/>, tenendo le più grandi
+    /// (ordinati per <see cref="DiskUsageNode.SizeBytes"/> decrescente) e aggregando il resto.
+    /// </summary>
+    internal static (List<DiskUsageNode> Visible, int HiddenCount, long HiddenBytes) CapNodes(
+        IReadOnlyList<DiskUsageNode> children, int maxTiles)
+    {
+        var ordered = children.OrderByDescending(child => child.SizeBytes).ToList();
+        if (ordered.Count <= maxTiles)
+            return (ordered, 0, 0L);
+
+        var visible = ordered.Take(maxTiles).ToList();
+        var hidden = ordered.Skip(maxTiles).ToList();
+        return (visible, hidden.Count, hidden.Sum(child => child.SizeBytes));
     }
 }
