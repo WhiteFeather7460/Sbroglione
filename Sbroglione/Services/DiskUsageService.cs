@@ -85,8 +85,11 @@ public static class DiskUsageService
     /// <see cref="Environment.ProcessorCount"/>) prima di passare al livello successivo, così la
     /// struttura è visibile dopo il primo strato invece di attendere la scansione completa.
     /// <paramref name="onLayerComplete"/> viene atteso prima di proseguire al livello successivo:
-    /// questo impedisce che lo strato N+1 modifichi le liste <see cref="DiskUsageNode.Children"/>
-    /// mentre la UI sta ancora leggendo lo stato dello strato N.
+    /// un consumer che legge l'albero (es. <c>Children</c>, <c>IsPending</c>) DEVE farlo
+    /// sincronamente dentro il callback, prima che il <c>Task</c> restituito da
+    /// <paramref name="onLayerComplete"/> si completi — letture fatte dopo che il callback è
+    /// tornato possono correre con le scritture dello strato successivo (es.
+    /// <c>InvalidOperationException: Collection was modified</c> su <c>Children</c>).
     /// </summary>
     public static async Task<DiskUsageNode> BuildTreeLayeredAsync(
         string rootPath,
@@ -102,13 +105,18 @@ public static class DiskUsageService
         };
 
         var frontier = new List<DiskUsageNode> { root };
-        using var gate = new SemaphoreSlim(Math.Max(1, Environment.ProcessorCount));
+        var parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount),
+            CancellationToken = ct
+        };
 
         while (frontier.Count > 0)
         {
             ct.ThrowIfCancellationRequested();
 
-            await Task.WhenAll(frontier.Select(dir => ScanOwnChildrenBoundedAsync(dir, gate, ct)));
+            await Parallel.ForEachAsync(frontier, parallelOptions,
+                (dir, token) => { ScanOwnChildren(dir, token); return ValueTask.CompletedTask; });
 
             if (onLayerComplete is not null)
                 await onLayerComplete(root);
@@ -120,19 +128,6 @@ public static class DiskUsageService
         }
 
         return root;
-    }
-
-    private static async Task ScanOwnChildrenBoundedAsync(DiskUsageNode dir, SemaphoreSlim gate, CancellationToken ct)
-    {
-        await gate.WaitAsync(ct);
-        try
-        {
-            await Task.Run(() => ScanOwnChildren(dir, ct), ct);
-        }
-        finally
-        {
-            gate.Release();
-        }
     }
 
     /// <summary>Enumera solo i figli diretti di <paramref name="dir"/> (un solo livello, non ricorsivo).</summary>
