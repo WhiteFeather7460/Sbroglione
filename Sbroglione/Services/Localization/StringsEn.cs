@@ -289,7 +289,7 @@ public static class StringsEn
         ["Str.WatchFolders.Status.WatcherErrorFormat"] = "Watcher error: {0}",
         ["Str.WatchFolders.Status.WatcherNotRestoredFormat"] = "Watcher not restored: {0}",
         ["Str.DiskUsage.PathSizeFormat"] = "{0} — {1}",
-        ["Str.DiskUsage.AnalyzingProgressFormat"] = "Analyzing… {0} files",
+        ["Str.DiskUsage.ScanningInBackground"] = "Structure shown, still calculating sizes…",
         ["Str.DiskUsage.TotalFormat"] = "Total: {0}",
         ["Str.DiskUsage.MoreItemsTooltipFormat"] = "{0} more items — {1}",
         ["Str.DiskUsage.NodeTooltipFormat"] = "{0} — {1}",

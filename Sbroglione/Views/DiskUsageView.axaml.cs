@@ -13,5 +13,6 @@ public partial class DiskUsageView : UserControl
 
         var hierarchyList = this.FindControl<HierarchyListControl>("HierarchyList")!;
         hierarchyList.NodeActivated += viewModel.DrillDown;
+        viewModel.StructureUpdated += () => hierarchyList.Refresh();
     }
 }

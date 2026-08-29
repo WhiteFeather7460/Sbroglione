@@ -68,4 +68,33 @@ public sealed class DiskUsageViewModelTests : IDisposable
 
         Assert.Equal(_root, vm.CurrentNode!.FullPath);
     }
+
+    [Fact]
+    public async Task ScanAsync_ShowsStructureBeforeFullScanCompletes()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, "sub"));
+        await File.WriteAllBytesAsync(Path.Combine(_root, "top.bin"), new byte[100]);
+        await File.WriteAllBytesAsync(Path.Combine(_root, "sub", "inner.bin"), new byte[50]);
+
+        var vm = new DiskUsageViewModel { RootPath = _root };
+        var updateCount = 0;
+        var sawPendingChildOnFirstUpdate = false;
+
+        vm.StructureUpdated += () =>
+        {
+            updateCount++;
+            if (updateCount == 1)
+            {
+                var sub = vm.CurrentNode!.Children.Single(c => c.IsDirectory);
+                sawPendingChildOnFirstUpdate = sub.IsPending;
+            }
+        };
+
+        await vm.ScanAsync();
+
+        Assert.True(updateCount >= 2);
+        Assert.True(sawPendingChildOnFirstUpdate);
+        Assert.Equal(150, vm.CurrentNode!.SizeBytes);
+        Assert.False(vm.CurrentNode!.Children.Single(c => c.IsDirectory).IsPending);
+    }
 }
