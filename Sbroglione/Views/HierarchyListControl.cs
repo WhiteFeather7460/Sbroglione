@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Sbroglione.Models;
 using Sbroglione.Services;
 
@@ -60,6 +63,11 @@ public class HierarchyListControl : Decorator
         }
     }
 
+    /// <summary>Rilegge <see cref="Node"/> e ridisegna le righe: usato dopo un aggiornamento a
+    /// strati in cui l'oggetto <see cref="Node"/> non è cambiato (quindi <c>OnPropertyChanged</c>
+    /// non scatterebbe da solo).</summary>
+    public void Refresh() => Rebuild();
+
     private void Rebuild()
     {
         _rows.Children.Clear();
@@ -72,7 +80,7 @@ public class HierarchyListControl : Decorator
     private void BuildRows(DiskUsageNode parent, int depth, long parentSizeBytes)
     {
         var ordered = parent.Children
-            .Where(child => child.SizeBytes > 0)
+            .Where(child => child.SizeBytes > 0 || (child.IsDirectory && child.IsPending))
             .OrderByDescending(child => child.SizeBytes)
             .ToList();
         if (ordered.Count == 0)
@@ -105,15 +113,26 @@ public class HierarchyListControl : Decorator
             Margin = new Thickness(depth * IndentPerLevel, 2, 4, 2)
         };
 
+        bool isPendingFolder = !isAggregate && node!.IsDirectory && node.IsPending;
+
         var arrow = new TextBlock
         {
-            Text = expandable ? (isExpanded ? "▾" : "▸") : "",
+            Text = isPendingFolder ? "◐" : (expandable ? (isExpanded ? "▾" : "▸") : ""),
             Width = 18,
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = this.FindResource(ActualThemeVariant, "Brush.TextMuted") as IBrush,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            RenderTransformOrigin = RelativePoint.Center
         };
         Grid.SetColumn(arrow, 0);
         grid.Children.Add(arrow);
+
+        if (isPendingFolder)
+        {
+            arrow.RenderTransform = new RotateTransform(0);
+            RunSpinnerAnimation(arrow);
+        }
 
         string label = isAggregate
             ? string.Format(LocalizationService.Tr("Str.DiskUsage.MoreItemsTooltipFormat"), hiddenCount, SizeFormatter.Format(hiddenBytes))
@@ -240,6 +259,23 @@ public class HierarchyListControl : Decorator
         {
             ItemsSource = new[] { openFolder, copyPath, reveal }
         };
+    }
+
+    /// <summary>Rotazione continua a 1 giro/secondo per la riga di una cartella non ancora scansionata.</summary>
+    private static void RunSpinnerAnimation(TextBlock spinner)
+    {
+        var animation = new Animation
+        {
+            Duration = TimeSpan.FromSeconds(1),
+            IterationCount = IterationCount.Infinite,
+            Easing = new LinearEasing(),
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(RotateTransform.AngleProperty, 0.0) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(RotateTransform.AngleProperty, 360.0) } }
+            }
+        };
+        _ = animation.RunAsync(spinner);
     }
 
     /// <summary>
