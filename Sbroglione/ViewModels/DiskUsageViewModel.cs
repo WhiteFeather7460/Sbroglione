@@ -63,6 +63,13 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
     public ReactiveCommand<Unit, Unit> CancelScanCommand { get; }
     public ReactiveCommand<Unit, Unit> NavigateUpCommand { get; }
 
+    /// <summary>
+    /// Scatta dopo ogni strato scansionato (incluso il primo), a struttura già visibile: la
+    /// vista lo usa per ridisegnare <c>HierarchyListControl</c> senza cambiare il riferimento
+    /// di <see cref="CurrentNode"/> (che resta lo stesso albero, via via più completo).
+    /// </summary>
+    public event Action? StructureUpdated;
+
     public DiskUsageViewModel()
     {
         BrowseRootCommand = ReactiveCommand.CreateFromTask(BrowseRootAsync);
@@ -92,18 +99,29 @@ public class DiskUsageViewModel : ViewModelBase, IDisposable
         _breadcrumb.Clear();
         CurrentNode = null;
 
+        var structureShown = false;
+
         try
         {
-            // Il callback arriva dal thread di scansione (Task.Run): il set di StatusText
-            // va marshalato sul thread UI. Frequenza già bassa (1 ogni 256 file) e
-            // contatore monotono per costruzione: nessun throttle né clamp necessari.
-            var root = await DiskUsageService.BuildTreeAsync(
+            var root = await DiskUsageService.BuildTreeLayeredAsync(
                 RootPath,
-                scanned => UiDispatch.Post(() => StatusText = string.Format(LocalizationService.Tr("Str.DiskUsage.AnalyzingProgressFormat"), scanned)),
+                node => UiDispatch.InvokeAsync(() =>
+                {
+                    if (!structureShown)
+                    {
+                        structureShown = true;
+                        CurrentNode = node;
+                        StatusText = LocalizationService.Tr("Str.DiskUsage.ScanningInBackground");
+                    }
+
+                    this.RaisePropertyChanged(nameof(CurrentPathText));
+                    StructureUpdated?.Invoke();
+                }),
                 _scanCts.Token);
 
-            CurrentNode = root;
             StatusText = string.Format(LocalizationService.Tr("Str.DiskUsage.TotalFormat"), SizeFormatter.Format(root.SizeBytes));
+            this.RaisePropertyChanged(nameof(CurrentPathText));
+            StructureUpdated?.Invoke();
         }
         catch (OperationCanceledException)
         {

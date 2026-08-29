@@ -293,7 +293,7 @@ public static class StringsIt
         ["Str.WatchFolders.Status.WatcherErrorFormat"] = "Errore watcher: {0}",
         ["Str.WatchFolders.Status.WatcherNotRestoredFormat"] = "Watcher non ripristinato: {0}",
         ["Str.DiskUsage.PathSizeFormat"] = "{0} — {1}",
-        ["Str.DiskUsage.AnalyzingProgressFormat"] = "Analisi… {0} file",
+        ["Str.DiskUsage.ScanningInBackground"] = "Struttura visibile, dimensioni ancora in calcolo…",
         ["Str.DiskUsage.TotalFormat"] = "Totale: {0}",
         ["Str.DiskUsage.MoreItemsTooltipFormat"] = "altri {0} elementi — {1}",
         ["Str.DiskUsage.NodeTooltipFormat"] = "{0} — {1}",

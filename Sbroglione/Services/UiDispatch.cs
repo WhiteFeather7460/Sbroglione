@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 
 namespace Sbroglione.Services;
@@ -29,5 +30,23 @@ public static class UiDispatch
         }
         else
             Dispatcher.UIThread.Post(action);
+    }
+
+    /// <summary>
+    /// Come <see cref="Post"/>, ma awaitable: usato dalla scansione a strati per attendere che
+    /// la UI abbia finito di leggere lo stato di uno strato prima di iniziare a scrivere quello
+    /// successivo (altrimenti il thread UI potrebbe enumerare una <c>Children</c> list mentre il
+    /// thread di scansione la sta ancora popolando).
+    /// </summary>
+    public static Task InvokeAsync(Action action)
+    {
+        if (Override is not null)
+        {
+            lock (TestOverrideLock)
+                Override(action);
+            return Task.CompletedTask;
+        }
+
+        return Dispatcher.UIThread.InvokeAsync(action).GetTask();
     }
 }
