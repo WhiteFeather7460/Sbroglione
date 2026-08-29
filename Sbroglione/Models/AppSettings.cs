@@ -27,4 +27,7 @@ public class AppSettings
 
     /// <summary>Pannello di navigazione laterale espanso (icone + etichette) o collassato (solo icone).</summary>
     public bool NavExpanded { get; set; } = true;
+
+    /// <summary>Versione (es. "1.4.0") che l'utente ha scelto di ignorare nel banner di aggiornamento; null = nessuna.</summary>
+    public string? IgnoredUpdateVersion { get; set; }
 }
