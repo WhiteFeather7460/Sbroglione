@@ -147,4 +147,30 @@ public sealed class SelfUpdateServiceTests : IDisposable
 
         SelfUpdateService.CleanupOrphanBackup();
     }
+
+    [Fact]
+    public async Task ApplyUpdateAsync_NonHttpsReleaseUrl_ThrowsAndDoesNotOpenUrl()
+    {
+        bool opened = false;
+        SelfUpdateService.OpenUrl = _ => opened = true;
+
+        var info = new UpdateInfo(new Version(2, 0, 0), "http://example.test/releases/tag/v2.0.0", null, null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => SelfUpdateService.ApplyUpdateAsync(info, progress: null));
+        Assert.False(opened);
+    }
+
+    [Fact]
+    public async Task ApplyUpdateAsync_NonHttpsAssetUrl_ThrowsAndDoesNotDownload()
+    {
+        string exePath = Path.Combine(_root, "Sbroglione.Desktop.exe");
+        File.WriteAllText(exePath, "OLD");
+        SelfUpdateService.CurrentExecutablePathOverride = exePath;
+        SelfUpdateService.Client = new HttpClient(new FakeDownloadHandler("NEW"));
+
+        var info = new UpdateInfo(new Version(2, 0, 0), "https://example.test/releases/tag/v2.0.0", "http://example.test/app.exe", "Sbroglione.Desktop.exe");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => SelfUpdateService.ApplyUpdateAsync(info, progress: null));
+        Assert.Equal("OLD", File.ReadAllText(exePath));
+    }
 }

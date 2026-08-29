@@ -51,11 +51,15 @@ public static class SelfUpdateService
     /// </summary>
     public static async Task<bool> ApplyUpdateAsync(UpdateInfo info, IProgress<double>? progress, CancellationToken ct = default)
     {
+        RequireHttps(info.ReleaseUrl);
+
         if (info.AssetDownloadUrl is null)
         {
             OpenUrl(info.ReleaseUrl);
             return false;
         }
+
+        RequireHttps(info.AssetDownloadUrl);
 
         string currentExePath = CurrentExecutablePath;
         string downloadedPath = currentExePath + ".download";
@@ -117,6 +121,13 @@ public static class SelfUpdateService
 
         if (totalBytes is null or 0)
             progress?.Report(1.0);
+    }
+
+    /// <summary>Rifiuta URL non-HTTPS: nessun contenuto scaricato o aperto via shell da uno schema diverso (es. javascript:/file:).</summary>
+    private static void RequireHttps(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? parsed) || parsed.Scheme != Uri.UriSchemeHttps)
+            throw new InvalidOperationException($"URL non sicuro rifiutato (richiesto HTTPS): {url}");
     }
 
     private static void MakeExecutableIfLinux(string path)
