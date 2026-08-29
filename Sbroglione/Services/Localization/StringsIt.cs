@@ -352,5 +352,14 @@ public static class StringsIt
         ["Str.Comparison.FilesDifferentFormat"] = "File diversi ({0} intervalli)",
         ["Str.Comparison.ExportedFormat"] = "Report esportato: {0}",
         ["Str.Comparison.ExportErrorFormat"] = "Errore esportazione: {0}",
+        ["Str.Update.BannerTextFormat"] = "Nuova versione {0} disponibile",
+        ["Str.Update.Button"] = "Aggiorna",
+        ["Str.Update.Dismiss"] = "Ignora",
+        ["Str.Update.Retry"] = "Riprova",
+        ["Str.Settings.UpdatesSection"] = "Aggiornamenti",
+        ["Str.Settings.CheckForUpdates"] = "Controlla aggiornamenti",
+        ["Str.Settings.UpToDateFormat"] = "Sei già aggiornato alla versione {0}",
+        ["Str.Settings.UpdateAvailableFormat"] = "Nuova versione {0} disponibile",
+        ["Str.Settings.CheckError"] = "Impossibile controllare gli aggiornamenti",
     };
 }
