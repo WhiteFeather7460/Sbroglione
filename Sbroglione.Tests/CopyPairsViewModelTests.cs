@@ -1201,42 +1201,5 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.NotEqual(LocalizationService.Tr("Str.CopyPairs.InvalidPaths"), pair.Status);
     }
 
-    /// <summary>
-    /// Task 5: dopo una connessione riuscita, RetrySourceStateRefreshAsync rilancia il
-    /// controllo di esistenza sulla sorgente. In questo ambiente di test non esiste un vero
-    /// server UNC, quindi non si può provare che SourceExists diventi true: si verifica solo
-    /// che il metodo esista, sia awaitable e non lanci (stesso limite già presente nei test
-    /// del Task 4, che non toccano I/O di rete reale).
-    /// </summary>
-    [Fact]
-    public async Task EnsureUncAccess_ConnectSucceeds_RefreshesSourceExists_ThenCanStartProceeds()
-    {
-        string sourceFile = Path.Combine(_root, "unc-source-standin.txt");
-        await File.WriteAllTextAsync(sourceFile, "contenuto");
-        string destinationFile = Path.Combine(_root, "unc-dest.txt");
-
-        // Il probe UNC vede sempre AccessDenied la prima volta, poi Ok dopo il "Connect": simula
-        // una sorgente UNC che diventa raggiungibile solo dopo la connessione.
-        var checkResults = new Queue<UncAccessResult>(new[] { UncAccessResult.AccessDenied, UncAccessResult.Ok });
-        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(checkResults.Dequeue());
-        NetworkCredentialConnectorFactory.OverrideFactory = () => new FakeConnector();
-        NetworkCredentialDialogHelper.Override = _ =>
-            Task.FromResult<NetworkCredentialResult?>(new NetworkCredentialResult("user", "pass", false));
-
-        var pair = new FolderFilePairViewModel
-        {
-            SourcePath = @"\\server\share\source.txt", // path UNC "finto": il vero I/O userà sourceFile via override, ma
-            DestinationPath = destinationFile
-        };
-        await pair.SourceStateRefresh; // SourceExists = false (il path UNC finto non esiste davvero su questo host)
-
-        Assert.False(pair.CanStart); // prima della retry, CanStart è ancora false
-
-        await pair.RetrySourceStateRefreshAsync();
-        // Il path resta comunque non esistente su questo host di test (non c'è un vero server UNC):
-        // qui verifichiamo solo che il metodo esista, sia awaitable, e non lanci.
-        Assert.True(pair.SourceStateRefresh.IsCompleted);
-    }
-
     #endregion
 }

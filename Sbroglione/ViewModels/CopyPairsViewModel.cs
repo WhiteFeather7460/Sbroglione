@@ -387,7 +387,10 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             return false;
         }
 
-        int connectResult = _networkConnector.Connect(root, credentials.Username, credentials.Password, credentials.Remember);
+        // WNetAddConnection2 fa I/O di rete reale (negoziazione SMB, DNS) e può bloccare per
+        // secondi: fuori dal thread UI, come ogni altra chiamata di rete in FileSystemService.
+        int connectResult = await Task.Run(() =>
+            _networkConnector.Connect(root, credentials.Username, credentials.Password, credentials.Remember));
         if (connectResult != 0)
         {
             pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsFailedFormat"), connectResult);

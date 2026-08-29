@@ -390,4 +390,98 @@ public sealed class FolderFilePairViewModelTests : IDisposable
         Assert.True(filter!.Matches(@"C:\a.jpg"));
         Assert.False(filter.Matches(@"C:\a.txt"));
     }
+
+    #region UNC — CanAttempt / retry del refresh sorgente
+
+    [Fact]
+    public async Task CanAttempt_UncSourceNotVerified_IsTrueEvenIfSourceDoesNotExist()
+    {
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = @"\\server\share\file.txt",
+            DestinationPath = Path.Combine(_root, "dest")
+        };
+        await pair.SourceStateRefresh;
+
+        Assert.False(pair.SourceExists);
+        Assert.False(pair.CanStart);
+        Assert.True(pair.CanAttempt); // il probe UNC in CopyPairsViewModel deciderà la sorte reale
+    }
+
+    [Fact]
+    public async Task CanAttempt_UncSourceWithoutDestination_IsFalse()
+    {
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = @"\\server\share\file.txt",
+            DestinationPath = string.Empty
+        };
+        await pair.SourceStateRefresh;
+
+        Assert.False(pair.CanAttempt);
+    }
+
+    [Fact]
+    public async Task CanAttempt_UncSourceWhileCopying_IsFalse()
+    {
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = @"\\server\share\file.txt",
+            DestinationPath = Path.Combine(_root, "dest")
+        };
+        await pair.SourceStateRefresh;
+        pair.IsCopying = true;
+
+        Assert.False(pair.CanAttempt);
+    }
+
+    [Fact]
+    public async Task CanAttempt_LocalPair_MatchesCanStart()
+    {
+        string existing = Path.Combine(_root, "local.txt");
+        File.WriteAllText(existing, "hello");
+
+        var ok = new FolderFilePairViewModel
+        {
+            SourcePath = existing,
+            DestinationPath = Path.Combine(_root, "dest")
+        };
+        await ok.SourceStateRefresh;
+
+        var missing = new FolderFilePairViewModel
+        {
+            SourcePath = Path.Combine(_root, "nope.txt"),
+            DestinationPath = Path.Combine(_root, "dest")
+        };
+        await missing.SourceStateRefresh;
+
+        // Regressione: per i percorsi locali CanAttempt non deve mai divergere da CanStart.
+        Assert.Equal(ok.CanStart, ok.CanAttempt);
+        Assert.True(ok.CanAttempt);
+        Assert.Equal(missing.CanStart, missing.CanAttempt);
+        Assert.False(missing.CanAttempt);
+    }
+
+    /// <summary>
+    /// Task 5: dopo una connessione riuscita, RetrySourceStateRefreshAsync rilancia il controllo
+    /// di esistenza sulla sorgente. In questo ambiente di test non esiste un vero server UNC,
+    /// quindi non si può provare che SourceExists diventi true: si verifica solo che il metodo
+    /// esista, sia awaitable e non lanci.
+    /// </summary>
+    [Fact]
+    public async Task RetrySourceStateRefresh_CompletesWithoutThrowing()
+    {
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = @"\\server\share\source.txt",
+            DestinationPath = Path.Combine(_root, "unc-dest.txt")
+        };
+        await pair.SourceStateRefresh;
+
+        await pair.RetrySourceStateRefreshAsync();
+
+        Assert.False(pair.SourceExists);
+    }
+
+    #endregion
 }

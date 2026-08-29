@@ -186,12 +186,12 @@
                               i:Attached.Icon="fa-solid fa-flask"
                               Command="{Binding DataContext.SimulateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}"
-                              IsEnabled="{Binding CanStart}"
+                              IsEnabled="{Binding CanAttempt}"
                               ToolTip.Tip="{DynamicResource Str.CopyPairs.SimulateTooltip}" />
                       <Button Classes="primary" Content="{DynamicResource Str.CopyPairs.Start}"
                               Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}"
-                              IsEnabled="{Binding CanStart}" />
+                              IsEnabled="{Binding CanAttempt}" />
                       <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}"
                               Command="{Binding DataContext.CancelCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               CommandParameter="{Binding}"

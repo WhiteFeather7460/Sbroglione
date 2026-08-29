@@ -10,6 +10,11 @@ public sealed class WindowsNetworkCredentialConnector : INetworkCredentialConnec
     private const int ResourceTypeDisk = 1;
     private const int ConnectUpdateProfile = 0x00000001;
 
+    // CONNECT_UPDATE_PROFILE da solo non persiste una connessione "deviceless" (senza lettera
+    // di unità) oltre il logon: CONNECT_CMD_SAVECRED salva la credenziale nel credential
+    // manager dell'utente, che è ciò che rende il "ricorda" davvero persistente.
+    private const int ConnectCmdSaveCred = 0x00001000;
+
     public bool IsSupported => true;
 
     public int Connect(string uncRoot, string username, string password, bool persist)
@@ -19,7 +24,7 @@ public sealed class WindowsNetworkCredentialConnector : INetworkCredentialConnec
             dwType = ResourceTypeDisk,
             lpRemoteName = uncRoot
         };
-        int flags = persist ? ConnectUpdateProfile : 0;
+        int flags = persist ? (ConnectUpdateProfile | ConnectCmdSaveCred) : 0;
         return WNetAddConnection2W(ref resource, password, username, flags);
     }
 
