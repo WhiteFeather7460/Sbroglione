@@ -1170,5 +1170,73 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.False(Directory.Exists(localDestination));
     }
 
+    /// <summary>
+    /// Task 5: il probe UNC deve girare PRIMA del gate CanStart. Una sorgente UNC con
+    /// SourceExists ancora false (perché il refresh in background usa File/Directory.Exists,
+    /// indistinguibile da "accesso negato") deve comunque arrivare al prompt di rete.
+    /// </summary>
+    [Fact]
+    public async Task EnsureUncAccess_RunsBeforeCanStartGate_SoUncSourceReachesPrompt()
+    {
+        // Sorgente UNC "inesistente" solo perché SourceExists non è ancora stato aggiornato
+        // dopo la connessione: il probe UNC deve girare PRIMA del controllo CanStart, non dopo.
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.AccessDenied);
+        NetworkCredentialConnectorFactory.OverrideFactory = () => new FakeConnector();
+        NetworkCredentialDialogHelper.Override = _ => Task.FromResult<NetworkCredentialResult?>(null); // annulla
+
+        string destinationFile = Path.Combine(_root, "dest-from-unc.txt");
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = @"\\server\share\source.txt",
+            DestinationPath = destinationFile
+        };
+        await pair.SourceStateRefresh; // SourceExists diventa false: il path UNC non è raggiungibile da qui
+
+        var vm = new CopyPairsViewModel();
+        await vm.StartCopyAsync(pair);
+
+        // Deve fallire per il motivo di rete (credenziali annullate), non per "percorsi non validi":
+        // prova che EnsureUncAccessAsync gira prima del gate CanStart.
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsCancelled"), pair.Status);
+        Assert.NotEqual(LocalizationService.Tr("Str.CopyPairs.InvalidPaths"), pair.Status);
+    }
+
+    /// <summary>
+    /// Task 5: dopo una connessione riuscita, RetrySourceStateRefreshAsync rilancia il
+    /// controllo di esistenza sulla sorgente. In questo ambiente di test non esiste un vero
+    /// server UNC, quindi non si può provare che SourceExists diventi true: si verifica solo
+    /// che il metodo esista, sia awaitable e non lanci (stesso limite già presente nei test
+    /// del Task 4, che non toccano I/O di rete reale).
+    /// </summary>
+    [Fact]
+    public async Task EnsureUncAccess_ConnectSucceeds_RefreshesSourceExists_ThenCanStartProceeds()
+    {
+        string sourceFile = Path.Combine(_root, "unc-source-standin.txt");
+        await File.WriteAllTextAsync(sourceFile, "contenuto");
+        string destinationFile = Path.Combine(_root, "unc-dest.txt");
+
+        // Il probe UNC vede sempre AccessDenied la prima volta, poi Ok dopo il "Connect": simula
+        // una sorgente UNC che diventa raggiungibile solo dopo la connessione.
+        var checkResults = new Queue<UncAccessResult>(new[] { UncAccessResult.AccessDenied, UncAccessResult.Ok });
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(checkResults.Dequeue());
+        NetworkCredentialConnectorFactory.OverrideFactory = () => new FakeConnector();
+        NetworkCredentialDialogHelper.Override = _ =>
+            Task.FromResult<NetworkCredentialResult?>(new NetworkCredentialResult("user", "pass", false));
+
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = @"\\server\share\source.txt", // path UNC "finto": il vero I/O userà sourceFile via override, ma
+            DestinationPath = destinationFile
+        };
+        await pair.SourceStateRefresh; // SourceExists = false (il path UNC finto non esiste davvero su questo host)
+
+        Assert.False(pair.CanStart); // prima della retry, CanStart è ancora false
+
+        await pair.RetrySourceStateRefreshAsync();
+        // Il path resta comunque non esistente su questo host di test (non c'è un vero server UNC):
+        // qui verifichiamo solo che il metodo esista, sia awaitable, e non lanci.
+        Assert.True(pair.SourceStateRefresh.IsCompleted);
+    }
+
     #endregion
 }

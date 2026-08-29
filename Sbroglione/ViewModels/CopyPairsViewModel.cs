@@ -408,8 +408,31 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Percorsi grezzi del pair (sorgente, destinazione, destinazioni extra), senza le
+    /// garanzie di <see cref="FolderFilePairViewModel.CanStart"/>: usati per il probe UNC,
+    /// che deve girare PRIMA del gate CanStart (altrimenti una sorgente UNC con accesso
+    /// negato non lo passerebbe mai, perché CanStart richiede SourceExists).
+    /// </summary>
+    private static IEnumerable<string> AllRawPaths(FolderFilePairViewModel pair)
+    {
+        if (!string.IsNullOrWhiteSpace(pair.SourcePath))
+            yield return pair.SourcePath!;
+        if (!string.IsNullOrWhiteSpace(pair.DestinationPath))
+            yield return pair.DestinationPath!;
+        foreach (var extra in pair.ExtraDestinations)
+            if (!string.IsNullOrWhiteSpace(extra.Path))
+                yield return extra.Path;
+    }
+
     public async Task StartCopyAsync(FolderFilePairViewModel pair)
     {
+        if (!await EnsureUncAccessAsync(pair, AllRawPaths(pair)))
+            return;
+
+        if (FileSystemService.GetUncRoot(pair.SourcePath) is not null)
+            await pair.RetrySourceStateRefreshAsync();
+
         if (!pair.CanStart)
         {
             pair.Status = LocalizationService.Tr("Str.CopyPairs.InvalidPaths");
@@ -418,9 +441,6 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         }
 
         IReadOnlyList<string> destinations = pair.AllDestinations;
-
-        if (!await EnsureUncAccessAsync(pair, new[] { pair.SourcePath! }.Concat(destinations)))
-            return;
 
         if (pair.ClearDestinationBeforeCopy)
         {
@@ -526,6 +546,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                         "nome di tipo invece che sull'istanza del viewmodel, rompendo il pattern condiviso.")]
     public async Task SimulatePairAsync(FolderFilePairViewModel pair)
     {
+        if (!await EnsureUncAccessAsync(pair, AllRawPaths(pair)))
+            return;
+
+        if (FileSystemService.GetUncRoot(pair.SourcePath) is not null)
+            await pair.RetrySourceStateRefreshAsync();
+
         if (!pair.CanStart)
         {
             pair.Status = LocalizationService.Tr("Str.CopyPairs.InvalidPaths");
@@ -534,9 +560,6 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         }
 
         IReadOnlyList<string> destinations = pair.AllDestinations;
-
-        if (!await EnsureUncAccessAsync(pair, new[] { pair.SourcePath! }.Concat(destinations)))
-            return;
 
         pair.Status = LocalizationService.Tr("Str.CopyPairs.Simulating");
 

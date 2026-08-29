@@ -252,6 +252,18 @@ public class FolderFilePairViewModel : ReactiveObject
     }
 
     /// <summary>
+    /// Rilancia il controllo di esistenza della sorgente senza toccare <see cref="SourcePath"/>
+    /// (es. dopo una connessione di rete riuscita a una condivisione UNC prima non raggiungibile).
+    /// Stesso guard di generazione di <see cref="RefreshSourceStateAsync"/>: se nel frattempo
+    /// SourcePath cambia, l'esito di questa chiamata viene scartato.
+    /// </summary>
+    public Task RetrySourceStateRefreshAsync()
+    {
+        SourceStateRefresh = RefreshSourceStateAsync();
+        return SourceStateRefresh;
+    }
+
+    /// <summary>
     /// Avvia <see cref="LoadFilesToProcessAsync"/> per la generazione corrente di
     /// <see cref="SourcePath"/>, a meno che non sia già stato avviato un load per la stessa
     /// generazione: evita il doppio listing quando <see cref="IsFilesExpanded"/> e
