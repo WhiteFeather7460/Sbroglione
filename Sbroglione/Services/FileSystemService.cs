@@ -188,6 +188,53 @@ public static class FileSystemService
         path is not null && path.StartsWith(@"\\", StringComparison.Ordinal);
 
     /// <summary>
+    /// Estrae la radice UNC (<c>\\server\condivisione</c>, senza sottocartelle) da un
+    /// percorso UNC. Null se <paramref name="path"/> non è UNC o non ha almeno server+condivisione
+    /// (es. <c>\\server</c> da solo).
+    /// </summary>
+    public static string? GetUncRoot(string? path)
+    {
+        if (!IsUncPath(path))
+            return null;
+
+        string[] segments = path!.Substring(2).Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        return segments.Length < 2 ? null : $@"\\{segments[0]}\{segments[1]}";
+    }
+
+    /// <summary>Solo per i test: sostituisce <see cref="CheckUncRootAccessAsync"/>. Ripristinare a null in Dispose.</summary>
+    internal static Func<string, Task<UncAccessResult>>? CheckUncRootAccessOverride { get; set; }
+
+    /// <summary>
+    /// Prova ad accedere alla radice UNC (che esiste sempre come cartella, a differenza di un
+    /// eventuale sottopercorso di destinazione non ancora creato): distingue un accesso negato
+    /// (credenziali mancanti/scadute) da qualunque altro problema, cosa che <c>Directory.Exists</c>
+    /// non permette (ritorna false in entrambi i casi).
+    /// </summary>
+    public static Task<UncAccessResult> CheckUncRootAccessAsync(string uncRoot)
+    {
+        if (CheckUncRootAccessOverride is { } fake)
+            return fake(uncRoot);
+
+        return Task.Run(() =>
+        {
+            try
+            {
+                using var entries = Directory.EnumerateFileSystemEntries(uncRoot).GetEnumerator();
+                entries.MoveNext();
+                return UncAccessResult.Ok;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return UncAccessResult.AccessDenied;
+            }
+            catch (Exception)
+            {
+                return UncAccessResult.Unavailable;
+            }
+        });
+    }
+
+    /// <summary>
     /// Traduce un'eccezione di I/O in un <see cref="ListingError"/> presentabile.
     /// </summary>
     public static ListingError CreateListingError(Exception exception) => exception switch

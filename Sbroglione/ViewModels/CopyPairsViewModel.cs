@@ -29,6 +29,8 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
 
     private readonly Dictionary<FolderFilePairViewModel, CancellationTokenSource> _ctsByPair = new();
 
+    private readonly INetworkCredentialConnector _networkConnector = NetworkCredentialConnectorFactory.Create();
+
     public ReactiveCommand<Unit, Unit> AddPairCommand { get; }
     public ReactiveCommand<FolderFilePairViewModel, Unit> BrowseSourceCommand { get; }
     public ReactiveCommand<FolderFilePairViewModel, Unit> BrowseDestinationCommand { get; }
@@ -342,8 +344,98 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, selected));
     }
 
+    /// <summary>
+    /// Verifica l'accesso a ogni radice UNC distinta tra i percorsi passati (sorgente e
+    /// destinazioni) e, se negato, chiede le credenziali e tenta una connessione. Chiamata
+    /// prima di ogni operazione che tocca il file system (copia, simulazione): niente cache
+    /// "già connesso in questa sessione", così credenziali scadute o cambiate rifanno scattare
+    /// il prompt a ogni tentativo.
+    /// </summary>
+    /// <returns>False se l'operazione chiamante deve fermarsi (accesso non risolto).</returns>
+    internal async Task<bool> EnsureUncAccessAsync(FolderFilePairViewModel pair, IEnumerable<string> paths)
+    {
+        var roots = paths
+            .Select(FileSystemService.GetUncRoot)
+            .Where(root => root is not null)
+            .Select(root => root!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var root in roots)
+        {
+            if (!await TryEnsureRootAccessAsync(pair, root))
+                return false;
+        }
+
+        return true;
+    }
+
+    private async Task<bool> TryEnsureRootAccessAsync(FolderFilePairViewModel pair, string root)
+    {
+        var access = await FileSystemService.CheckUncRootAccessAsync(root);
+        if (access != UncAccessResult.AccessDenied)
+            return true; // Ok, o Unavailable (non è un problema di credenziali: il fallimento reale emergerà più avanti).
+
+        if (!_networkConnector.IsSupported)
+            return true; // Fuori da Windows: nessun prompt, comportamento invariato.
+
+        var credentials = await NetworkCredentialDialogHelper.ShowAsync(root);
+        if (credentials is null)
+        {
+            pair.Status = LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsCancelled");
+            pair.StateKind = CopyStateKind.Error;
+            return false;
+        }
+
+        // WNetAddConnection2 fa I/O di rete reale (negoziazione SMB, DNS) e può bloccare per
+        // secondi: fuori dal thread UI, come ogni altra chiamata di rete in FileSystemService.
+        int connectResult = await Task.Run(() =>
+            _networkConnector.Connect(root, credentials.Username, credentials.Password, credentials.Remember));
+        if (connectResult != 0)
+        {
+            pair.Status = string.Format(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsFailedFormat"), connectResult);
+            pair.StateKind = CopyStateKind.Error;
+            return false;
+        }
+
+        // Un solo retry: se ancora negato (es. password sbagliata ma WNetAddConnection2 non l'ha
+        // segnalato, o permessi insufficienti sulla condivisione), niente ulteriore prompt.
+        var retry = await FileSystemService.CheckUncRootAccessAsync(root);
+        if (retry == UncAccessResult.AccessDenied)
+        {
+            pair.Status = LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsFailed");
+            pair.StateKind = CopyStateKind.Error;
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Percorsi grezzi del pair (sorgente, destinazione, destinazioni extra), senza le
+    /// garanzie di <see cref="FolderFilePairViewModel.CanStart"/>: usati per il probe UNC,
+    /// che deve girare PRIMA del gate CanStart (altrimenti una sorgente UNC con accesso
+    /// negato non lo passerebbe mai, perché CanStart richiede SourceExists).
+    /// </summary>
+    private static IEnumerable<string> AllRawPaths(FolderFilePairViewModel pair)
+    {
+        if (!string.IsNullOrWhiteSpace(pair.SourcePath))
+            yield return pair.SourcePath!;
+        if (!string.IsNullOrWhiteSpace(pair.DestinationPath))
+            yield return pair.DestinationPath!;
+        foreach (var extra in pair.ExtraDestinations)
+            if (!string.IsNullOrWhiteSpace(extra.Path))
+                yield return extra.Path;
+    }
+
     public async Task StartCopyAsync(FolderFilePairViewModel pair)
     {
+        if (!await EnsureUncAccessAsync(pair, AllRawPaths(pair)))
+            return;
+
+        if (FileSystemService.GetUncRoot(pair.SourcePath) is not null)
+            await pair.RetrySourceStateRefreshAsync();
+
         if (!pair.CanStart)
         {
             pair.Status = LocalizationService.Tr("Str.CopyPairs.InvalidPaths");
@@ -457,6 +549,12 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                         "nome di tipo invece che sull'istanza del viewmodel, rompendo il pattern condiviso.")]
     public async Task SimulatePairAsync(FolderFilePairViewModel pair)
     {
+        if (!await EnsureUncAccessAsync(pair, AllRawPaths(pair)))
+            return;
+
+        if (FileSystemService.GetUncRoot(pair.SourcePath) is not null)
+            await pair.RetrySourceStateRefreshAsync();
+
         if (!pair.CanStart)
         {
             pair.Status = LocalizationService.Tr("Str.CopyPairs.InvalidPaths");
@@ -465,6 +563,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
         }
 
         IReadOnlyList<string> destinations = pair.AllDestinations;
+
         pair.Status = LocalizationService.Tr("Str.CopyPairs.Simulating");
 
         try

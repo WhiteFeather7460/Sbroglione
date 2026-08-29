@@ -227,4 +227,41 @@ public sealed class FileSystemServiceTests : IDisposable
         Assert.NotNull(error);
         Assert.Equal(ListingErrorKind.NotFound, error!.Kind);
     }
+
+    [Theory]
+    [InlineData(@"\\server\share", @"\\server\share")]
+    [InlineData(@"\\server\share\", @"\\server\share")]
+    [InlineData(@"\\server\share\sub\folder", @"\\server\share")]
+    [InlineData(@"\\server", null)]
+    [InlineData(@"\\server\", null)]
+    [InlineData(@"C:\local\path", null)]
+    [InlineData(null, null)]
+    public void GetUncRoot_ExtractsServerAndShareOrNull(string? path, string? expected)
+    {
+        Assert.Equal(expected, FileSystemService.GetUncRoot(path));
+    }
+
+    [Fact]
+    public async Task CheckUncRootAccessAsync_UsesOverride_WhenSet()
+    {
+        FileSystemService.CheckUncRootAccessOverride = root =>
+            Task.FromResult(root == @"\\server\share" ? UncAccessResult.AccessDenied : UncAccessResult.Ok);
+        try
+        {
+            Assert.Equal(UncAccessResult.AccessDenied, await FileSystemService.CheckUncRootAccessAsync(@"\\server\share"));
+            Assert.Equal(UncAccessResult.Ok, await FileSystemService.CheckUncRootAccessAsync(@"\\other\share"));
+        }
+        finally
+        {
+            FileSystemService.CheckUncRootAccessOverride = null;
+        }
+    }
+
+    [Fact]
+    public async Task CheckUncRootAccessAsync_NonexistentRoot_ReturnsUnavailable_NotAccessDenied()
+    {
+        // Nessun override: percorso locale inesistente, così il test gira su qualunque OS.
+        var result = await FileSystemService.CheckUncRootAccessAsync(Path.Combine(_root, "does-not-exist"));
+        Assert.Equal(UncAccessResult.Unavailable, result);
+    }
 }

@@ -199,6 +199,7 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _sourceExists, value);
             this.RaisePropertyChanged(nameof(CanStart));
+            this.RaisePropertyChanged(nameof(CanAttempt));
         }
     }
 
@@ -216,6 +217,7 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _sourcePath, value);
             this.RaisePropertyChanged(nameof(CanStart));
+            this.RaisePropertyChanged(nameof(CanAttempt));
             _sourceGeneration++;
 
             // Azzeramento qui, in modo sincrono con il bump della generazione: la lista
@@ -249,6 +251,23 @@ public class FolderFilePairViewModel : ReactiveObject
 
         if (IsFilesExpanded)
             FilesLoad = TriggerFilesLoad();
+    }
+
+    /// <summary>
+    /// Rilancia il controllo di esistenza della sorgente senza toccare <see cref="SourcePath"/>
+    /// (es. dopo una connessione di rete riuscita a una condivisione UNC prima non raggiungibile).
+    /// Stesso guard di <see cref="RefreshSourceStateAsync"/>, che confronta il valore del path
+    /// catturato all'inizio con <see cref="SourcePath"/> corrente: se nel frattempo SourcePath
+    /// cambia, l'esito di questa chiamata viene scartato.
+    /// </summary>
+    public Task RetrySourceStateRefreshAsync()
+    {
+        // La lista file corrente è stata prodotta (o lasciata vuota) quando la sorgente non era
+        // accessibile: invalida la generazione così che TriggerFilesLoad rifaccia davvero il
+        // listing invece di corto-circuitare trovando la generazione già marcata.
+        _filesLoadGeneration = -1;
+        SourceStateRefresh = RefreshSourceStateAsync();
+        return SourceStateRefresh;
     }
 
     /// <summary>
@@ -297,6 +316,7 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _destinationPath, value);
             this.RaisePropertyChanged(nameof(CanStart));
+            this.RaisePropertyChanged(nameof(CanAttempt));
         }
     }
 
@@ -355,6 +375,7 @@ public class FolderFilePairViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _isCopying, value);
             this.RaisePropertyChanged(nameof(CanStart));
+            this.RaisePropertyChanged(nameof(CanAttempt));
             UpdateShowCopyingWidget();
         }
     }
@@ -396,6 +417,19 @@ public class FolderFilePairViewModel : ReactiveObject
         && SourceExists
         && SourcePath != DestinationPath
         && !string.IsNullOrWhiteSpace(DestinationPath);
+
+    /// <summary>
+    /// True se l'operazione può essere tentata: come <see cref="CanStart"/>, ma permissivo
+    /// anche quando la sorgente è un percorso UNC non ancora verificato (SourceExists è false
+    /// solo perché l'accesso è negato, non perché il percorso non esiste davvero — il probe
+    /// UNC in CopyPairsViewModel decide la sorte reale prima di procedere).
+    /// </summary>
+    public bool CanAttempt =>
+        CanStart
+        || (!IsCopying
+            && FileSystemService.GetUncRoot(SourcePath) is not null
+            && !string.IsNullOrWhiteSpace(DestinationPath)
+            && SourcePath != DestinationPath);
 
     private string? _sourceChecksum;
     public string? SourceChecksum
