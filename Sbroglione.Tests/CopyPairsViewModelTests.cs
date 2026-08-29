@@ -37,6 +37,9 @@ public sealed class CopyPairsViewModelTests : IDisposable
         CopyProfileStore.CurrentPath = _originalProfilesPath;
         InputDialogHelper.Override = null;
         ConfirmDialogHelper.Override = null;
+        NetworkCredentialDialogHelper.Override = null;
+        NetworkCredentialConnectorFactory.OverrideFactory = null;
+        FileSystemService.CheckUncRootAccessOverride = null;
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
@@ -873,4 +876,299 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.Single(vm.Profiles);
         Assert.NotNull(vm.SelectedProfile);
     }
+
+    #region Accesso UNC / credenziali di rete
+
+    private sealed class FakeConnector : INetworkCredentialConnector
+    {
+        public bool IsSupported { get; init; } = true;
+        public Func<string, string, string, bool, int> ConnectFunc { get; init; } = (_, _, _, _) => 0;
+        public int ConnectCallCount { get; private set; }
+        public List<(string Root, string Username, string Password, bool Persist)> Calls { get; } = new();
+
+        public int Connect(string uncRoot, string username, string password, bool persist)
+        {
+            ConnectCallCount++;
+            Calls.Add((uncRoot, username, password, persist));
+            return ConnectFunc(uncRoot, username, password, persist);
+        }
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_NonUncPaths_SkipsCheckEntirely()
+    {
+        FileSystemService.CheckUncRootAccessOverride = _ => throw new InvalidOperationException(
+            "non deve essere chiamato per percorsi non UNC");
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"C:\local\source", @"D:\local\dest" });
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_AccessOk_ReturnsTrue_NoPrompt()
+    {
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.Ok);
+        NetworkCredentialDialogHelper.Override = _ => throw new InvalidOperationException(
+            "non deve chiedere credenziali se l'accesso è già ok");
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" });
+
+        Assert.True(result);
+    }
+
+    /// <summary>
+    /// Unavailable non è un problema di credenziali (server spento, nome errato): nessun
+    /// prompt, il fallimento reale emerge poi dall'operazione vera.
+    /// </summary>
+    [Fact]
+    public async Task EnsureUncAccess_Unavailable_ReturnsTrue_NoPrompt()
+    {
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.Unavailable);
+        NetworkCredentialDialogHelper.Override = _ => throw new InvalidOperationException(
+            "non deve chiedere credenziali se la radice è irraggiungibile");
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" });
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_ConnectorNotSupported_SkipsPromptAndReturnsTrue()
+    {
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.AccessDenied);
+        NetworkCredentialConnectorFactory.OverrideFactory = () => new FakeConnector { IsSupported = false };
+        NetworkCredentialDialogHelper.Override = _ => throw new InvalidOperationException(
+            "non deve chiedere credenziali se il connector non è supportato (non-Windows)");
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" });
+
+        Assert.True(result); // comportamento invariato fuori da Windows.
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_AccessDenied_UserCancels_ReturnsFalseWithErrorStatus()
+    {
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.AccessDenied);
+        NetworkCredentialConnectorFactory.OverrideFactory = () => new FakeConnector();
+        NetworkCredentialDialogHelper.Override = _ => Task.FromResult<NetworkCredentialResult?>(null);
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" });
+
+        Assert.False(result);
+        Assert.Equal(CopyStateKind.Error, pair.StateKind);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsCancelled"), pair.Status);
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_AccessDenied_ConnectFails_ReturnsFalseWithErrorStatus()
+    {
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.AccessDenied);
+        var connector = new FakeConnector { ConnectFunc = (_, _, _, _) => 1326 }; // ERROR_LOGON_FAILURE
+        NetworkCredentialConnectorFactory.OverrideFactory = () => connector;
+        NetworkCredentialDialogHelper.Override = _ =>
+            Task.FromResult<NetworkCredentialResult?>(new NetworkCredentialResult("user", "wrong", false));
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" });
+
+        Assert.False(result);
+        Assert.Equal(1, connector.ConnectCallCount);
+        Assert.Equal(CopyStateKind.Error, pair.StateKind);
+        Assert.Equal(
+            string.Format(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsFailedFormat"), 1326),
+            pair.Status);
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_AccessDenied_ConnectSucceedsButRetryStillDenied_ReturnsFalse_NoSecondPrompt()
+    {
+        int checkCallCount = 0;
+        FileSystemService.CheckUncRootAccessOverride = _ =>
+        {
+            checkCallCount++;
+            return Task.FromResult(UncAccessResult.AccessDenied); // negato anche dopo la connessione
+        };
+        var connector = new FakeConnector();
+        NetworkCredentialConnectorFactory.OverrideFactory = () => connector;
+        int promptCallCount = 0;
+        NetworkCredentialDialogHelper.Override = _ =>
+        {
+            promptCallCount++;
+            return Task.FromResult<NetworkCredentialResult?>(new NetworkCredentialResult("user", "pass", false));
+        };
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" });
+
+        Assert.False(result);
+        Assert.Equal(1, connector.ConnectCallCount);
+        Assert.Equal(1, promptCallCount); // un solo tentativo: niente loop di prompt.
+        Assert.Equal(2, checkCallCount); // probe iniziale + un retry dopo la connessione.
+        Assert.Equal(CopyStateKind.Error, pair.StateKind);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsFailed"), pair.Status);
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_AccessDenied_ConnectSucceedsAndRetryOk_ReturnsTrue()
+    {
+        var checkResults = new Queue<UncAccessResult>(new[] { UncAccessResult.AccessDenied, UncAccessResult.Ok });
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(checkResults.Dequeue());
+        var connector = new FakeConnector();
+        NetworkCredentialConnectorFactory.OverrideFactory = () => connector;
+        NetworkCredentialDialogHelper.Override = _ =>
+            Task.FromResult<NetworkCredentialResult?>(new NetworkCredentialResult("user", "pass", true));
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" });
+
+        Assert.True(result);
+        Assert.Equal(1, connector.ConnectCallCount);
+        Assert.Equal((@"\\server\share", "user", "pass", true), Assert.Single(connector.Calls));
+        Assert.Empty(checkResults); // entrambi i probe consumati.
+    }
+
+    /// <summary>
+    /// Nessuna cache "già connesso in questa sessione": ogni chiamata rifà il probe, così
+    /// credenziali scadute o cambiate lato server rifanno scattare il prompt subito dopo.
+    /// </summary>
+    [Fact]
+    public async Task EnsureUncAccess_CalledTwice_RechecksEveryTime_NoSessionCache()
+    {
+        int checkCallCount = 0;
+        FileSystemService.CheckUncRootAccessOverride = _ =>
+        {
+            checkCallCount++;
+            return Task.FromResult(UncAccessResult.Ok);
+        };
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        Assert.True(await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" }));
+        Assert.True(await vm.EnsureUncAccessAsync(pair, new[] { @"\\server\share\file.txt" }));
+
+        Assert.Equal(2, checkCallCount);
+    }
+
+    [Fact]
+    public async Task EnsureUncAccess_MultipleUncRootsAmongPaths_ChecksEachDistinctRootOnce()
+    {
+        var checkedRoots = new List<string>();
+        FileSystemService.CheckUncRootAccessOverride = root =>
+        {
+            checkedRoots.Add(root);
+            return Task.FromResult(UncAccessResult.Ok);
+        };
+
+        var vm = new CopyPairsViewModel();
+        var pair = new FolderFilePairViewModel();
+
+        bool result = await vm.EnsureUncAccessAsync(pair, new[]
+        {
+            @"\\server\share\a.txt",
+            @"\\server\share\sub\b.txt", // stessa radice di sopra: non ricontrollata due volte.
+            @"\\other\share2\c.txt",
+            @"C:\local\d.txt" // non UNC: ignorato.
+        });
+
+        Assert.True(result);
+        Assert.Equal(new[] { @"\\server\share", @"\\other\share2" }, checkedRoots);
+    }
+
+    /// <summary>
+    /// End-to-end: con una destinazione UNC negata e il prompt annullato, StartCopyAsync
+    /// esce prima di qualsiasi I/O. La sorgente è locale ed esistente (altrimenti CanStart
+    /// sarebbe false e ci si fermerebbe prima, su un ramo diverso da quello sotto test).
+    /// </summary>
+    [Fact]
+    public async Task EnsureUncAccess_ReturnsFalse_AbortsStartCopyBeforeTouchingFileSystem()
+    {
+        string sourceDir = Path.Combine(_root, "unc-abort-src");
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.txt"), "aaa");
+        string localDestination = Path.Combine(_root, "unc-abort-dest"); // volutamente inesistente
+
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.AccessDenied);
+        NetworkCredentialConnectorFactory.OverrideFactory = () => new FakeConnector();
+        NetworkCredentialDialogHelper.Override = _ => Task.FromResult<NetworkCredentialResult?>(null);
+
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = sourceDir,
+            DestinationPath = localDestination
+        };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, @"\\server\share\dest"));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+
+        await vm.StartCopyAsync(pair);
+
+        Assert.Equal(CopyStateKind.Error, pair.StateKind);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsCancelled"), pair.Status);
+        Assert.False(pair.IsCopying);
+        // Prove che nessuna operazione reale è partita: niente cartella destinazione creata,
+        // niente voce di journal scritta, nessun avanzamento per destinazione.
+        Assert.False(Directory.Exists(localDestination));
+        Assert.Empty(await CopyJournalStore.LoadAsync());
+        Assert.Empty(pair.DestinationsProgress);
+    }
+
+    /// <summary>
+    /// Stesso end-to-end su SimulatePairAsync: si esce prima ancora di impostare lo stato
+    /// "Simulazione in corso" e senza produrre alcun riepilogo.
+    /// </summary>
+    [Fact]
+    public async Task EnsureUncAccess_ReturnsFalse_AbortsSimulateBeforeTouchingFileSystem()
+    {
+        string sourceDir = Path.Combine(_root, "unc-abort-sim-src");
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "a.txt"), "aaa");
+        string localDestination = Path.Combine(_root, "unc-abort-sim-dest");
+
+        FileSystemService.CheckUncRootAccessOverride = _ => Task.FromResult(UncAccessResult.AccessDenied);
+        NetworkCredentialConnectorFactory.OverrideFactory = () => new FakeConnector();
+        NetworkCredentialDialogHelper.Override = _ => Task.FromResult<NetworkCredentialResult?>(null);
+
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = sourceDir,
+            DestinationPath = localDestination
+        };
+        pair.ExtraDestinations.Add(new ExtraDestinationViewModel(pair, @"\\server\share\dest"));
+        await pair.SourceStateRefresh;
+
+        var vm = new CopyPairsViewModel();
+
+        await vm.SimulatePairAsync(pair);
+
+        Assert.Equal(CopyStateKind.Error, pair.StateKind);
+        Assert.Equal(LocalizationService.Tr("Str.CopyPairs.NetworkCredentialsCancelled"), pair.Status);
+        Assert.Null(pair.SimulationSummary);
+        Assert.False(Directory.Exists(localDestination));
+    }
+
+    #endregion
 }
