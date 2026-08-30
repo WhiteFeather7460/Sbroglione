@@ -77,11 +77,12 @@ public partial class App : Application
             AppSettingsStore.LoadCurrent();
             LocalizationService.Apply(AppSettingsStore.Current.Language);
 
-            singleView.MainView = new TextBlock
+            SelfUpdateService.CleanupOrphanBackup();
+
+            var mainViewModel = new MainWindowViewModel();
+            singleView.MainView = new MainView
             {
-                Text = "Sbroglione — Android smoke test",
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                DataContext = mainViewModel
             };
         }
 

@@ -3,8 +3,10 @@ using System.Reflection;
 
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Headless.XUnit;
 
 using Sbroglione;
+using Sbroglione.Views;
 
 using Xunit;
 
@@ -47,8 +49,8 @@ file class FakeSingleViewLifetime : DispatchProxy
 
 public class AppLifetimeBranchTests
 {
-    [Fact]
-    public void OnFrameworkInitializationCompleted_WithSingleViewLifetime_SetsMainView()
+    [AvaloniaFact]
+    public void OnFrameworkInitializationCompleted_WithSingleViewLifetime_SetsMainViewToMainView()
     {
         var app = new App();
         var (lifetime, fake) = FakeSingleViewLifetime.Create();
@@ -56,6 +58,6 @@ public class AppLifetimeBranchTests
 
         app.OnFrameworkInitializationCompleted();
 
-        Assert.NotNull(fake.MainView);
+        Assert.IsType<MainView>(fake.MainView);
     }
 }
