@@ -19,7 +19,7 @@ public sealed class WidthToTabStripPlacementConverter : IValueConverter
     {
         double width = value switch
         {
-            double d => d,
+            double d and > 0.0 => d,
             _ => double.PositiveInfinity
         };
 
