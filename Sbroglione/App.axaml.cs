@@ -28,13 +28,7 @@ public partial class App : Application
         {
             AppSettingsStore.LoadCurrent();
             LocalizationService.Apply(AppSettingsStore.Current.Language);
-            ColorTheme? customTheme = AppSettingsStore.Current.CustomThemeId is { } themeId
-                ? ThemeStore.Load(themeId)
-                : null;
-            if (customTheme is not null)
-                ThemeService.Apply(customTheme);
-            else
-                RequestedThemeVariant = ParseThemeVariant(AppSettingsStore.Current.ThemeVariant);
+            ApplySavedTheme();
 
             // Avvia i runner watch-folder delle regole attive. Nessun handler di
             // shutdown nell'app: i runner muoiono col processo (limite dichiarato).
@@ -76,6 +70,7 @@ public partial class App : Application
         {
             AppSettingsStore.LoadCurrent();
             LocalizationService.Apply(AppSettingsStore.Current.Language);
+            ApplySavedTheme();
 
             SelfUpdateService.CleanupOrphanBackup();
 
@@ -90,6 +85,23 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// Applica il tema salvato in <see cref="AppSettingsStore.Current"/> (custom o
+    /// Light/Dark/Default): comune ai branch desktop e single-view (Android), entrambi
+    /// avviati da <see cref="OnFrameworkInitializationCompleted"/> dopo aver caricato le
+    /// impostazioni, cosicché la scelta dell'utente persista tra i riavvii su ogni piattaforma.
+    /// </summary>
+    private void ApplySavedTheme()
+    {
+        ColorTheme? customTheme = AppSettingsStore.Current.CustomThemeId is { } themeId
+            ? ThemeStore.Load(themeId)
+            : null;
+        if (customTheme is not null)
+            ThemeService.Apply(customTheme);
+        else
+            RequestedThemeVariant = ParseThemeVariant(AppSettingsStore.Current.ThemeVariant);
     }
 
     private static ThemeVariant ParseThemeVariant(string value) => value switch
