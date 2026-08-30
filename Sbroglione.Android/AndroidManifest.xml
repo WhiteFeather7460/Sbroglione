@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.whitefeather.sbroglione">
   <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
-  <application android:label="Sbroglione" android:allowBackup="true" android:icon="@drawable/icon">
+  <uses-permission android:name="android.permission.INTERNET" />
+  <application android:label="Sbroglione" android:allowBackup="true" android:icon="@drawable/icon"
+               android:usesCleartextTraffic="true">
   </application>
 </manifest>
