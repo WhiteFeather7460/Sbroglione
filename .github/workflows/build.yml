@@ -21,16 +21,27 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_NAME}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "value=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=1.0.0" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish Windows (.exe)
         run: >
           dotnet publish Sbroglione.Desktop -c Release -r win-x64
           --self-contained -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Version=${{ steps.version.outputs.value }}
 
       - name: Publish Linux (self-contained)
         run: >
           dotnet publish Sbroglione.Desktop -c Release -r linux-x64
-          --self-contained
+          --self-contained -p:Version=${{ steps.version.outputs.value }}
 
       - name: Install ImageMagick
         run: sudo apt-get update && sudo apt-get install -y imagemagick
