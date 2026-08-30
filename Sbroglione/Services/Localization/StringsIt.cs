@@ -358,6 +358,7 @@ public static class StringsIt
         ["Str.Update.Retry"] = "Riprova",
         ["Str.Settings.UpdatesSection"] = "Aggiornamenti",
         ["Str.Settings.CheckForUpdates"] = "Controlla aggiornamenti",
+        ["Str.Settings.CurrentVersionFormat"] = "Versione attuale: {0}",
         ["Str.Settings.UpToDateFormat"] = "Sei già aggiornato alla versione {0}",
         ["Str.Settings.UpdateAvailableFormat"] = "Nuova versione {0} disponibile",
         ["Str.Settings.CheckError"] = "Impossibile controllare gli aggiornamenti",

@@ -122,6 +122,9 @@
           <StackPanel Spacing="14">
             <TextBlock Text="{DynamicResource Str.Settings.UpdatesSection}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
 
+            <TextBlock Text="{Binding CurrentVersionText}"
+                       Foreground="{DynamicResource Brush.TextMuted}" />
+
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Grid.Column="0" Text="{Binding UpdateCheckStatusText}"
                          VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
