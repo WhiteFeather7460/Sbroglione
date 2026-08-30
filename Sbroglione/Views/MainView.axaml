@@ -73,7 +73,14 @@
             <TextBlock Text="{DynamicResource Str.Nav.WatchSync}" IsVisible="{Binding IsNavExpanded}" />
           </StackPanel>
         </TabItem.Header>
-        <views:WatchFoldersView />
+        <Grid>
+          <views:WatchFoldersView IsVisible="{Binding IsWatchFolderSupported}" />
+          <Border Classes="card" Margin="16" Padding="16" IsVisible="{Binding !IsWatchFolderSupported}">
+            <TextBlock Text="{DynamicResource Str.WatchSync.UnsupportedOnAndroid}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource Brush.TextSecondary}" />
+          </Border>
+        </Grid>
       </TabItem>
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Duplicates}">
         <TabItem.Header>

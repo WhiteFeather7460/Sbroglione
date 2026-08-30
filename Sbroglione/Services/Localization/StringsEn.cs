@@ -108,6 +108,7 @@ public static class StringsEn
         ["Str.Nav.Remote"] = "Remote server",
         ["Str.Nav.Compare"] = "Compare",
         ["Str.Nav.WatchSync"] = "Auto sync",
+        ["Str.WatchSync.UnsupportedOnAndroid"] = "Watch-folder sync is not available on Android in this version: it requires a background service that keeps running while the app is closed, which is not implemented yet.",
         ["Str.Nav.Duplicates"] = "Duplicates",
         ["Str.Nav.DiskUsage"] = "Disk usage",
         ["Str.Nav.Settings"] = "Settings",

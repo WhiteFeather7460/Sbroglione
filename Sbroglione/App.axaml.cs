@@ -79,7 +79,10 @@ public partial class App : Application
 
             SelfUpdateService.CleanupOrphanBackup();
 
-            var mainViewModel = new MainWindowViewModel();
+            var mainViewModel = new MainWindowViewModel
+            {
+                IsWatchFolderSupported = false
+            };
             singleView.MainView = new MainView
             {
                 DataContext = mainViewModel

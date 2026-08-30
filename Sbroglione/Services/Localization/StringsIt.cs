@@ -112,6 +112,7 @@ public static class StringsIt
         ["Str.Nav.Remote"] = "Server remoto",
         ["Str.Nav.Compare"] = "Confronto",
         ["Str.Nav.WatchSync"] = "Sync auto",
+        ["Str.WatchSync.UnsupportedOnAndroid"] = "La sincronizzazione automatica non è disponibile su Android in questa versione: richiede un servizio in background attivo anche ad app chiusa, non ancora implementato.",
         ["Str.Nav.Duplicates"] = "Duplicati",
         ["Str.Nav.DiskUsage"] = "Spazio disco",
         ["Str.Nav.Settings"] = "Impostazioni",

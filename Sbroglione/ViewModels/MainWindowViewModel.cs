@@ -17,6 +17,7 @@ public class MainWindowViewModel : ViewModelBase
     private double _updateProgress;
     private string? _updateErrorMessage;
     private UpdateInfo? _pendingUpdate;
+    private bool _isWatchFolderSupported = true;
 
     public MainWindowViewModel()
     {
@@ -71,6 +72,18 @@ public class MainWindowViewModel : ViewModelBase
     {
         get => _updateErrorMessage;
         private set => this.RaiseAndSetIfChanged(ref _updateErrorMessage, value);
+    }
+
+    /// <summary>
+    /// False quando l'app gira su <c>ISingleViewApplicationLifetime</c> (Android):
+    /// <see cref="Services.WatchFolderService"/> non viene avviato lì (nessun foreground
+    /// service in questa fase — vedi piano Fase 2C), quindi la tab mostra un banner
+    /// esplicativo invece della UI di gestione regole.
+    /// </summary>
+    public bool IsWatchFolderSupported
+    {
+        get => _isWatchFolderSupported;
+        set => this.RaiseAndSetIfChanged(ref _isWatchFolderSupported, value);
     }
 
     public ReactiveCommand<Unit, Unit> ToggleNavCommand { get; }
