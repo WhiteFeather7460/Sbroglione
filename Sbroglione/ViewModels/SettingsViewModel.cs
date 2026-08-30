@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reactive;
 using System.Threading.Tasks;
 using Sbroglione.Models;
 using Sbroglione.Services;
@@ -306,6 +307,88 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         catch (Exception)
         {
             // best effort: le impostazioni restano valide in memoria anche se il salvataggio su disco fallisce.
+        }
+    }
+
+    private string _updateCheckStatusText = string.Empty;
+    private bool _updateAvailable;
+    private bool _isUpdating;
+    private UpdateInfo? _pendingUpdate;
+
+    public string UpdateCheckStatusText
+    {
+        get => _updateCheckStatusText;
+        private set => this.RaiseAndSetIfChanged(ref _updateCheckStatusText, value);
+    }
+
+    public bool UpdateAvailable
+    {
+        get => _updateAvailable;
+        private set => this.RaiseAndSetIfChanged(ref _updateAvailable, value);
+    }
+
+    public bool IsUpdating
+    {
+        get => _isUpdating;
+        private set => this.RaiseAndSetIfChanged(ref _isUpdating, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> CheckForUpdatesCommand => _checkForUpdatesCommand ??= ReactiveCommand.CreateFromTask(CheckForUpdatesAsync);
+    private ReactiveCommand<Unit, Unit>? _checkForUpdatesCommand;
+
+    public ReactiveCommand<Unit, Unit> UpdateCommand => _updateCommand ??= ReactiveCommand.CreateFromTask(ApplyUpdateAsync);
+    private ReactiveCommand<Unit, Unit>? _updateCommand;
+
+    private async Task CheckForUpdatesAsync()
+    {
+        // ConfigureAwait(true) implicit: keep continuation on UI thread, consistent with other command handlers in this class
+        UpdateCheckResult result = await UpdateCheckService.CheckAsync();
+        switch (result.Status)
+        {
+            case UpdateCheckStatus.UpToDate:
+                _pendingUpdate = null;
+                UpdateAvailable = false;
+                UpdateCheckStatusText = string.Format(
+                    LocalizationService.Tr("Str.Settings.UpToDateFormat"),
+                    (UpdateCheckService.CurrentVersionOverride
+                        ?? System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version
+                        ?? new Version(1, 0, 0, 0)).ToString());
+                break;
+
+            case UpdateCheckStatus.Available:
+                _pendingUpdate = result.Info;
+                UpdateAvailable = true;
+                UpdateCheckStatusText = string.Format(
+                    LocalizationService.Tr("Str.Settings.UpdateAvailableFormat"),
+                    result.Info!.Version);
+                break;
+
+            default:
+                _pendingUpdate = null;
+                UpdateAvailable = false;
+                UpdateCheckStatusText = LocalizationService.Tr("Str.Settings.CheckError");
+                break;
+        }
+    }
+
+    private async Task ApplyUpdateAsync()
+    {
+        if (_pendingUpdate is null)
+            return;
+
+        IsUpdating = true;
+        try
+        {
+            // ConfigureAwait(true) implicit: keep continuation on UI thread, consistent with other command handlers in this class
+            await SelfUpdateService.ApplyUpdateAsync(_pendingUpdate, progress: null);
+        }
+        catch (Exception ex)
+        {
+            UpdateCheckStatusText = string.Format(LocalizationService.Tr("Str.Common.ErrorFormat"), ex.Message);
+        }
+        finally
+        {
+            IsUpdating = false;
         }
     }
 }

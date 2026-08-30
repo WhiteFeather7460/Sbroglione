@@ -235,4 +235,23 @@ public sealed class AppSettingsStoreTests : IDisposable
         var settings = await AppSettingsStore.LoadAsync(StorePath);
         Assert.True(settings.NavExpanded);
     }
+
+    [Fact]
+    public async Task SaveAndLoad_RoundTripsIgnoredUpdateVersion()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "fe-settings-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var settings = new AppSettings { IgnoredUpdateVersion = "1.4.0" };
+
+            await AppSettingsStore.SaveAsync(path, settings);
+            AppSettings reloaded = await AppSettingsStore.LoadAsync(path);
+
+            Assert.Equal("1.4.0", reloaded.IgnoredUpdateVersion);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

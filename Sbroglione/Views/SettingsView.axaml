@@ -118,6 +118,24 @@
           </StackPanel>
         </Border>
 
+        <Border Classes="card">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource Str.Settings.UpdatesSection}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" />
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="{Binding UpdateCheckStatusText}"
+                         VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+              <Button Grid.Column="1" Classes="secondary" Content="{DynamicResource Str.Settings.CheckForUpdates}"
+                      Command="{Binding CheckForUpdatesCommand}" IsVisible="{Binding !IsUpdating}" />
+            </Grid>
+
+            <Button Classes="primary" Content="{DynamicResource Str.Update.Button}"
+                    HorizontalAlignment="Left"
+                    Command="{Binding UpdateCommand}"
+                    IsVisible="{Binding UpdateAvailable}" IsEnabled="{Binding !IsUpdating}" />
+          </StackPanel>
+        </Border>
+
       </StackPanel>
     </ScrollViewer>
 

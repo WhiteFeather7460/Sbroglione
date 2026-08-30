@@ -348,5 +348,14 @@ public static class StringsEn
         ["Str.Comparison.FilesDifferentFormat"] = "Files different ({0} ranges)",
         ["Str.Comparison.ExportedFormat"] = "Report exported: {0}",
         ["Str.Comparison.ExportErrorFormat"] = "Export error: {0}",
+        ["Str.Update.BannerTextFormat"] = "New version {0} available",
+        ["Str.Update.Button"] = "Update",
+        ["Str.Update.Dismiss"] = "Dismiss",
+        ["Str.Update.Retry"] = "Retry",
+        ["Str.Settings.UpdatesSection"] = "Updates",
+        ["Str.Settings.CheckForUpdates"] = "Check for updates",
+        ["Str.Settings.UpToDateFormat"] = "You're up to date on version {0}",
+        ["Str.Settings.UpdateAvailableFormat"] = "New version {0} available",
+        ["Str.Settings.CheckError"] = "Could not check for updates",
     };
 }
