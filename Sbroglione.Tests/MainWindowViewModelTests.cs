@@ -33,6 +33,7 @@ public sealed class MainWindowViewModelTests : IDisposable
         UpdateCheckService.CurrentVersionOverride = null;
         UpdateCheckService.PlatformAssetSuffixOverride = null;
         SelfUpdateService.Client = new HttpClient();
+        SelfUpdateService.OpenUrl = url => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
@@ -135,6 +136,23 @@ public sealed class MainWindowViewModelTests : IDisposable
 
         Assert.False(vm.IsUpdating);
         Assert.NotNull(vm.UpdateErrorMessage);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_NoPlatformAsset_ClearsIsUpdating()
+    {
+        AppSettingsStore.Current = new AppSettings();
+        UpdateCheckService.CurrentVersionOverride = new Version(1, 0, 0);
+        UpdateCheckService.PlatformAssetSuffixOverride = ".exe";
+        UpdateCheckService.Client = new HttpClient(new StubHandler(HttpStatusCode.OK,
+            """{ "tag_name": "v9.0.0", "html_url": "https://example.test/releases/tag/v9.0.0", "assets": [] }"""));
+        SelfUpdateService.OpenUrl = _ => { /* no-op: avoid actually launching a browser in tests */ };
+
+        var vm = new MainWindowViewModel();
+        await vm.StartUpdateCheckAsync();
+        await vm.UpdateCommand.Execute();
+
+        Assert.False(vm.IsUpdating);
     }
 
     private sealed class StubHandler : HttpMessageHandler

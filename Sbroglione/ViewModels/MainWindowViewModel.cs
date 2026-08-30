@@ -126,7 +126,9 @@ public class MainWindowViewModel : ViewModelBase
         try
         {
             var progress = new Progress<double>(value => UiDispatch.Post(() => UpdateProgress = value));
-            await SelfUpdateService.ApplyUpdateAsync(_pendingUpdate, progress).ConfigureAwait(false);
+            bool applied = await SelfUpdateService.ApplyUpdateAsync(_pendingUpdate, progress).ConfigureAwait(false);
+            if (!applied)
+                UiDispatch.Post(() => IsUpdating = false);
         }
         catch (Exception ex)
         {

@@ -341,7 +341,8 @@ public class SettingsViewModel : ViewModelBase, IDisposable
 
     private async Task CheckForUpdatesAsync()
     {
-        UpdateCheckResult result = await UpdateCheckService.CheckAsync().ConfigureAwait(false);
+        // ConfigureAwait(true) implicit: keep continuation on UI thread, consistent with other command handlers in this class
+        UpdateCheckResult result = await UpdateCheckService.CheckAsync();
         switch (result.Status)
         {
             case UpdateCheckStatus.UpToDate:
@@ -378,7 +379,8 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         IsUpdating = true;
         try
         {
-            await SelfUpdateService.ApplyUpdateAsync(_pendingUpdate, progress: null).ConfigureAwait(false);
+            // ConfigureAwait(true) implicit: keep continuation on UI thread, consistent with other command handlers in this class
+            await SelfUpdateService.ApplyUpdateAsync(_pendingUpdate, progress: null);
         }
         catch (Exception ex)
         {
