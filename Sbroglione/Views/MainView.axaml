@@ -3,11 +3,16 @@
              xmlns:i="https://github.com/projektanker/icons.avalonia"
              xmlns:views="clr-namespace:Sbroglione.Views"
              xmlns:vm="clr-namespace:Sbroglione.ViewModels"
+             xmlns:conv="clr-namespace:Sbroglione.Converters"
              x:Class="Sbroglione.Views.MainView"
              x:DataType="vm:MainWindowViewModel"
              Background="{DynamicResource Brush.Surface}">
 
-  <Grid RowDefinitions="Auto,*,Auto">
+  <UserControl.Resources>
+    <conv:WidthToTabStripPlacementConverter x:Key="WidthToTabStripPlacement" />
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,*,Auto" Name="RootGrid">
 
     <Border Grid.Row="0" Classes="card" Margin="8" Padding="12"
             IsVisible="{Binding ShowUpdateBanner}">
@@ -32,7 +37,8 @@
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="1" Classes="nav" Padding="0" TabStripPlacement="Left">
+    <TabControl Grid.Row="1" Classes="nav" Padding="0"
+                TabStripPlacement="{Binding #RootGrid.Bounds.Width, Converter={StaticResource WidthToTabStripPlacement}}">
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Copy}">
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
