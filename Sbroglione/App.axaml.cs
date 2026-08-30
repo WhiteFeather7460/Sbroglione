@@ -57,10 +57,20 @@ public partial class App : Application
                 }
             });
 
+            // Best effort: rimuove un .old lasciato da un update precedente. Prima di creare
+            // la finestra, non blocca comunque lo startup (I/O trascurabile, un file).
+            SelfUpdateService.CleanupOrphanBackup();
+
+            var mainWindowViewModel = new MainWindowViewModel();
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel()
+                DataContext = mainWindowViewModel
             };
+
+            // Fire-and-forget: il check di aggiornamento non deve bloccare l'avvio né la UI;
+            // eventuali errori restano contenuti dentro StartUpdateCheckAsync (nessuna eccezione
+            // propagata al chiamante).
+            _ = mainWindowViewModel.StartUpdateCheckAsync();
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
