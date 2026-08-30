@@ -354,6 +354,7 @@ public static class StringsEn
         ["Str.Update.Retry"] = "Retry",
         ["Str.Settings.UpdatesSection"] = "Updates",
         ["Str.Settings.CheckForUpdates"] = "Check for updates",
+        ["Str.Settings.CurrentVersionFormat"] = "Current version: {0}",
         ["Str.Settings.UpToDateFormat"] = "You're up to date on version {0}",
         ["Str.Settings.UpdateAvailableFormat"] = "New version {0} available",
         ["Str.Settings.CheckError"] = "Could not check for updates",

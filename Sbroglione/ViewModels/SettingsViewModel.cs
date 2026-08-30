@@ -321,6 +321,12 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         private set => this.RaiseAndSetIfChanged(ref _updateCheckStatusText, value);
     }
 
+    public string CurrentVersionText => string.Format(
+        LocalizationService.Tr("Str.Settings.CurrentVersionFormat"),
+        (UpdateCheckService.CurrentVersionOverride
+            ?? System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version
+            ?? new Version(1, 0, 0, 0)).ToString());
+
     public bool UpdateAvailable
     {
         get => _updateAvailable;
