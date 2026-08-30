@@ -264,4 +264,34 @@ public sealed class FileSystemServiceTests : IDisposable
         var result = await FileSystemService.CheckUncRootAccessAsync(Path.Combine(_root, "does-not-exist"));
         Assert.Equal(UncAccessResult.Unavailable, result);
     }
+
+    [Fact]
+    public void GetPathType_UsesConfiguredAccessor()
+    {
+        var fake = new FakeFileSystemAccessor(existingFiles: new[] { "/fake/a.txt" });
+        FileSystemService.Accessor = fake;
+        try
+        {
+            PathType result = FileSystemService.GetPathType("/fake/a.txt");
+
+            Assert.Equal(PathType.File, result);
+        }
+        finally
+        {
+            FileSystemService.Accessor = new DefaultFileSystemAccessor();
+        }
+    }
+}
+
+internal sealed class FakeFileSystemAccessor : IFileSystemAccessor
+{
+    private readonly HashSet<string> _files;
+
+    public FakeFileSystemAccessor(IEnumerable<string> existingFiles)
+        => _files = new HashSet<string>(existingFiles);
+
+    public bool FileExists(string path) => _files.Contains(path);
+    public bool DirectoryExists(string path) => false;
+    public string[] EnumerateFileNames(string directoryPath) => Array.Empty<string>();
+    public string[] EnumerateDirectoryNames(string directoryPath) => Array.Empty<string>();
 }

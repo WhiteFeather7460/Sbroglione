@@ -13,14 +13,23 @@ namespace Sbroglione.Services;
 public static class FileSystemService
 {
     /// <summary>
+    /// Accessor sostituibile nei test (stesso pattern di
+    /// <see cref="UpdateCheckService.CurrentVersionOverride"/>). Produzione: <see cref="DefaultFileSystemAccessor"/>.
+    /// </summary>
+    public static IFileSystemAccessor Accessor { get; set; } = new DefaultFileSystemAccessor();
+
+    /// <summary>
     /// Ritorna il tipo di elemento corrispondente al percorso.
     /// </summary>
     public static PathType GetPathType(string? path)
     {
-        if (File.Exists(path))
+        if (path is null)
+            return PathType.Unknown;
+
+        if (Accessor.FileExists(path))
             return PathType.File;
 
-        if (Directory.Exists(path))
+        if (Accessor.DirectoryExists(path))
             return PathType.Directory;
 
         return PathType.Unknown;
