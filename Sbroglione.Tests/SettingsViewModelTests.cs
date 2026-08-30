@@ -1,3 +1,5 @@
+using System.Net;
+using System.Reactive.Linq;
 using Sbroglione.Models;
 using Sbroglione.Services;
 using Sbroglione.ViewModels;
@@ -139,5 +141,98 @@ public sealed class SettingsViewModelTests : IDisposable
         AppSettingsStore.RaiseThrottleChanged();
 
         Assert.False(raised);
+    }
+}
+
+public sealed class SettingsUpdateCheckTests : IDisposable
+{
+    private readonly AppSettings _originalCurrent;
+    private readonly HttpClient _originalClient;
+    private readonly Version? _originalCurrentVersion;
+    private readonly string? _originalPlatformSuffix;
+
+    public SettingsUpdateCheckTests()
+    {
+        _originalCurrent = AppSettingsStore.Current;
+        _originalClient = UpdateCheckService.Client;
+        _originalCurrentVersion = UpdateCheckService.CurrentVersionOverride;
+        _originalPlatformSuffix = UpdateCheckService.PlatformAssetSuffixOverride;
+        AppSettingsStore.Current = new AppSettings();
+    }
+
+    public void Dispose()
+    {
+        AppSettingsStore.Current = _originalCurrent;
+        UpdateCheckService.Client = _originalClient;
+        UpdateCheckService.CurrentVersionOverride = _originalCurrentVersion;
+        UpdateCheckService.PlatformAssetSuffixOverride = _originalPlatformSuffix;
+    }
+
+    private sealed class StubHandler : HttpMessageHandler
+    {
+        private readonly HttpStatusCode _status;
+        private readonly string _content;
+        public StubHandler(HttpStatusCode status, string content) { _status = status; _content = content; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(_status) { Content = new StringContent(_content) });
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesCommand_UpToDate_SetsStatusTextAndNoUpdateAvailable()
+    {
+        UpdateCheckService.CurrentVersionOverride = new Version(3, 0, 0);
+        UpdateCheckService.PlatformAssetSuffixOverride = null;
+        UpdateCheckService.Client = new HttpClient(new StubHandler(HttpStatusCode.OK,
+            """{ "tag_name": "v3.0.0", "html_url": "x", "assets": [] }"""));
+
+        var vm = new SettingsViewModel();
+        await vm.CheckForUpdatesCommand.Execute();
+
+        Assert.False(vm.UpdateAvailable);
+        Assert.Contains("3.0.0", vm.UpdateCheckStatusText);
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesCommand_Available_SetsUpdateAvailableTrue()
+    {
+        UpdateCheckService.CurrentVersionOverride = new Version(1, 0, 0);
+        UpdateCheckService.PlatformAssetSuffixOverride = null;
+        UpdateCheckService.Client = new HttpClient(new StubHandler(HttpStatusCode.OK,
+            """{ "tag_name": "v3.0.0", "html_url": "x", "assets": [] }"""));
+
+        var vm = new SettingsViewModel();
+        await vm.CheckForUpdatesCommand.Execute();
+
+        Assert.True(vm.UpdateAvailable);
+        Assert.Contains("3.0.0", vm.UpdateCheckStatusText);
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesCommand_Error_SetsErrorStatusText()
+    {
+        UpdateCheckService.CurrentVersionOverride = new Version(1, 0, 0);
+        UpdateCheckService.Client = new HttpClient(new StubHandler(HttpStatusCode.InternalServerError, "boom"));
+
+        var vm = new SettingsViewModel();
+        await vm.CheckForUpdatesCommand.Execute();
+
+        Assert.False(vm.UpdateAvailable);
+        Assert.False(string.IsNullOrEmpty(vm.UpdateCheckStatusText));
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesCommand_IgnoresPreviouslyIgnoredVersion()
+    {
+        AppSettingsStore.Current = new AppSettings { IgnoredUpdateVersion = "3.0.0" };
+        UpdateCheckService.CurrentVersionOverride = new Version(1, 0, 0);
+        UpdateCheckService.PlatformAssetSuffixOverride = null;
+        UpdateCheckService.Client = new HttpClient(new StubHandler(HttpStatusCode.OK,
+            """{ "tag_name": "v3.0.0", "html_url": "x", "assets": [] }"""));
+
+        var vm = new SettingsViewModel();
+        await vm.CheckForUpdatesCommand.Execute();
+
+        // Il check manuale ignora sempre IgnoredUpdateVersion: deve comunque segnalare disponibile.
+        Assert.True(vm.UpdateAvailable);
     }
 }
