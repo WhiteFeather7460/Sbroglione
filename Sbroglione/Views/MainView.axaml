@@ -78,7 +78,7 @@
           <Border Classes="card" Margin="16" Padding="16" IsVisible="{Binding !IsWatchFolderSupported}">
             <TextBlock Text="{DynamicResource Str.WatchSync.UnsupportedOnAndroid}"
                        TextWrapping="Wrap"
-                       Foreground="{DynamicResource Brush.TextSecondary}" />
+                       Foreground="{DynamicResource Brush.TextMuted}" />
           </Border>
         </Grid>
       </TabItem>
