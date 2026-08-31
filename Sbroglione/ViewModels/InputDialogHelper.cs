@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Avalonia.Controls.ApplicationLifetimes;
+
+using Sbroglione.Services;
 using Sbroglione.Views;
 
 namespace Sbroglione.ViewModels;
@@ -19,14 +20,10 @@ internal static class InputDialogHelper
         if (Override is not null)
             return await Override(title, message, initialText);
 
-        if ((App.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } owner)
-            return null; // senza finestra non c'è input: nessuna azione.
-
-        var dialog = new InputDialog
-        {
-            DataContext = new InputDialogViewModel(title, message, initialText)
-        };
-
-        return await dialog.ShowDialog<string?>(owner);
+        // Senza host non c'è input: nessuna azione.
+        return await DialogPresenter.ShowAsync<InputDialogContent, string?>(
+            () => new InputDialog(),
+            () => new InputDialogContent(),
+            new InputDialogViewModel(title, message, initialText));
     }
 }

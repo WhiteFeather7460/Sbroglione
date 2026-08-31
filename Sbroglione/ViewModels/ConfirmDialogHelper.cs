@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Avalonia.Controls.ApplicationLifetimes;
+
+using Sbroglione.Services;
 using Sbroglione.Views;
 
 namespace Sbroglione.ViewModels;
@@ -19,14 +20,10 @@ internal static class ConfirmDialogHelper
         if (Override is not null)
             return await Override(title, message, confirmLabel);
 
-        if ((App.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } owner)
-            return false; // senza finestra non c'è conferma: default sicuro, non si elimina nulla.
-
-        var dialog = new ConfirmDialog
-        {
-            DataContext = new ConfirmDialogViewModel(title, message, confirmLabel)
-        };
-
-        return await dialog.ShowDialog<bool?>(owner) ?? false;
+        // Senza host non c'è conferma: default sicuro, non si elimina nulla.
+        return await DialogPresenter.ShowAsync<ConfirmDialogContent, bool?>(
+            () => new ConfirmDialog(),
+            () => new ConfirmDialogContent(),
+            new ConfirmDialogViewModel(title, message, confirmLabel)) ?? false;
     }
 }

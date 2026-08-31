@@ -1,17 +1,16 @@
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 
 namespace Sbroglione.Views;
 
-/// <summary>Dialog modale di conferma: restituisce true su conferma, false su annulla/chiusura.</summary>
+/// <summary>
+/// Host desktop del dialogo di conferma: restituisce true su conferma, false su annulla/chiusura.
+/// Il corpo vive in <see cref="ConfirmDialogContent"/>, condiviso con l'host overlay single-view.
+/// </summary>
 public partial class ConfirmDialog : Window
 {
     public ConfirmDialog()
     {
         InitializeComponent();
+        DialogContent.Completed += result => Close(result);
     }
-
-    public void OnConfirmClick(object? sender, RoutedEventArgs e) => Close(true);
-
-    public void OnCancelClick(object? sender, RoutedEventArgs e) => Close(false);
 }
