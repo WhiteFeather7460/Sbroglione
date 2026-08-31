@@ -391,4 +391,51 @@ public sealed class WatchFolderServiceTests : IDisposable
 
         Assert.Equal("contenuto", await File.ReadAllTextAsync(Path.Combine(rule.DestinationPath, "doc.txt")));
     }
+
+    /// <summary>Regola con sorgente propria: due regole sullo stesso path non avrebbero runner distinti da verificare.</summary>
+    private WatchRule CreateRuleIn(string name, bool enabled)
+    {
+        string source = Path.Combine(_root, name, "src");
+        Directory.CreateDirectory(source);
+        return new WatchRule
+        {
+            SourcePath = source,
+            DestinationPath = Path.Combine(_root, name, "dst"),
+            Enabled = enabled
+        };
+    }
+
+    [Fact]
+    public void StartAllEnabledRules_StartsOnlyEnabledOnes()
+    {
+        WatchRule enabled = CreateRuleIn("a", enabled: true);
+        WatchRule disabled = CreateRuleIn("b", enabled: false);
+
+        int started = WatchFolderService.StartAllEnabledRules([enabled, disabled]);
+
+        Assert.Equal(1, started);
+        Assert.Contains(enabled.Id, WatchFolderService.ActiveRuleIds);
+        Assert.DoesNotContain(disabled.Id, WatchFolderService.ActiveRuleIds);
+    }
+
+    [Fact]
+    public async Task StartAllEnabledRules_WithoutArgument_LoadsFromStore()
+    {
+        string originalStorePath = WatchRuleStore.CurrentPath;
+        WatchRuleStore.CurrentPath = Path.Combine(_root, "rules.json");
+        try
+        {
+            WatchRule rule = CreateRuleIn("c", enabled: true);
+            await WatchRuleStore.SaveAsync([rule]);
+
+            int started = WatchFolderService.StartAllEnabledRules();
+
+            Assert.Equal(1, started);
+            Assert.Contains(rule.Id, WatchFolderService.ActiveRuleIds);
+        }
+        finally
+        {
+            WatchRuleStore.CurrentPath = originalStorePath;
+        }
+    }
 }

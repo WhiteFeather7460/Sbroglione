@@ -113,6 +113,8 @@ public static class StringsIt
         ["Str.Nav.Compare"] = "Confronto",
         ["Str.Nav.WatchSync"] = "Sync auto",
         ["Str.WatchSync.UnsupportedOnAndroid"] = "La sincronizzazione automatica non è disponibile su Android in questa versione: richiede un servizio in background attivo anche ad app chiusa, non ancora implementato.",
+        ["Str.WatchSync.ForegroundNotificationTitle"] = "Sincronizzazione automatica attiva",
+        ["Str.WatchSync.ForegroundNotificationText"] = "Sbroglione sta mantenendo sincronizzate le cartelle monitorate.",
         ["Str.Nav.Duplicates"] = "Duplicati",
         ["Str.Nav.DiskUsage"] = "Spazio disco",
         ["Str.Nav.Settings"] = "Impostazioni",

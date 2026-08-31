@@ -2,6 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.whitefeather.sbroglione">
   <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
   <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Foreground service dei runner watch-folder (WatchFolderForegroundService). Il tag
+       <service> non è qui: lo genera l'attributo [Service] sulla classe a build time.
+       FOREGROUND_SERVICE_DATA_SYNC è il tipo richiesto da Android 14 (targetSdk 34) per un
+       servizio che trasferisce dati fra sorgente e destinazione su richiesta dell'utente.
+       POST_NOTIFICATIONS è runtime da Android 13: senza, il service gira comunque ma la sua
+       notifica persistente non viene mostrata. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <application android:label="Sbroglione" android:allowBackup="true" android:icon="@drawable/icon"
                android:usesCleartextTraffic="true">
   </application>

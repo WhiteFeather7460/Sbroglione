@@ -17,6 +17,16 @@ namespace Sbroglione;
 
 public partial class App : Application
 {
+    /// <summary>
+    /// Seam piattaforma: avvia l'host di background che tiene vivi i runner watch-folder
+    /// quando il processo non è una normale app desktop (su Android il foreground service
+    /// <c>WatchFolderForegroundService</c>). Impostato dall'head project prima che
+    /// <see cref="OnFrameworkInitializationCompleted"/> giri (Avalonia chiama
+    /// <c>CustomizeAppBuilder</c> prima); resta <c>null</c> su desktop, dove i runner
+    /// partono in-process.
+    /// </summary>
+    public static Action? StartBackgroundWatchHost { get; set; }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -33,23 +43,7 @@ public partial class App : Application
             // Avvia i runner watch-folder delle regole attive. Nessun handler di
             // shutdown nell'app: i runner muoiono col processo (limite dichiarato).
             List<WatchRule> rules = WatchRuleStore.Load();
-            _ = Task.Run(() =>
-            {
-                foreach (WatchRule rule in rules)
-                {
-                    if (!rule.Enabled)
-                        continue;
-                    try
-                    {
-                        WatchFolderService.Start(rule);
-                    }
-                    catch (Exception)
-                    {
-                        // Difesa in profondità: Start non lancia più, ma una singola regola
-                        // malata non deve fermare le altre.
-                    }
-                }
-            });
+            _ = Task.Run(() => WatchFolderService.StartAllEnabledRules(rules));
 
             // Best effort: rimuove un .old lasciato da un update precedente. Prima di creare
             // la finestra, non blocca comunque lo startup (I/O trascurabile, un file).
@@ -73,6 +67,27 @@ public partial class App : Application
             ApplySavedTheme();
 
             SelfUpdateService.CleanupOrphanBackup();
+
+            // Fase 3C: su Android i runner non possono vivere nel processo dell'Activity
+            // (Doze / chiusura), quindi li ospita un foreground service registrato dall'head
+            // project in StartBackgroundWatchHost. Lo si avvia solo se c'è almeno una regola
+            // abilitata: un foreground service richiede una notifica persistente, e mostrarla
+            // senza nulla da sincronizzare sarebbe solo rumore.
+            // IsWatchFolderSupported resta false finché il collegamento non è validato su
+            // device (verifica manuale finale del porting): la tab continua a mostrare il
+            // banner invece di una UI di gestione regole che potrebbe non sincronizzare nulla.
+            if (StartBackgroundWatchHost is { } startBackgroundWatchHost
+                && WatchRuleStore.Load().Exists(rule => rule.Enabled))
+            {
+                try
+                {
+                    startBackgroundWatchHost();
+                }
+                catch (Exception)
+                {
+                    // L'avvio del service non deve mai impedire l'apertura della UI.
+                }
+            }
 
             var mainViewModel = new MainWindowViewModel
             {
