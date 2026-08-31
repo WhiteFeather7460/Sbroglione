@@ -11,9 +11,9 @@ public class WidthToTabStripPlacementConverterTests
 
     [Theory]
     [InlineData(900.0, Dock.Left)]
-    [InlineData(640.0, Dock.Left)]
+    [InlineData(600.0, Dock.Left)]
     [InlineData(0.0, Dock.Left)]
-    [InlineData(639.9, Dock.Bottom)]
+    [InlineData(599.9, Dock.Bottom)]
     [InlineData(360.0, Dock.Bottom)]
     public void Convert_ReturnsExpectedPlacement(double width, Dock expected)
     {
