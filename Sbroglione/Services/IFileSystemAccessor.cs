@@ -13,4 +13,9 @@ public interface IFileSystemAccessor
     bool DirectoryExists(string path);
     string[] EnumerateFileNames(string directoryPath);
     string[] EnumerateDirectoryNames(string directoryPath);
+    void CreateDirectory(string path);
+    void DeleteFile(string path);
+    void DeleteDirectory(string path, bool recursive);
+    void MoveDirectory(string sourcePath, string destinationPath);
+    void MoveFile(string sourcePath, string destinationPath);
 }

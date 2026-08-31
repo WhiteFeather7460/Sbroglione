@@ -122,10 +122,10 @@ public static class FileSystemService
             try
             {
                 string target = Path.Combine(parentPath, name);
-                if (Directory.Exists(target) || File.Exists(target))
+                if (Accessor.DirectoryExists(target) || Accessor.FileExists(target))
                     return new ListingError(ListingErrorKind.AlreadyExists, ListingErrorMessageKeys.AlreadyExists);
 
-                Directory.CreateDirectory(target);
+                Accessor.CreateDirectory(target);
                 return (ListingError?)null;
             }
             catch (Exception ex)
@@ -148,13 +148,13 @@ public static class FileSystemService
                     return new ListingError(ListingErrorKind.NotFound, ListingErrorMessageKeys.NotFound);
 
                 string target = Path.Combine(parent, newName);
-                if (Directory.Exists(target) || File.Exists(target))
+                if (Accessor.DirectoryExists(target) || Accessor.FileExists(target))
                     return new ListingError(ListingErrorKind.AlreadyExists, ListingErrorMessageKeys.AlreadyExists);
 
-                if (Directory.Exists(path))
-                    Directory.Move(path, target);
-                else if (File.Exists(path))
-                    File.Move(path, target);
+                if (Accessor.DirectoryExists(path))
+                    Accessor.MoveDirectory(path, target);
+                else if (Accessor.FileExists(path))
+                    Accessor.MoveFile(path, target);
                 else
                     return new ListingError(ListingErrorKind.NotFound, ListingErrorMessageKeys.NotFound);
 
@@ -175,10 +175,10 @@ public static class FileSystemService
         {
             try
             {
-                if (Directory.Exists(path))
-                    Directory.Delete(path, recursive: true);
-                else if (File.Exists(path))
-                    File.Delete(path);
+                if (Accessor.DirectoryExists(path))
+                    Accessor.DeleteDirectory(path, recursive: true);
+                else if (Accessor.FileExists(path))
+                    Accessor.DeleteFile(path);
                 else
                     return new ListingError(ListingErrorKind.NotFound, ListingErrorMessageKeys.NotFound);
 
