@@ -7,6 +7,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 
 namespace Sbroglione.Views.Controls;
 
@@ -123,7 +124,13 @@ public static class OverlayDialogHost
 
         ApplyLayerSize();
         layer.Children.Add(scrim);
-        scrim.Focus();
+
+        // Add() attacca sincronicamente il contenuto al visual tree, quindi se il content ha già
+        // preso il focus (es. InputDialogContent.FocusInput() su AttachedToVisualTree) non va
+        // rubato: lo scrim prende il focus solo come fallback, per garantire comunque Esc/Back.
+        var focused = TopLevel.GetTopLevel(anchor)?.FocusManager?.GetFocusedElement() as Visual;
+        if (focused is null || !content.IsVisualAncestorOf(focused))
+            scrim.Focus();
 
         return completion.Task;
     }
