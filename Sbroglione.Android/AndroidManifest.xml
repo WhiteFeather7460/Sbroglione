@@ -11,6 +11,12 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- "All files access": vedi docs/superpowers/plans/2026-09-01-android-fase4-storage-decision.md
+       per la motivazione (SAF non ha risoluzione per percorso, incompatibile con l'architettura
+       dell'app). Concesso dall'utente in una pagina di Impostazioni di sistema, non al momento
+       dell'installazione: la sola dichiarazione qui non basta, va richiesto a runtime
+       (StoragePermission.RequestFromSettings). -->
+  <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
   <application android:label="Sbroglione" android:allowBackup="true" android:icon="@drawable/icon"
                android:usesCleartextTraffic="true">
   </application>

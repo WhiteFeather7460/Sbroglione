@@ -7,6 +7,8 @@ using Android.OS;
 using Avalonia;
 using Avalonia.Android;
 
+using Sbroglione.Services;
+
 namespace Sbroglione.Android;
 
 [Activity(
@@ -22,10 +24,15 @@ public class MainActivity : AvaloniaMainActivity<App>
 
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
-        // Registra il seam prima che Avalonia arrivi a OnFrameworkInitializationCompleted
+        // Registra i seam prima che Avalonia arrivi a OnFrameworkInitializationCompleted
         // (CustomizeAppBuilder gira prima, nello stesso OnCreate): è lì che App decide se
-        // c'è un host di background da avviare per i runner watch-folder.
+        // c'è un host di background da avviare per i runner watch-folder, quale sia lo stato
+        // dell'accesso allo storage e da quale radice partire.
         App.StartBackgroundWatchHost = StartWatchFolderForegroundService;
+        App.StorageAccessGranted = () => StoragePermission.IsGranted;
+        App.RequestStorageAccess = () => StoragePermission.RequestFromSettings(this);
+        PlatformPaths.DefaultRootPathOverride = () =>
+            global::Android.OS.Environment.ExternalStorageDirectory?.AbsolutePath ?? "/storage/emulated/0";
 
         return base.CustomizeAppBuilder(builder)
             .WithInterFont();
@@ -35,6 +42,18 @@ public class MainActivity : AvaloniaMainActivity<App>
     {
         base.OnCreate(savedInstanceState);
         RequestPostNotificationsIfNeeded();
+    }
+
+    /// <summary>
+    /// L'utente può concedere/revocare "All files access" solo dalle Impostazioni di sistema,
+    /// fuori dall'app: l'unico modo affidabile di accorgersene è ricontrollare quando l'Activity
+    /// torna in primo piano. <see cref="App.OnStorageAccessChanged"/> aggiorna la UI se lo stato
+    /// osservato è cambiato rispetto all'ultimo noto.
+    /// </summary>
+    protected override void OnResume()
+    {
+        base.OnResume();
+        App.OnStorageAccessChanged?.Invoke(StoragePermission.IsGranted);
     }
 
     /// <summary>
