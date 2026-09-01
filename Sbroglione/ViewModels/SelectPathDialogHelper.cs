@@ -40,12 +40,12 @@ internal static class SelectPathDialogHelper
     private static string ResolveStartDirectory(string? currentPath)
     {
         if (string.IsNullOrEmpty(currentPath))
-            return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return PlatformPaths.DefaultRootPath;
 
         if (File.Exists(currentPath))
             return Path.GetDirectoryName(currentPath) is { Length: > 0 } dir
                 ? dir
-                : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                : PlatformPaths.DefaultRootPath;
 
         return currentPath;
     }

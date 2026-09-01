@@ -17,7 +17,7 @@ public partial class LocalPaneView : UserControl
     /// doppio click su un file locale di caricarlo nella cartella remota corrente.</summary>
     public RemoteBrowserViewModel? RemoteViewModel { get; set; }
 
-    public LocalPaneView() : this(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+    public LocalPaneView() : this(PlatformPaths.DefaultRootPath)
     {
     }
 
