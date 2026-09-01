@@ -27,6 +27,22 @@ public partial class App : Application
     /// </summary>
     public static Action? StartBackgroundWatchHost { get; set; }
 
+    /// <summary>
+    /// Seam piattaforma: stato del permesso "All files access". <c>null</c> su desktop (dove
+    /// non serve alcun permesso — <see cref="MainWindowViewModel.IsStorageAccessGranted"/> resta
+    /// sempre <c>true</c>), impostato da <c>MainActivity</c> su Android.
+    /// </summary>
+    public static Func<bool>? StorageAccessGranted { get; set; }
+
+    /// <summary>Apre le Impostazioni di sistema per concedere il permesso. <c>null</c> su desktop.</summary>
+    public static Action? RequestStorageAccess { get; set; }
+
+    /// <summary>
+    /// Invocato da <c>MainActivity.OnResume</c> quando l'utente torna dalle Impostazioni: la UI
+    /// non ha altro modo di accorgersi di una concessione/revoca avvenuta fuori dall'app.
+    /// </summary>
+    public static Action<bool>? OnStorageAccessChanged { get; set; }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -91,8 +107,10 @@ public partial class App : Application
 
             var mainViewModel = new MainWindowViewModel
             {
-                IsWatchFolderSupported = false
+                IsWatchFolderSupported = false,
+                IsStorageAccessGranted = StorageAccessGranted?.Invoke() ?? true
             };
+            OnStorageAccessChanged = granted => mainViewModel.IsStorageAccessGranted = granted;
             singleView.MainView = new MainView
             {
                 DataContext = mainViewModel
