@@ -78,7 +78,10 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     /// <summary>Pubblico per i test.</summary>
     public void AddRule()
     {
-        var rule = new WatchRuleViewModel(new WatchRule(), this);
+        var model = new WatchRule();
+        if (!AndroidRuntime.IsNotAndroid)
+            model.Mode = WatchMode.Interval;
+        var rule = new WatchRuleViewModel(model, this);
         Rules.Add(rule);
         _ruleIndex[rule.Model.Id] = rule;
         this.RaisePropertyChanged(nameof(HasRules));
