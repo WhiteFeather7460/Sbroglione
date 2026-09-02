@@ -93,15 +93,11 @@ public partial class SettingsView : UserControl
     /// </summary>
     private async Task OpenEditorAsync(SettingsViewModel vm, ColorTheme theme)
     {
-        if (TopLevel.GetTopLevel(this) is not Window owner)
-            return;
-
         ColorTheme? previousActive = vm.ActiveCustomTheme;
         var editorVm = new ThemeEditorViewModel(theme);
         ThemeService.Apply(editorVm.WorkingTheme);
 
-        var editor = new ThemeEditorWindow(editorVm);
-        ColorTheme? saved = await editor.ShowDialog<ColorTheme?>(owner);
+        ColorTheme? saved = await ThemeEditorHelper.ShowAsync(editorVm);
 
         if (saved is not null)
         {
