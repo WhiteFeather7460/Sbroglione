@@ -7,6 +7,9 @@ using Android.OS;
 using Avalonia;
 using Avalonia.Android;
 
+using Projektanker.Icons.Avalonia;
+using Projektanker.Icons.Avalonia.FontAwesome;
+
 using Sbroglione.Services;
 
 namespace Sbroglione.Android;
@@ -33,6 +36,12 @@ public class MainActivity : AvaloniaMainActivity<App>
         App.RequestStorageAccess = () => StoragePermission.RequestFromSettings(this);
         PlatformPaths.DefaultRootPathOverride = () =>
             global::Android.OS.Environment.ExternalStorageDirectory?.AbsolutePath ?? "/storage/emulated/0";
+
+        // Registrazione mancata dallo scaffold iniziale: su desktop avviene in Program.cs, ma
+        // il registro di IconProvider è per-processo e AvaloniaMainActivity non passa mai da
+        // lì, quindi ogni icona fa-* (usata ovunque nella UI) lanciava KeyNotFoundException al
+        // primo layout, mandando in crash l'app all'avvio.
+        IconProvider.Current.Register<FontAwesomeIconProvider>();
 
         return base.CustomizeAppBuilder(builder)
             .WithInterFont();
