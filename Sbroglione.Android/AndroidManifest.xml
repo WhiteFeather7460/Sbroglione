@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.whitefeather.sbroglione">
-  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
   <uses-permission android:name="android.permission.INTERNET" />
   <!-- Foreground service dei runner watch-folder (WatchFolderForegroundService). Il tag
        <service> non è qui: lo genera l'attributo [Service] sulla classe a build time.
