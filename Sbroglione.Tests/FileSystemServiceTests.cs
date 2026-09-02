@@ -358,6 +358,8 @@ internal sealed class FakeFileSystemAccessor : IFileSystemAccessor
     public bool DirectoryExists(string path) => _directories.Contains(path);
     public string[] EnumerateFileNames(string directoryPath) => Array.Empty<string>();
     public string[] EnumerateDirectoryNames(string directoryPath) => Array.Empty<string>();
+    public IReadOnlyList<FileSystemItem> EnumerateEntries(string directoryPath, bool directoriesOnly) => Array.Empty<FileSystemItem>();
+    public IReadOnlyList<FileSystemItem> EnumerateEntriesRecursive(string directoryPath) => Array.Empty<FileSystemItem>();
 
     public void CreateDirectory(string path)
     {

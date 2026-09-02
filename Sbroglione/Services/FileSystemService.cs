@@ -67,23 +67,9 @@ public static class FileSystemService
     public static Task<DirectoryListingResult> ListDirectoryAsync(string path, bool directoriesOnly) =>
         Task.Run(() =>
         {
-            var items = new List<FileSystemItem>();
-
             try
             {
-                foreach (var directory in Directory.GetDirectories(path))
-                {
-                    items.Add(CreateDirectoryItem(new DirectoryInfo(directory)));
-                }
-
-                if (!directoriesOnly)
-                {
-                    foreach (var file in Directory.GetFiles(path))
-                    {
-                        items.Add(CreateFileItem(new FileInfo(file)));
-                    }
-                }
-
+                var items = Accessor.EnumerateEntries(path, directoriesOnly);
                 return new DirectoryListingResult(items, null);
             }
             catch (Exception ex)
@@ -100,11 +86,7 @@ public static class FileSystemService
         {
             try
             {
-                var items = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
-                    .Select(file => CreateFileItem(new FileInfo(file)))
-                    .OrderBy(item => item.FullPath)
-                    .ToList();
-
+                var items = Accessor.EnumerateEntriesRecursive(path);
                 return new DirectoryListingResult(items, null);
             }
             catch (Exception ex)
@@ -255,24 +237,5 @@ public static class FileSystemService
         IOException =>
             new ListingError(ListingErrorKind.Unavailable, ListingErrorMessageKeys.Unavailable, exception.Message),
         _ => new ListingError(ListingErrorKind.Unavailable, ListingErrorMessageKeys.Generic, exception.Message)
-    };
-
-    private static FileSystemItem CreateDirectoryItem(DirectoryInfo info) => new()
-    {
-        Name = info.Name,
-        IsDirectory = true,
-        Size = "",
-        LastModified = info.LastWriteTime,
-        FullPath = info.FullName
-    };
-
-    private static FileSystemItem CreateFileItem(FileInfo info) => new()
-    {
-        Name = info.Name,
-        IsDirectory = false,
-        Size = $"{info.Length / 1024} KB",
-        SizeBytes = info.Length,
-        LastModified = info.LastWriteTime,
-        FullPath = info.FullName
     };
 }

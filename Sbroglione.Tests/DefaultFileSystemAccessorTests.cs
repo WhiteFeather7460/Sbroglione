@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Sbroglione.Models;
 using Sbroglione.Services;
 using Xunit;
 
@@ -150,6 +151,78 @@ public class DefaultFileSystemAccessorTests
                 File.Delete(filePath);
             if (File.Exists(renamed))
                 File.Delete(renamed);
+        }
+    }
+
+    [Fact]
+    public void EnumerateEntries_ReturnsDirectoriesAndFilesWithMetadata()
+    {
+        var accessor = new DefaultFileSystemAccessor();
+        string dir = Path.Combine(Path.GetTempPath(), "accessor-entries-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        string subDir = Path.Combine(dir, "sub");
+        Directory.CreateDirectory(subDir);
+        string filePath = Path.Combine(dir, "a.txt");
+        File.WriteAllText(filePath, "hello");
+
+        try
+        {
+            var entries = accessor.EnumerateEntries(dir, directoriesOnly: false);
+
+            var file = Assert.Single(entries, e => !e.IsDirectory);
+            Assert.Equal("a.txt", file.Name);
+            Assert.Equal(filePath, file.FullPath);
+            Assert.Equal(5, file.SizeBytes);
+
+            var directory = Assert.Single(entries, e => e.IsDirectory);
+            Assert.Equal("sub", directory.Name);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void EnumerateEntries_DirectoriesOnly_ExcludesFiles()
+    {
+        var accessor = new DefaultFileSystemAccessor();
+        string dir = Path.Combine(Path.GetTempPath(), "accessor-entries-dirsonly-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+        File.WriteAllText(Path.Combine(dir, "a.txt"), "x");
+
+        try
+        {
+            var entries = accessor.EnumerateEntries(dir, directoriesOnly: true);
+
+            Assert.All(entries, e => Assert.True(e.IsDirectory));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void EnumerateEntriesRecursive_ReturnsNestedFiles()
+    {
+        var accessor = new DefaultFileSystemAccessor();
+        string dir = Path.Combine(Path.GetTempPath(), "accessor-entries-rec-" + Guid.NewGuid());
+        string subDir = Path.Combine(dir, "sub");
+        Directory.CreateDirectory(subDir);
+        string nestedFile = Path.Combine(subDir, "b.txt");
+        File.WriteAllText(nestedFile, "yo");
+
+        try
+        {
+            var entries = accessor.EnumerateEntriesRecursive(dir);
+
+            Assert.Contains(entries, e => e.FullPath == nestedFile && !e.IsDirectory);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
         }
     }
 }
