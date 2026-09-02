@@ -38,7 +38,6 @@
     </Border>
 
     <TabControl Grid.Row="1" Classes="nav" Padding="0"
-                IsVisible="{Binding IsStorageAccessGranted}"
                 TabStripPlacement="{Binding #RootGrid.Bounds.Width, Converter={StaticResource WidthToTabStripPlacement}}">
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Copy}">
         <TabItem.Header>
@@ -47,7 +46,10 @@
             <TextBlock Text="{DynamicResource Str.Nav.Copy}" IsVisible="{Binding IsNavExpanded}" />
           </StackPanel>
         </TabItem.Header>
-        <views:CopyPairsView />
+        <Grid>
+          <views:CopyPairsView IsVisible="{Binding IsStorageAccessGranted}" />
+          <views:StorageAccessBanner IsVisible="{Binding !IsStorageAccessGranted}" />
+        </Grid>
       </TabItem>
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Remote}">
         <TabItem.Header>
@@ -56,7 +58,10 @@
             <TextBlock Text="{DynamicResource Str.Nav.Remote}" IsVisible="{Binding IsNavExpanded}" />
           </StackPanel>
         </TabItem.Header>
-        <views:RemoteBrowserView />
+        <Grid>
+          <views:RemoteBrowserView IsVisible="{Binding IsStorageAccessGranted}" />
+          <views:StorageAccessBanner IsVisible="{Binding !IsStorageAccessGranted}" />
+        </Grid>
       </TabItem>
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Compare}">
         <TabItem.Header>
@@ -65,7 +70,10 @@
             <TextBlock Text="{DynamicResource Str.Nav.Compare}" IsVisible="{Binding IsNavExpanded}" />
           </StackPanel>
         </TabItem.Header>
-        <views:ComparisonView />
+        <Grid>
+          <views:ComparisonView IsVisible="{Binding IsStorageAccessGranted}" />
+          <views:StorageAccessBanner IsVisible="{Binding !IsStorageAccessGranted}" />
+        </Grid>
       </TabItem>
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.WatchSync}">
         <TabItem.Header>
@@ -75,12 +83,15 @@
           </StackPanel>
         </TabItem.Header>
         <Grid>
-          <views:WatchFoldersView IsVisible="{Binding IsWatchFolderSupported}" />
-          <Border Classes="card" Margin="16" Padding="16" IsVisible="{Binding !IsWatchFolderSupported}">
-            <TextBlock Text="{DynamicResource Str.WatchSync.UnsupportedOnAndroid}"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource Brush.TextMuted}" />
-          </Border>
+          <Grid IsVisible="{Binding IsStorageAccessGranted}">
+            <views:WatchFoldersView IsVisible="{Binding IsWatchFolderSupported}" />
+            <Border Classes="card" Margin="16" Padding="16" IsVisible="{Binding !IsWatchFolderSupported}">
+              <TextBlock Text="{DynamicResource Str.WatchSync.UnsupportedOnAndroid}"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource Brush.TextMuted}" />
+            </Border>
+          </Grid>
+          <views:StorageAccessBanner IsVisible="{Binding !IsStorageAccessGranted}" />
         </Grid>
       </TabItem>
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Duplicates}">
@@ -90,7 +101,10 @@
             <TextBlock Text="{DynamicResource Str.Nav.Duplicates}" IsVisible="{Binding IsNavExpanded}" />
           </StackPanel>
         </TabItem.Header>
-        <views:DuplicatesView />
+        <Grid>
+          <views:DuplicatesView IsVisible="{Binding IsStorageAccessGranted}" />
+          <views:StorageAccessBanner IsVisible="{Binding !IsStorageAccessGranted}" />
+        </Grid>
       </TabItem>
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.DiskUsage}">
         <TabItem.Header>
@@ -99,7 +113,10 @@
             <TextBlock Text="{DynamicResource Str.Nav.DiskUsage}" IsVisible="{Binding IsNavExpanded}" />
           </StackPanel>
         </TabItem.Header>
-        <views:DiskUsageView />
+        <Grid>
+          <views:DiskUsageView IsVisible="{Binding IsStorageAccessGranted}" />
+          <views:StorageAccessBanner IsVisible="{Binding !IsStorageAccessGranted}" />
+        </Grid>
       </TabItem>
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Settings}">
         <TabItem.Header>
@@ -111,22 +128,6 @@
         <views:SettingsView />
       </TabItem>
     </TabControl>
-
-    <!-- Onboarding Android: senza "All files access" nessuna tab può leggere lo storage,
-         quindi il banner sostituisce l'intera area contenuto invece di una singola tab. -->
-    <Border Grid.Row="1" Classes="card" Margin="16" Padding="24" IsVisible="{Binding !IsStorageAccessGranted}"
-            HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420">
-      <StackPanel Spacing="12" HorizontalAlignment="Center">
-        <TextBlock Text="{DynamicResource Str.Storage.PermissionNeededTitle}"
-                   FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"
-                   Foreground="{DynamicResource Brush.TextPrimary}" />
-        <TextBlock Text="{DynamicResource Str.Storage.PermissionNeededMessage}"
-                   TextWrapping="Wrap" HorizontalAlignment="Center"
-                   Foreground="{DynamicResource Brush.TextMuted}" />
-        <Button Classes="primary" Content="{DynamicResource Str.Storage.OpenSettingsButton}"
-                Command="{Binding RequestStorageAccessCommand}" HorizontalAlignment="Center" />
-      </StackPanel>
-    </Border>
 
     <Button Grid.Row="2"
             Classes="iconbtn"

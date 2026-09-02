@@ -110,7 +110,7 @@ public partial class App : Application
                 IsWatchFolderSupported = false,
                 IsStorageAccessGranted = StorageAccessGranted?.Invoke() ?? true
             };
-            OnStorageAccessChanged = granted => mainViewModel.IsStorageAccessGranted = granted;
+            OnStorageAccessChanged = granted => UiDispatch.Post(() => mainViewModel.IsStorageAccessGranted = granted);
             singleView.MainView = new MainView
             {
                 DataContext = mainViewModel
