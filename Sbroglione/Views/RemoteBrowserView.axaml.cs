@@ -111,12 +111,7 @@ public partial class RemoteBrowserView : UserControl
     /// </summary>
     private async Task ManageProfileAsync(ConnectionProfile profile, bool isNew)
     {
-        var owner = this.FindAncestorOfType<Window>();
-        if (owner is null)
-            return;
-
-        var editor = new ProfileEditorWindow(new ProfileEditorViewModel(profile, _credentialStore));
-        bool saved = await editor.ShowDialog<bool>(owner);
+        bool saved = await ProfileEditorHelper.ShowAsync(profile, _credentialStore);
 
         if (saved)
         {
