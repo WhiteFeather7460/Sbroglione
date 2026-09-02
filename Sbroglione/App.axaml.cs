@@ -89,9 +89,9 @@ public partial class App : Application
             // project in StartBackgroundWatchHost. Lo si avvia solo se c'è almeno una regola
             // abilitata: un foreground service richiede una notifica persistente, e mostrarla
             // senza nulla da sincronizzare sarebbe solo rumore.
-            // IsWatchFolderSupported resta false finché il collegamento non è validato su
-            // device (verifica manuale finale del porting): la tab continua a mostrare il
-            // banner invece di una UI di gestione regole che potrebbe non sincronizzare nulla.
+            // IsWatchFolderSupported segue il permesso di storage: la tab mostra il banner
+            // finché l'accesso non è concesso, poi la UI di gestione regole (solo Interval,
+            // vedi WatchFoldersView).
             if (StartBackgroundWatchHost is { } startBackgroundWatchHost
                 && WatchRuleStore.Load().Exists(rule => rule.Enabled))
             {
@@ -107,10 +107,14 @@ public partial class App : Application
 
             var mainViewModel = new MainWindowViewModel
             {
-                IsWatchFolderSupported = false,
+                IsWatchFolderSupported = StorageAccessGranted?.Invoke() ?? false,
                 IsStorageAccessGranted = StorageAccessGranted?.Invoke() ?? true
             };
-            OnStorageAccessChanged = granted => UiDispatch.Post(() => mainViewModel.IsStorageAccessGranted = granted);
+            OnStorageAccessChanged = granted => UiDispatch.Post(() =>
+            {
+                mainViewModel.IsStorageAccessGranted = granted;
+                mainViewModel.IsWatchFolderSupported = granted;
+            });
             singleView.MainView = new MainView
             {
                 DataContext = mainViewModel
