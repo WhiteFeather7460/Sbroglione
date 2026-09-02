@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.VisualTree;
 using ReactiveUI;
 using Sbroglione.Models;
 using Sbroglione.Services;
@@ -75,17 +74,7 @@ public partial class RemoteBrowserView : UserControl
 
     private async void OnUploadFolderClick(object? sender, RoutedEventArgs e)
     {
-        var owner = this.FindAncestorOfType<Window>();
-        if (owner is null)
-            return;
-
-        var dialog = new SelectPathDialog
-        {
-            DataContext = new SelectPathDialogViewModel(
-                directoriesOnly: true,
-                startPath: System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile))
-        };
-        var result = await dialog.ShowDialog<string?>(owner);
+        string? result = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, currentPath: null);
         if (!string.IsNullOrWhiteSpace(result))
             await _viewModel.UploadFolderAsync(result);
     }
