@@ -15,25 +15,27 @@
     <!-- Header piatto -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
-      <Grid ColumnDefinitions="*,Auto,Auto">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
           <TextBlock Text="{DynamicResource Str.Nav.Copy}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,14,0">
-          <i:Icon Value="fa-solid fa-gauge-high" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
-          <NumericUpDown Width="110" Minimum="1" Maximum="1000" Increment="5"
-                         Value="{Binding ThrottleMBps}" IsEnabled="{Binding ThrottleEnabled}" />
-          <TextBlock Text="MB/s" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextMuted}" />
-          <ToggleSwitch IsChecked="{Binding ThrottleEnabled}" ToolTip.Tip="{DynamicResource Str.CopyPairs.ThrottleTooltip}" />
-        </StackPanel>
-        <Button Grid.Column="2" Classes="primary" Command="{Binding AddPairCommand}">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <i:Icon Value="fa-solid fa-plus" />
-            <TextBlock Text="{DynamicResource Str.CopyPairs.AddPair}" />
+        <WrapPanel x:Name="HeaderWrap" HorizontalAlignment="Right">
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,0,8">
+            <i:Icon Value="fa-solid fa-gauge-high" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+            <NumericUpDown Width="110" Minimum="1" Maximum="1000" Increment="5"
+                           Value="{Binding ThrottleMBps}" IsEnabled="{Binding ThrottleEnabled}" />
+            <TextBlock Text="MB/s" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextMuted}" />
+            <ToggleSwitch IsChecked="{Binding ThrottleEnabled}" ToolTip.Tip="{DynamicResource Str.CopyPairs.ThrottleTooltip}" />
           </StackPanel>
-        </Button>
-      </Grid>
+          <Button Classes="primary" Command="{Binding AddPairCommand}" Margin="14,0,0,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-plus" />
+              <TextBlock Text="{DynamicResource Str.CopyPairs.AddPair}" />
+            </StackPanel>
+          </Button>
+        </WrapPanel>
+      </DockPanel>
     </Border>
 
     <!-- Barra profili di copia -->
