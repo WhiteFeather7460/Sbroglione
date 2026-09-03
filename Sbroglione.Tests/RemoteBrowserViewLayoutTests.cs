@@ -45,7 +45,11 @@ public class RemoteBrowserViewLayoutTests
         SetPrivateProperty(vm, nameof(vm.IsConnected), true);
         SetPrivateProperty(vm, nameof(vm.IsDownloading), true);
         view.DataContext = vm;
-        var window = new Window { Content = view, Width = 360, Height = 800 };
+        // TransferWrap now holds only the fixed action buttons (Dock="Right" in a DockPanel,
+        // alongside a fill WrapPanel for the progress/status group) - narrower than the whole
+        // bar's own width, so a much smaller window is needed to force it to wrap, matching the
+        // convention in DiskUsageViewLayoutTests/DuplicatesViewLayoutTests.
+        var window = new Window { Content = view, Width = 100, Height = 800 };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -59,7 +63,7 @@ public class RemoteBrowserViewLayoutTests
         window.Close();
 
         Assert.True(narrowHeight > wideHeight,
-            $"expected transfer bar to wrap at 360px (height={narrowHeight}) vs single row at 1280px (height={wideHeight})");
+            $"expected transfer bar buttons to wrap at 100px (height={narrowHeight}) vs single row at 1280px (height={wideHeight})");
     }
 
     private static void SetPrivateProperty(object target, string propertyName, object value)

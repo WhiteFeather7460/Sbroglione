@@ -151,17 +151,42 @@
     <!-- Barra trasferimenti (in basso) -->
     <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.Card}" Padding="20,10"
             IsVisible="{Binding IsConnected}">
-      <WrapPanel x:Name="TransferWrap">
-        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="0,0,0,8">
-          <ProgressBar Width="180" Minimum="0" Maximum="1" Value="{Binding DownloadProgressValue}"
+      <DockPanel>
+        <WrapPanel x:Name="TransferWrap" DockPanel.Dock="Right" HorizontalAlignment="Right">
+          <Button Classes="primary" Click="OnDownloadDirectoryClick" Margin="0,0,8,8"
+                  IsEnabled="{Binding IsDownloadFolderEnabled}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-folder-tree" />
+              <TextBlock Text="{DynamicResource Str.RemoteBrowser.DownloadDirectory}" />
+            </StackPanel>
+          </Button>
+          <Button Classes="primary" Click="OnUploadFolderClick" Margin="0,0,8,8"
+                  IsEnabled="{Binding IsUploadFolderEnabled}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="fa-solid fa-folder-plus" />
+              <TextBlock Text="{DynamicResource Str.RemoteBrowser.UploadFolder}" />
+            </StackPanel>
+          </Button>
+          <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="0,0,8,8"
+                  Click="OnCancelTransferClick">
+            <Button.IsEnabled>
+              <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                <Binding Path="IsDownloading" />
+                <Binding Path="IsUploading" />
+              </MultiBinding>
+            </Button.IsEnabled>
+          </Button>
+        </WrapPanel>
+        <WrapPanel>
+          <ProgressBar MinWidth="120" MaxWidth="180" HorizontalAlignment="Stretch" Margin="0,0,10,8" Minimum="0" Maximum="1" Value="{Binding DownloadProgressValue}"
                        IsVisible="{Binding IsDownloading}" />
-          <ProgressBar Width="180" Minimum="0" Maximum="1" Value="{Binding UploadProgressValue}"
+          <ProgressBar MinWidth="120" MaxWidth="180" HorizontalAlignment="Stretch" Margin="0,0,10,8" Minimum="0" Maximum="1" Value="{Binding UploadProgressValue}"
                        IsVisible="{Binding IsUploading}" />
-          <TextBlock Text="{Binding DownloadStatusText}" VerticalAlignment="Center"
+          <TextBlock Text="{Binding DownloadStatusText}" VerticalAlignment="Center" Margin="0,0,10,8"
                      Foreground="{DynamicResource Brush.TextMuted}" IsVisible="{Binding IsDownloading}" />
-          <TextBlock Text="{Binding UploadStatusText}" VerticalAlignment="Center"
+          <TextBlock Text="{Binding UploadStatusText}" VerticalAlignment="Center" Margin="0,0,10,8"
                      Foreground="{DynamicResource Brush.TextMuted}" IsVisible="{Binding IsUploading}" />
-          <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"
+          <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="0,0,10,8"
                      Foreground="{DynamicResource Brush.TextMuted}">
             <TextBlock.IsVisible>
               <MultiBinding Converter="{StaticResource NotAny}">
@@ -170,31 +195,8 @@
               </MultiBinding>
             </TextBlock.IsVisible>
           </TextBlock>
-        </StackPanel>
-        <Button Classes="primary" Click="OnDownloadDirectoryClick" Margin="0,0,8,8"
-                IsEnabled="{Binding IsDownloadFolderEnabled}">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <i:Icon Value="fa-solid fa-folder-tree" />
-            <TextBlock Text="{DynamicResource Str.RemoteBrowser.DownloadDirectory}" />
-          </StackPanel>
-        </Button>
-        <Button Classes="primary" Click="OnUploadFolderClick" Margin="0,0,8,8"
-                IsEnabled="{Binding IsUploadFolderEnabled}">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <i:Icon Value="fa-solid fa-folder-plus" />
-            <TextBlock Text="{DynamicResource Str.RemoteBrowser.UploadFolder}" />
-          </StackPanel>
-        </Button>
-        <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="0,0,8,8"
-                Click="OnCancelTransferClick">
-          <Button.IsEnabled>
-            <MultiBinding Converter="{x:Static BoolConverters.Or}">
-              <Binding Path="IsDownloading" />
-              <Binding Path="IsUploading" />
-            </MultiBinding>
-          </Button.IsEnabled>
-        </Button>
-      </WrapPanel>
+        </WrapPanel>
+      </DockPanel>
     </Border>
 
     <!-- Dual-pane: locale (sinistra) + remoto (destra), con splitter e scambio lato (bottone sul divisore) -->

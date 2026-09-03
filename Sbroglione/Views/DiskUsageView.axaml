@@ -19,7 +19,7 @@
     <!-- Barra comandi -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,12">
       <DockPanel>
-        <Button DockPanel.Dock="Left" Classes="iconbtn" Margin="0,0,8,0"
+        <Button DockPanel.Dock="Left" Classes="iconbtn" Margin="0,0,8,8"
                 i:Attached.Icon="fa-solid fa-arrow-up"
                 Command="{Binding NavigateUpCommand}"
                 IsEnabled="{Binding CanNavigateUp}" />
@@ -32,7 +32,7 @@
           <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="8,0,0,8"
                   Command="{Binding CancelScanCommand}" IsEnabled="{Binding IsScanning}" />
         </WrapPanel>
-        <TextBox Margin="8,0" Text="{Binding RootPath}" IsReadOnly="True"
+        <TextBox Margin="0,0,8,8" Text="{Binding RootPath}" IsReadOnly="True"
                  Watermark="{DynamicResource Str.Common.AnalyzeFolderWatermark}" />
       </DockPanel>
     </Border>
