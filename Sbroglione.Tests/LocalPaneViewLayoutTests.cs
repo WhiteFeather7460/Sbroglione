@@ -7,11 +7,6 @@ namespace Sbroglione.Tests;
 
 public class LocalPaneViewLayoutTests
 {
-    static LocalPaneViewLayoutTests()
-    {
-        AvaloniaTestHelper.Initialize();
-    }
-
     [AvaloniaFact]
     public void FilterFlyout_Content_ShrinksInsteadOfForcingFixedWidth()
     {
