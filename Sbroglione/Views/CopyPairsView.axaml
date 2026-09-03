@@ -24,7 +24,7 @@
     <!-- Barra throttle + aggiungi coppia -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}"
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,8">
-      <WrapPanel x:Name="HeaderWrap" HorizontalAlignment="Right">
+      <WrapPanel x:Name="HeaderWrap">
         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,0,8">
           <i:Icon Value="fa-solid fa-gauge-high" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
           <NumericUpDown Width="110" Minimum="1" Maximum="1000" Increment="5"
