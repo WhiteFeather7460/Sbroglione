@@ -23,11 +23,11 @@
                 ToolTip.Tip="{DynamicResource Str.LocalPane.RefreshTooltip}" />
         <TextBox Grid.Column="2" x:Name="PathBox" Margin="8,0,0,0"
                  Text="{Binding CurrentPath, Mode=OneWay}" KeyDown="OnPathBoxKeyDown" />
-        <Button Grid.Column="3" Classes="iconbtn" i:Attached.Icon="fa-solid fa-filter" Margin="6,0,0,0"
+        <Button Grid.Column="3" x:Name="FilterButton" Classes="iconbtn" i:Attached.Icon="fa-solid fa-filter" Margin="6,0,0,0"
                 ToolTip.Tip="{DynamicResource Str.Common.FiltersTooltip}">
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
-              <StackPanel Spacing="8" Width="360">
+              <StackPanel Spacing="8" MaxWidth="360">
                 <Grid ColumnDefinitions="*,110,110">
                   <TextBox Grid.Column="0" Text="{Binding FilterPattern}"
                            Watermark="{DynamicResource Str.Common.FilterNamePatternWatermark}" />
