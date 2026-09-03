@@ -12,7 +12,7 @@ public class DiskUsageViewLayoutTests
     public void CommandWrap_WrapsToMultipleRows_WhenNarrow_AndSingleRow_WhenWide()
     {
         var view = new DiskUsageView();
-        var window = new Window { Content = view, Width = 360, Height = 800 };
+        var window = new Window { Content = view, Width = 200, Height = 800 };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -26,6 +26,6 @@ public class DiskUsageViewLayoutTests
         window.Close();
 
         Assert.True(narrowHeight > wideHeight,
-            $"expected command bar to wrap at 360px (height={narrowHeight}) vs single row at 1280px (height={wideHeight})");
+            $"expected command bar to wrap at 200px (height={narrowHeight}) vs single row at 1280px (height={wideHeight})");
     }
 }
