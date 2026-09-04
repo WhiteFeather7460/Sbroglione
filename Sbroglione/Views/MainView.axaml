@@ -10,6 +10,7 @@
 
   <UserControl.Resources>
     <conv:WidthToTabStripPlacementConverter x:Key="WidthToTabStripPlacement" />
+    <conv:WidthIsWideConverter x:Key="WidthIsWide" />
   </UserControl.Resources>
 
   <Grid RowDefinitions="Auto,*,Auto" Name="RootGrid">
@@ -38,12 +39,20 @@
     </Border>
 
     <TabControl Grid.Row="1" Classes="nav" Padding="0"
+                Classes.nav-bottom="{Binding #RootGrid.Bounds.Width, Converter={StaticResource WidthIsWide}, ConverterParameter=Invert}"
                 TabStripPlacement="{Binding #RootGrid.Bounds.Width, Converter={StaticResource WidthToTabStripPlacement}}">
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Copy}">
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-copy" />
-            <TextBlock Text="{DynamicResource Str.Nav.Copy}" IsVisible="{Binding IsNavExpanded}" />
+            <TextBlock Text="{DynamicResource Str.Nav.Copy}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsNavExpanded" />
+                  <Binding Path="#RootGrid.Bounds.Width" Converter="{StaticResource WidthIsWide}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
         </TabItem.Header>
         <Grid>
@@ -55,7 +64,14 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-server" />
-            <TextBlock Text="{DynamicResource Str.Nav.Remote}" IsVisible="{Binding IsNavExpanded}" />
+            <TextBlock Text="{DynamicResource Str.Nav.Remote}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsNavExpanded" />
+                  <Binding Path="#RootGrid.Bounds.Width" Converter="{StaticResource WidthIsWide}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
         </TabItem.Header>
         <Grid>
@@ -67,7 +83,14 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-code-compare" />
-            <TextBlock Text="{DynamicResource Str.Nav.Compare}" IsVisible="{Binding IsNavExpanded}" />
+            <TextBlock Text="{DynamicResource Str.Nav.Compare}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsNavExpanded" />
+                  <Binding Path="#RootGrid.Bounds.Width" Converter="{StaticResource WidthIsWide}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
         </TabItem.Header>
         <Grid>
@@ -79,7 +102,14 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-rotate" />
-            <TextBlock Text="{DynamicResource Str.Nav.WatchSync}" IsVisible="{Binding IsNavExpanded}" />
+            <TextBlock Text="{DynamicResource Str.Nav.WatchSync}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsNavExpanded" />
+                  <Binding Path="#RootGrid.Bounds.Width" Converter="{StaticResource WidthIsWide}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
         </TabItem.Header>
         <Grid>
@@ -98,7 +128,14 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-clone" />
-            <TextBlock Text="{DynamicResource Str.Nav.Duplicates}" IsVisible="{Binding IsNavExpanded}" />
+            <TextBlock Text="{DynamicResource Str.Nav.Duplicates}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsNavExpanded" />
+                  <Binding Path="#RootGrid.Bounds.Width" Converter="{StaticResource WidthIsWide}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
         </TabItem.Header>
         <Grid>
@@ -110,7 +147,14 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-chart-pie" />
-            <TextBlock Text="{DynamicResource Str.Nav.DiskUsage}" IsVisible="{Binding IsNavExpanded}" />
+            <TextBlock Text="{DynamicResource Str.Nav.DiskUsage}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsNavExpanded" />
+                  <Binding Path="#RootGrid.Bounds.Width" Converter="{StaticResource WidthIsWide}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
         </TabItem.Header>
         <Grid>
@@ -122,7 +166,14 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-gear" />
-            <TextBlock Text="{DynamicResource Str.Nav.Settings}" IsVisible="{Binding IsNavExpanded}" />
+            <TextBlock Text="{DynamicResource Str.Nav.Settings}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="IsNavExpanded" />
+                  <Binding Path="#RootGrid.Bounds.Width" Converter="{StaticResource WidthIsWide}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
           </StackPanel>
         </TabItem.Header>
         <views:SettingsView />
@@ -134,7 +185,8 @@
             Margin="8 0 0 8"
             HorizontalAlignment="Left"
             ToolTip.Tip="{DynamicResource Str.Nav.ToggleMenu}"
-            Command="{Binding ToggleNavCommand}">
+            Command="{Binding ToggleNavCommand}"
+            IsVisible="{Binding #RootGrid.Bounds.Width, Converter={StaticResource WidthIsWide}}">
       <i:Icon Value="fa-solid fa-bars" />
     </Button>
   </Grid>
