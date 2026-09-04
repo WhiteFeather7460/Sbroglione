@@ -41,9 +41,8 @@ attuale, solo una è reale lavoro:
 
 1. **`WatchFolderForegroundService` — 4 fix di robustezza** prima di considerare
    il foreground service pronto per la verifica manuale finale.
-2. **Tasto Back hardware Android** — non instradato (solo Escape/Backspace via
-   tastiera), serve routing da `MainActivity.OnBackPressed` a `OverlayDialogHost`/
-   navigazione.
+2. **Tasto Back hardware Android** — comportamento incerto, da verificare (non
+   da implementare a scatola chiusa — vedi sezione 2).
 3. **Verifica manuale finale end-to-end** (fuori da questo spec di codice, ma è
    il criterio di uscita della fase — vedi sezione dedicata).
 
@@ -83,18 +82,18 @@ Concern noti dalla Fase 3, in `Sbroglione.Android/WatchFolderForegroundService.c
   (fallback quando `LocalizationService` non è ancora inizializzato) — non è un
   bug, resta com'è, nessuna azione.
 
-## 2. Tasto Back hardware Android
+## 2. Tasto Back hardware Android — verifica, non implementazione certa
 
-`MainActivity` non sovrascrive `OnBackPressed`: il tasto Back di sistema non è
-instradato a nulla lato Avalonia (solo Escape/Backspace via tastiera sono
-mappati, inutili senza tastiera fisica). Serve:
-
-- Override `OnBackPressed` in `MainActivity` che, se un dialog overlay
-  (`OverlayDialogHost`) è aperto, lo chiude (equivalente ad Annulla) invece di
-  uscire dall'app o propagare al sistema.
-- Se nessun overlay è aperto, comportamento di default Android (torna alla
-  Home / esce dall'app) — nessuna navigazione custom da costruire ora, fuori
-  scope.
+`OverlayDialogHost.OnKeyDown` (righe 93-102) già tratta `Key.Back` come Annulla,
+con commento esplicito "tasto Back su Android quando il backend lo instrada
+come key event": il codice per il caso overlay-aperto esiste già, ma non è
+verificato se il backend Avalonia-Android instrada davvero il tasto Back
+hardware come `KeyDown(Key.Back)` (non c'è `OnBackPressed` override in
+`MainActivity`, quindi si dipende dal comportamento di default del backend).
+**Nessun task di codice in questo spec**: si verifica nella sezione 3. Se la
+verifica manuale mostra che il Back hardware non arriva come key event, servirà
+un override `OnBackPressed` in `MainActivity` — ma è lavoro da pianificare
+*dopo* aver osservato il comportamento reale, non ora a scatola chiusa.
 
 ## 3. Verifica manuale finale (criterio di uscita, non di codice)
 
