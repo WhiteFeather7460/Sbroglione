@@ -129,8 +129,16 @@ public sealed class WatchFolderForegroundService : Service
                         // Riavvio sticky del sistema con zero regole abilitate: nessun runner
                         // avviato, quindi niente da sincronizzare. Fermarsi invece di restare
                         // vivi indefinitamente con una notifica persistente e inutile.
-                        if (started == 0)
-                            StopSelf();
+                        //
+                        // started == 0 può però essere una lettura stantia: StartAllEnabledRules
+                        // ricarica le regole da disco, e se un runner è stato appena avviato da
+                        // fuori (es. WatchFoldersViewModel.ApplyRunnerState sul thread UI) prima
+                        // che il salvataggio async delle regole sia arrivato su disco, questa
+                        // Load() vede zero regole abilitate mentre un runner live esiste già.
+                        // ActiveRuleIds riflette lo stato dei runner in memoria, non il file:
+                        // se non è vuoto, un runner è comunque vivo e non va fermato.
+                        if (started == 0 && WatchFolderService.ActiveRuleIds.Count == 0)
+                            StopSelfResult(startId);
                     }
                 }
                 catch (Exception)
