@@ -199,12 +199,16 @@
       </DockPanel>
     </Border>
 
-    <!-- Dual-pane: locale (sinistra) + remoto (destra), con splitter e scambio lato (bottone sul divisore) -->
+    <!-- Dual-pane: locale + remoto, con splitter e scambio lato (bottone sul divisore).
+         Layout a colonne affiancate su schermi larghi; sotto DualPaneNarrowBreakpoint
+         (vedi code-behind) passa a righe impilate, altrimenti su schermi stretti (es.
+         telefono) le colonne di ogni DataGrid si schiacciano fino a non mostrare più
+         i nomi dei file. -->
     <Grid x:Name="DualPaneGrid" ColumnDefinitions="*,28,*" Margin="20,0,20,4">
       <ContentControl Grid.Column="0" x:Name="LeftPaneHost" />
-      <GridSplitter Grid.Column="1" Width="28" HorizontalAlignment="Stretch"
+      <GridSplitter x:Name="PaneSplitter" Grid.Column="1" Width="28" HorizontalAlignment="Stretch"
                     Background="{DynamicResource Brush.CardBorder}" />
-      <Button Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-right-left" Click="OnSwapPanesClick"
+      <Button x:Name="SwapPanesButton" Grid.Column="1" Classes="iconbtn" i:Attached.Icon="fa-solid fa-right-left" Click="OnSwapPanesClick"
               HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8,0,0"
               IsVisible="{Binding IsConnected}"
               ToolTip.Tip="{DynamicResource Str.RemoteBrowser.SwapPanesTooltip}" />

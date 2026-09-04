@@ -25,10 +25,21 @@ public partial class RemotePanelContent : UserControl
     /// doppio click su un file remoto di scaricarlo nella cartella locale corrente.</summary>
     public Func<string>? GetLocalCurrentPath { get; set; }
 
+    // Colonne fisse (icona 44 + size 110 + modified 150 + su disco 120 = 424) che sotto
+    // questa larghezza non lascerebbero più spazio alla colonna nome ("*"): si nascondono
+    // "Data modifica" e "Su disco" per ridare respiro al nome file.
+    private const double NarrowGridBreakpoint = 600;
+
     public RemotePanelContent()
     {
         InitializeComponent();
         RemoteGrid.AddHandler(InputElement.PointerPressedEvent, OnGridPointerPressedPreview, RoutingStrategies.Tunnel);
+        RemoteGrid.SizeChanged += (_, e) =>
+        {
+            bool showSecondaryColumns = e.NewSize.Width >= NarrowGridBreakpoint;
+            RemoteGrid.Columns[3].IsVisible = showSecondaryColumns;
+            RemoteGrid.Columns[4].IsVisible = showSecondaryColumns;
+        };
     }
 
     /// <summary>Intercetta il click in fase di tunnel, prima che il DataGrid applichi la sua

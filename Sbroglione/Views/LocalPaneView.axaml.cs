@@ -21,6 +21,11 @@ public partial class LocalPaneView : UserControl
     {
     }
 
+    // Sotto questa larghezza le colonne fisse (icona 36 + size 90 + modified 140) non
+    // lasciano più spazio alla colonna nome ("*"): si nasconde "Data modifica" per
+    // ridare respiro al nome file.
+    private const double NarrowGridBreakpoint = 420;
+
     public LocalPaneView(string startPath)
     {
         InitializeComponent();
@@ -28,6 +33,8 @@ public partial class LocalPaneView : UserControl
         DataContext = ViewModel;
         Loaded += async (_, _) => await ViewModel.RefreshAsync();
         LocalGrid.AddHandler(InputElement.PointerPressedEvent, OnGridPointerPressedPreview, RoutingStrategies.Tunnel);
+        LocalGrid.SizeChanged += (_, e) =>
+            LocalGrid.Columns[3].IsVisible = e.NewSize.Width >= NarrowGridBreakpoint;
     }
 
     /// <summary>Intercetta il click in fase di tunnel, prima che il DataGrid applichi la sua
