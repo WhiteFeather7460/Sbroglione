@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.whitefeather.sbroglione">
-  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
-  <application android:label="Sbroglione" android:allowBackup="true" android:icon="@drawable/icon">
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Foreground service dei runner watch-folder (WatchFolderForegroundService). Il tag
+       <service> non è qui: lo genera l'attributo [Service] sulla classe a build time.
+       FOREGROUND_SERVICE_DATA_SYNC è il tipo richiesto da Android 14 (targetSdk 34) per un
+       servizio che trasferisce dati fra sorgente e destinazione su richiesta dell'utente.
+       POST_NOTIFICATIONS è runtime da Android 13: senza, il service gira comunque ma la sua
+       notifica persistente non viene mostrata. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- "All files access": vedi docs/superpowers/plans/2026-09-01-android-fase4-storage-decision.md
+       per la motivazione (SAF non ha risoluzione per percorso, incompatibile con l'architettura
+       dell'app). Concesso dall'utente in una pagina di Impostazioni di sistema, non al momento
+       dell'installazione: la sola dichiarazione qui non basta, va richiesto a runtime
+       (StoragePermission.RequestFromSettings). -->
+  <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+  <application android:label="Sbroglione" android:allowBackup="true" android:icon="@drawable/icon"
+               android:usesCleartextTraffic="true">
   </application>
 </manifest>

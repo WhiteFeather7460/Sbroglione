@@ -17,6 +17,8 @@ public class MainWindowViewModel : ViewModelBase
     private double _updateProgress;
     private string? _updateErrorMessage;
     private UpdateInfo? _pendingUpdate;
+    private bool _isWatchFolderSupported = true;
+    private bool _isStorageAccessGranted = true;
 
     public MainWindowViewModel()
     {
@@ -24,6 +26,7 @@ public class MainWindowViewModel : ViewModelBase
         ToggleNavCommand = ReactiveCommand.CreateFromTask(ToggleNavAsync);
         UpdateCommand = ReactiveCommand.CreateFromTask(ApplyUpdateAsync);
         DismissUpdateCommand = ReactiveCommand.CreateFromTask(DismissUpdateAsync);
+        RequestStorageAccessCommand = ReactiveCommand.Create(() => App.RequestStorageAccess?.Invoke());
     }
 
     public bool IsNavExpanded
@@ -73,9 +76,33 @@ public class MainWindowViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _updateErrorMessage, value);
     }
 
+    /// <summary>
+    /// False quando l'app gira su <c>ISingleViewApplicationLifetime</c> (Android):
+    /// <see cref="Services.WatchFolderService"/> non viene avviato lì (nessun foreground
+    /// service in questa fase — vedi piano Fase 2C), quindi la tab mostra un banner
+    /// esplicativo invece della UI di gestione regole.
+    /// </summary>
+    public bool IsWatchFolderSupported
+    {
+        get => _isWatchFolderSupported;
+        set => this.RaiseAndSetIfChanged(ref _isWatchFolderSupported, value);
+    }
+
+    /// <summary>
+    /// True su desktop (nessun permesso richiesto) e su Android quando l'utente ha concesso
+    /// "All files access". False su Android prima della concessione: la shell mostra un banner
+    /// al posto delle tab che richiedono accesso ai file.
+    /// </summary>
+    public bool IsStorageAccessGranted
+    {
+        get => _isStorageAccessGranted;
+        set => this.RaiseAndSetIfChanged(ref _isStorageAccessGranted, value);
+    }
+
     public ReactiveCommand<Unit, Unit> ToggleNavCommand { get; }
     public ReactiveCommand<Unit, Unit> UpdateCommand { get; }
     public ReactiveCommand<Unit, Unit> DismissUpdateCommand { get; }
+    public ReactiveCommand<Unit, Unit> RequestStorageAccessCommand { get; }
 
     internal async Task ToggleNavAsync()
     {

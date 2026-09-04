@@ -15,53 +15,62 @@
     <!-- Header piatto -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,14">
-      <Grid ColumnDefinitions="*,Auto,Auto">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
-          <TextBlock Text="{DynamicResource Str.Nav.Copy}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
-        </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,14,0">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <i:Icon Value="fa-solid fa-copy" FontSize="20" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock Text="{DynamicResource Str.Nav.Copy}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <!-- Barra throttle + aggiungi coppia -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}"
+            BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,8">
+      <WrapPanel x:Name="HeaderWrap">
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,0,8">
           <i:Icon Value="fa-solid fa-gauge-high" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
           <NumericUpDown Width="110" Minimum="1" Maximum="1000" Increment="5"
                          Value="{Binding ThrottleMBps}" IsEnabled="{Binding ThrottleEnabled}" />
           <TextBlock Text="MB/s" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextMuted}" />
           <ToggleSwitch IsChecked="{Binding ThrottleEnabled}" ToolTip.Tip="{DynamicResource Str.CopyPairs.ThrottleTooltip}" />
         </StackPanel>
-        <Button Grid.Column="2" Classes="primary" Command="{Binding AddPairCommand}">
+        <Button Classes="primary" Command="{Binding AddPairCommand}" Margin="14,0,0,8">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <i:Icon Value="fa-solid fa-plus" />
             <TextBlock Text="{DynamicResource Str.CopyPairs.AddPair}" />
           </StackPanel>
         </Button>
-      </Grid>
+      </WrapPanel>
     </Border>
 
     <!-- Barra profili di copia -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Card}"
             BorderBrush="{DynamicResource Brush.CardBorder}" BorderThickness="0,0,0,1" Padding="20,8">
-      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <i:Icon Value="fa-solid fa-bookmark" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
-        <TextBlock Text="{DynamicResource Str.CopyPairs.ProfileLabel}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
-        <ComboBox Width="220" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
-                  PlaceholderText="{DynamicResource Str.CopyPairs.NoProfile}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate>
-              <TextBlock Text="{Binding Name}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-floppy-disk"
-                Command="{Binding SaveProfileCommand}"
-                ToolTip.Tip="{DynamicResource Str.CopyPairs.SaveProfileTooltip}" />
-        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-folder-open"
-                Command="{Binding ApplyProfileCommand}"
-                IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
-                ToolTip.Tip="{DynamicResource Str.CopyPairs.ApplyProfileTooltip}" />
-        <Button Classes="iconbtn" i:Attached.Icon="fa-solid fa-trash"
-                Command="{Binding DeleteProfileCommand}"
-                IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
-                ToolTip.Tip="{DynamicResource Str.CopyPairs.DeleteProfileTooltip}" />
-      </StackPanel>
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,10,0">
+          <i:Icon Value="fa-solid fa-bookmark" Foreground="{DynamicResource Brush.TextMuted}" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource Str.CopyPairs.ProfileLabel}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextPrimary}" />
+        </StackPanel>
+        <WrapPanel>
+          <ComboBox MinWidth="140" MaxWidth="220" Margin="0,0,8,8" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
+                    PlaceholderText="{DynamicResource Str.CopyPairs.NoProfile}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <Button Classes="iconbtn" Margin="0,0,8,8" i:Attached.Icon="fa-solid fa-floppy-disk"
+                  Command="{Binding SaveProfileCommand}"
+                  ToolTip.Tip="{DynamicResource Str.CopyPairs.SaveProfileTooltip}" />
+          <Button Classes="iconbtn" Margin="0,0,8,8" i:Attached.Icon="fa-solid fa-folder-open"
+                  Command="{Binding ApplyProfileCommand}"
+                  IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  ToolTip.Tip="{DynamicResource Str.CopyPairs.ApplyProfileTooltip}" />
+          <Button Classes="iconbtn" Margin="0,0,0,8" i:Attached.Icon="fa-solid fa-trash"
+                  Command="{Binding DeleteProfileCommand}"
+                  IsEnabled="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  ToolTip.Tip="{DynamicResource Str.CopyPairs.DeleteProfileTooltip}" />
+        </WrapPanel>
+      </DockPanel>
     </Border>
 
     <Panel Background="{DynamicResource Brush.Surface}">
@@ -149,13 +158,13 @@
                             IsChecked="{Binding ClearDestinationBeforeCopy}"
                             IsEnabled="{Binding !IsCopying}" />
 
-                  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <WrapPanel>
                     <TextBlock Text="{DynamicResource Str.CopyPairs.ExtensionFilterLabel}"
-                               VerticalAlignment="Center"
+                               VerticalAlignment="Center" Margin="0,0,8,8"
                                Foreground="{DynamicResource Brush.TextMuted}" />
                     <ComboBox SelectedItem="{Binding ExtensionFilterMode}"
                               IsEnabled="{Binding !IsCopying}"
-                              MinWidth="120">
+                              MinWidth="120" Margin="0,0,8,8">
                       <ComboBox.Items>
                         <models:ExtensionFilterMode>None</models:ExtensionFilterMode>
                         <models:ExtensionFilterMode>Whitelist</models:ExtensionFilterMode>
@@ -166,38 +175,39 @@
                              Watermark="{DynamicResource Str.CopyPairs.ExtensionFilterWatermark}"
                              IsVisible="{Binding IsExtensionFilterActive}"
                              IsEnabled="{Binding !IsCopying}"
-                             Width="220" />
-                  </StackPanel>
+                             MinWidth="140" MaxWidth="220" Margin="0,0,0,8" />
+                  </WrapPanel>
 
                   <!-- Stato + comandi -->
-                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                      <ProgressBar Width="200" Minimum="0" Maximum="1" Value="{Binding Progress}" VerticalAlignment="Center" />
-                      <Border Classes="badge"
+                  <DockPanel Margin="0,4,0,0">
+                    <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                      <Button Classes="iconbtn" Margin="0,0,8,8"
+                              i:Attached.Icon="fa-solid fa-flask"
+                              Command="{Binding DataContext.SimulateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding CanAttempt}"
+                              ToolTip.Tip="{DynamicResource Str.CopyPairs.SimulateTooltip}" />
+                      <Button Classes="primary" Content="{DynamicResource Str.CopyPairs.Start}" Margin="0,0,8,8"
+                              Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding CanAttempt}" />
+                      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="0,0,0,8"
+                              Command="{Binding DataContext.CancelCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding IsCopying}" />
+                    </WrapPanel>
+                    <WrapPanel>
+                      <ProgressBar MinWidth="100" MaxWidth="200" HorizontalAlignment="Stretch"
+                                   Minimum="0" Maximum="1" Value="{Binding Progress}" VerticalAlignment="Center" Margin="0,0,10,8" />
+                      <Border Classes="badge" Margin="0,0,0,8"
                               Classes.success="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Success}"
                               Classes.warning="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Warning}"
                               Classes.error="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Error}"
                               Classes.progress="{Binding StateKind, Converter={StaticResource EnumEquals}, ConverterParameter=Copying}">
                         <TextBlock Text="{Binding Status}" />
                       </Border>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                      <Button Classes="iconbtn"
-                              i:Attached.Icon="fa-solid fa-flask"
-                              Command="{Binding DataContext.SimulateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                              CommandParameter="{Binding}"
-                              IsEnabled="{Binding CanAttempt}"
-                              ToolTip.Tip="{DynamicResource Str.CopyPairs.SimulateTooltip}" />
-                      <Button Classes="primary" Content="{DynamicResource Str.CopyPairs.Start}"
-                              Command="{Binding DataContext.StartCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                              CommandParameter="{Binding}"
-                              IsEnabled="{Binding CanAttempt}" />
-                      <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}"
-                              Command="{Binding DataContext.CancelCopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                              CommandParameter="{Binding}"
-                              IsEnabled="{Binding IsCopying}" />
-                    </StackPanel>
-                  </Grid>
+                    </WrapPanel>
+                  </DockPanel>
 
                   <!-- Velocità di copia (sparkline + testo) -->
                   <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding SpeedText, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -283,7 +293,8 @@
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               MaxHeight="220"
-                              Margin="0,5,0,0">
+                              Margin="0,5,0,0"
+                              SizeChanged="OnFilesGridSizeChanged">
                       <DataGrid.Columns>
                         <DataGridTemplateColumn Width="44">
                           <DataGridTemplateColumn.CellTemplate>

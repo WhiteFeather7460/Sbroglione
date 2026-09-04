@@ -1,28 +1,35 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Avalonia.Controls.ApplicationLifetimes;
+
+using Sbroglione.Services;
 using Sbroglione.Views;
 
 namespace Sbroglione.ViewModels;
 
-/// <summary>Apertura del dialog di selezione percorso, condivisa tra le schede.</summary>
+/// <summary>
+/// Apertura del dialog di selezione percorso, condivisa tra le schede.
+/// <see cref="Override"/> permette ai test (senza UI) di simulare la scelta dell'utente.
+/// </summary>
 internal static class SelectPathDialogHelper
 {
+    /// <summary>Solo per i test: se impostato, sostituisce il dialog reale. Ripristinare a null in Dispose.</summary>
+    internal static Func<bool, string?, bool, Task<string?>>? Override { get; set; }
+
     public static async Task<string?> ShowAsync(bool directoriesOnly, string? currentPath, bool filesOnly = false)
     {
-        var dialog = new SelectPathDialog
-        {
-            DataContext = new SelectPathDialogViewModel(
+        if (Override is not null)
+            return await Override(directoriesOnly, currentPath, filesOnly);
+
+        // Senza host non c'è selezione: nessuna azione. Il dialogo viene costruito dal presenter
+        // solo sul ramo effettivamente usato, mai per essere subito abbandonato.
+        return await DialogPresenter.ShowAsync<SelectPathDialogContent, string?>(
+            () => new SelectPathDialog(),
+            () => new SelectPathDialogContent(),
+            new SelectPathDialogViewModel(
                 directoriesOnly,
                 ResolveStartDirectory(currentPath),
-                filesOnly)
-        };
-
-        if ((App.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } owner)
-            return null;
-
-        return await dialog.ShowDialog<string?>(owner);
+                filesOnly));
     }
 
     /// <summary>
@@ -33,12 +40,12 @@ internal static class SelectPathDialogHelper
     private static string ResolveStartDirectory(string? currentPath)
     {
         if (string.IsNullOrEmpty(currentPath))
-            return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return PlatformPaths.DefaultRootPath;
 
         if (File.Exists(currentPath))
             return Path.GetDirectoryName(currentPath) is { Length: > 0 } dir
                 ? dir
-                : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                : PlatformPaths.DefaultRootPath;
 
         return currentPath;
     }

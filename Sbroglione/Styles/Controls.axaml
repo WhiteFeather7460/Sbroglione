@@ -159,6 +159,21 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
   </Style>
 
+  <!-- Bottom-nav mobile (TabStripPlacement=Bottom sotto i 600px, vedi WidthIsWideConverter):
+       una riga unica di icone equidistanti al posto della griglia sghemba che il WrapPanel
+       di default produce quando le 7 tab non ci stanno affiancate con le label. -->
+  <Style Selector="TabControl.nav.nav-bottom">
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <UniformGrid Rows="1" />
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="TabControl.nav.nav-bottom TabItem">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Padding" Value="4 8" />
+  </Style>
+
   <!-- Liste di card virtualizzate (es. gruppi duplicati) senza cromo di selezione -->
   <Style Selector="ListBox.cards">
     <Setter Property="Background" Value="Transparent" />

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.VisualTree;
 using ReactiveUI;
 using Sbroglione.Models;
 using Sbroglione.Services;
@@ -22,6 +21,12 @@ public partial class RemoteBrowserView : UserControl
     private readonly LocalPaneView _localPane;
     private readonly RemotePanelContent _remotePane;
     private bool _leftIsLocal;
+    private bool? _isNarrowDualPane;
+
+    // Sotto questa larghezza le colonne del DataGrid di ogni pannello (icona/nome/size/data)
+    // si schiacciano fino a non mostrare più il nome file: si passa da fianco-a-fianco a righe
+    // impilate cosa' ogni pannello ha di nuovo tutta la larghezza disponibile.
+    private const double DualPaneNarrowBreakpoint = 700;
 
     public RemoteBrowserView()
     {
@@ -49,6 +54,8 @@ public partial class RemoteBrowserView : UserControl
         LeftPaneHost.Content = _localPane;
         RightPaneHost.Content = _remotePane;
 
+        DualPaneGrid.SizeChanged += (_, e) => UpdateDualPaneLayout(e.NewSize.Width);
+
         // Loaded riscatta a ogni rientro della view nel visual tree (cambio scheda):
         // LoadProfilesAsync è idempotente, quindi solo la prima esecuzione carica davvero
         // e una connessione attiva non viene mai azzerata da un cambio scheda.
@@ -75,17 +82,7 @@ public partial class RemoteBrowserView : UserControl
 
     private async void OnUploadFolderClick(object? sender, RoutedEventArgs e)
     {
-        var owner = this.FindAncestorOfType<Window>();
-        if (owner is null)
-            return;
-
-        var dialog = new SelectPathDialog
-        {
-            DataContext = new SelectPathDialogViewModel(
-                directoriesOnly: true,
-                startPath: System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile))
-        };
-        var result = await dialog.ShowDialog<string?>(owner);
+        string? result = await SelectPathDialogHelper.ShowAsync(directoriesOnly: true, currentPath: null);
         if (!string.IsNullOrWhiteSpace(result))
             await _viewModel.UploadFolderAsync(result);
     }
@@ -111,12 +108,7 @@ public partial class RemoteBrowserView : UserControl
     /// </summary>
     private async Task ManageProfileAsync(ConnectionProfile profile, bool isNew)
     {
-        var owner = this.FindAncestorOfType<Window>();
-        if (owner is null)
-            return;
-
-        var editor = new ProfileEditorWindow(new ProfileEditorViewModel(profile, _credentialStore));
-        bool saved = await editor.ShowDialog<bool>(owner);
+        bool saved = await ProfileEditorHelper.ShowAsync(profile, _credentialStore);
 
         if (saved)
         {
@@ -138,5 +130,50 @@ public partial class RemoteBrowserView : UserControl
         _leftIsLocal = !_leftIsLocal;
         LeftPaneHost.Content = _leftIsLocal ? (object)_localPane : _remotePane;
         RightPaneHost.Content = _leftIsLocal ? (object)_remotePane : _localPane;
+    }
+
+    private void UpdateDualPaneLayout(double width)
+    {
+        bool narrow = width > 0 && width < DualPaneNarrowBreakpoint;
+        if (_isNarrowDualPane == narrow)
+            return;
+        _isNarrowDualPane = narrow;
+
+        if (narrow)
+        {
+            DualPaneGrid.ColumnDefinitions = new ColumnDefinitions("*");
+            DualPaneGrid.RowDefinitions = new RowDefinitions("*,Auto,*");
+
+            Grid.SetColumn(LeftPaneHost, 0);
+            Grid.SetRow(LeftPaneHost, 0);
+            Grid.SetColumn(RightPaneHost, 0);
+            Grid.SetRow(RightPaneHost, 2);
+
+            PaneSplitter.IsVisible = false;
+            Grid.SetColumn(SwapPanesButton, 0);
+            Grid.SetRow(SwapPanesButton, 1);
+            SwapPanesButton.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+            SwapPanesButton.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+            SwapPanesButton.Margin = new Avalonia.Thickness(0, 4, 0, 4);
+        }
+        else
+        {
+            DualPaneGrid.ColumnDefinitions = new ColumnDefinitions("*,28,*");
+            DualPaneGrid.RowDefinitions = new RowDefinitions("*");
+
+            Grid.SetColumn(LeftPaneHost, 0);
+            Grid.SetRow(LeftPaneHost, 0);
+            Grid.SetColumn(RightPaneHost, 2);
+            Grid.SetRow(RightPaneHost, 0);
+
+            PaneSplitter.IsVisible = true;
+            Grid.SetColumn(PaneSplitter, 1);
+            Grid.SetRow(PaneSplitter, 0);
+            Grid.SetColumn(SwapPanesButton, 1);
+            Grid.SetRow(SwapPanesButton, 0);
+            SwapPanesButton.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+            SwapPanesButton.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
+            SwapPanesButton.Margin = new Avalonia.Thickness(0, 8, 0, 0);
+        }
     }
 }

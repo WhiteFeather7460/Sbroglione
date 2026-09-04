@@ -264,4 +264,132 @@ public sealed class FileSystemServiceTests : IDisposable
         var result = await FileSystemService.CheckUncRootAccessAsync(Path.Combine(_root, "does-not-exist"));
         Assert.Equal(UncAccessResult.Unavailable, result);
     }
+
+    [Fact]
+    public void GetPathType_UsesConfiguredAccessor()
+    {
+        var fake = new FakeFileSystemAccessor(existingFiles: new[] { "/fake/a.txt" });
+        FileSystemService.Accessor = fake;
+        try
+        {
+            PathType result = FileSystemService.GetPathType("/fake/a.txt");
+
+            Assert.Equal(PathType.File, result);
+        }
+        finally
+        {
+            FileSystemService.Accessor = new DefaultFileSystemAccessor();
+        }
+    }
+
+    [Fact]
+    public async Task CreateDirectoryAsync_UsesConfiguredAccessor()
+    {
+        var fake = new FakeFileSystemAccessor();
+        FileSystemService.Accessor = fake;
+        try
+        {
+            ListingError? error = await FileSystemService.CreateDirectoryAsync("/fake", "newdir");
+
+            Assert.Null(error);
+            Assert.Contains(Path.Combine("/fake", "newdir"), fake.CreateDirectoryCalls);
+        }
+        finally
+        {
+            FileSystemService.Accessor = new DefaultFileSystemAccessor();
+        }
+    }
+
+    [Fact]
+    public async Task RenameAsync_UsesConfiguredAccessor()
+    {
+        var fake = new FakeFileSystemAccessor(existingDirectories: new[] { "/fake/dir" });
+        FileSystemService.Accessor = fake;
+        try
+        {
+            ListingError? error = await FileSystemService.RenameAsync("/fake/dir", "renamed");
+
+            Assert.Null(error);
+            Assert.Contains(("/fake/dir", Path.Combine("/fake", "renamed")), fake.MoveDirectoryCalls);
+        }
+        finally
+        {
+            FileSystemService.Accessor = new DefaultFileSystemAccessor();
+        }
+    }
+
+    [Fact]
+    public async Task DeleteAsync_UsesConfiguredAccessor()
+    {
+        var fake = new FakeFileSystemAccessor(existingFiles: new[] { "/fake/a.txt" });
+        FileSystemService.Accessor = fake;
+        try
+        {
+            ListingError? error = await FileSystemService.DeleteAsync("/fake/a.txt");
+
+            Assert.Null(error);
+            Assert.Contains("/fake/a.txt", fake.DeleteFileCalls);
+        }
+        finally
+        {
+            FileSystemService.Accessor = new DefaultFileSystemAccessor();
+        }
+    }
+}
+
+internal sealed class FakeFileSystemAccessor : IFileSystemAccessor
+{
+    private readonly HashSet<string> _files;
+    private readonly HashSet<string> _directories;
+
+    public List<string> CreateDirectoryCalls { get; } = new();
+    public List<string> DeleteFileCalls { get; } = new();
+    public List<(string Path, bool Recursive)> DeleteDirectoryCalls { get; } = new();
+    public List<(string Source, string Destination)> MoveDirectoryCalls { get; } = new();
+    public List<(string Source, string Destination)> MoveFileCalls { get; } = new();
+
+    public FakeFileSystemAccessor(IEnumerable<string>? existingFiles = null, IEnumerable<string>? existingDirectories = null)
+    {
+        _files = new HashSet<string>(existingFiles ?? Array.Empty<string>());
+        _directories = new HashSet<string>(existingDirectories ?? Array.Empty<string>());
+    }
+
+    public bool FileExists(string path) => _files.Contains(path);
+    public bool DirectoryExists(string path) => _directories.Contains(path);
+    public string[] EnumerateFileNames(string directoryPath) => Array.Empty<string>();
+    public string[] EnumerateDirectoryNames(string directoryPath) => Array.Empty<string>();
+    public IReadOnlyList<FileSystemItem> EnumerateEntries(string directoryPath, bool directoriesOnly) => Array.Empty<FileSystemItem>();
+    public IReadOnlyList<FileSystemItem> EnumerateEntriesRecursive(string directoryPath) => Array.Empty<FileSystemItem>();
+
+    public void CreateDirectory(string path)
+    {
+        CreateDirectoryCalls.Add(path);
+        _directories.Add(path);
+    }
+
+    public void DeleteFile(string path)
+    {
+        DeleteFileCalls.Add(path);
+        _files.Remove(path);
+    }
+
+    public void DeleteDirectory(string path, bool recursive)
+    {
+        DeleteDirectoryCalls.Add((path, recursive));
+        _directories.Remove(path);
+    }
+
+    public void MoveDirectory(string sourcePath, string destinationPath)
+    {
+        MoveDirectoryCalls.Add((sourcePath, destinationPath));
+        _directories.Remove(sourcePath);
+        _directories.Add(destinationPath);
+    }
+
+    public void MoveFile(string sourcePath, string destinationPath)
+    {
+        MoveFileCalls.Add((sourcePath, destinationPath));
+        _files.Remove(sourcePath);
+        _files.Add(destinationPath);
+    }
 }

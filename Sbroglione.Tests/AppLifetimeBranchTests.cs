@@ -1,10 +1,17 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Threading.Tasks;
 
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Headless.XUnit;
+using Avalonia.Styling;
 
 using Sbroglione;
+using Sbroglione.Models;
+using Sbroglione.Services;
+using Sbroglione.Views;
 
 using Xunit;
 
@@ -47,8 +54,8 @@ file class FakeSingleViewLifetime : DispatchProxy
 
 public class AppLifetimeBranchTests
 {
-    [Fact]
-    public void OnFrameworkInitializationCompleted_WithSingleViewLifetime_SetsMainView()
+    [AvaloniaFact]
+    public void OnFrameworkInitializationCompleted_WithSingleViewLifetime_SetsMainViewToMainView()
     {
         var app = new App();
         var (lifetime, fake) = FakeSingleViewLifetime.Create();
@@ -56,6 +63,35 @@ public class AppLifetimeBranchTests
 
         app.OnFrameworkInitializationCompleted();
 
-        Assert.NotNull(fake.MainView);
+        Assert.IsType<MainView>(fake.MainView);
+    }
+
+    [AvaloniaFact]
+    public async Task OnFrameworkInitializationCompleted_WithSingleViewLifetime_AppliesSavedThemeVariant()
+    {
+        AppSettings originalCurrent = AppSettingsStore.Current;
+        string originalCurrentPath = AppSettingsStore.CurrentPath;
+        string tempPath = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
+            "fe-applifetime-" + Guid.NewGuid().ToString("N"),
+            "settings.json");
+        try
+        {
+            await AppSettingsStore.SaveAsync(tempPath, new AppSettings { ThemeVariant = "Dark" });
+            AppSettingsStore.CurrentPath = tempPath;
+
+            var app = new App();
+            var (lifetime, _) = FakeSingleViewLifetime.Create();
+            app.ApplicationLifetime = lifetime;
+
+            app.OnFrameworkInitializationCompleted();
+
+            Assert.Equal(ThemeVariant.Dark, app.RequestedThemeVariant);
+        }
+        finally
+        {
+            AppSettingsStore.Current = originalCurrent;
+            AppSettingsStore.CurrentPath = originalCurrentPath;
+        }
     }
 }

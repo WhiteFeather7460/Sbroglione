@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sbroglione.ViewModels"
+             x:Class="Sbroglione.Views.StorageAccessBanner"
+             x:DataType="vm:MainWindowViewModel">
+
+  <!-- Onboarding Android: senza "All files access" le tab che leggono lo storage non
+       possono funzionare, quindi ognuna mostra questo banner al posto del proprio
+       contenuto. La tab Impostazioni non lo usa: lingua e tema vivono in
+       ApplicationData (storage privato dell'app), che non richiede il permesso. -->
+  <Border Classes="card" Margin="16" Padding="24"
+          HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420">
+    <StackPanel Spacing="12" HorizontalAlignment="Center">
+      <TextBlock Text="{DynamicResource Str.Storage.PermissionNeededTitle}"
+                 FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"
+                 Foreground="{DynamicResource Brush.TextPrimary}" />
+      <TextBlock Text="{DynamicResource Str.Storage.PermissionNeededMessage}"
+                 TextWrapping="Wrap" HorizontalAlignment="Center"
+                 Foreground="{DynamicResource Brush.TextMuted}" />
+      <Button Classes="primary" Content="{DynamicResource Str.Storage.OpenSettingsButton}"
+              Command="{Binding RequestStorageAccessCommand}" HorizontalAlignment="Center" />
+    </StackPanel>
+  </Border>
+
+</UserControl>

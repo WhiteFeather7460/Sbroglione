@@ -102,6 +102,44 @@ public static class WatchFolderService
     }
 
     /// <summary>
+    /// Avvia i runner di tutte le regole abilitate. Punto d'ingresso unico condiviso tra
+    /// l'avvio desktop (<c>App.OnFrameworkInitializationCompleted</c>) e l'host di background
+    /// Android (<c>WatchFolderForegroundService</c>): senza, le due piattaforme avrebbero due
+    /// copie dello stesso loop, libere di divergere.
+    /// Non lancia mai: una singola regola malata non deve impedire l'avvio delle altre.
+    /// </summary>
+    /// <param name="rules">
+    /// Regole da considerare; se <c>null</c> vengono caricate da <see cref="WatchRuleStore.Load"/>.
+    /// </param>
+    /// <returns>
+    /// Numero di regole abilitate per cui <see cref="Start"/> è stato invocato senza eccezioni.
+    /// Non è il numero di runner effettivamente attivi: <see cref="Start"/> può non registrare
+    /// alcun runner (sorgente assente, regola autoalimentante) segnalandolo solo via
+    /// <see cref="StatusChanged"/>.
+    /// </returns>
+    public static int StartAllEnabledRules(IEnumerable<WatchRule>? rules = null)
+    {
+        int started = 0;
+        foreach (WatchRule rule in rules ?? WatchRuleStore.Load())
+        {
+            if (!rule.Enabled)
+                continue;
+            try
+            {
+                Start(rule);
+                started++;
+            }
+            catch (Exception)
+            {
+                // Difesa in profondità: Start non lancia più, ma una singola regola
+                // malata non deve fermare le altre.
+            }
+        }
+
+        return started;
+    }
+
+    /// <summary>
     /// Avvia (o riavvia) il runner della regola. Idempotente per Id. Non lancia mai:
     /// ogni fallimento (sorgente assente, regola autoalimentante, watcher non attivabile)
     /// diventa uno stato di errore.

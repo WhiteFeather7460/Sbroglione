@@ -12,6 +12,8 @@ using Sbroglione.Services;
 
 using ReactiveUI;
 
+using App = Sbroglione.App;
+
 namespace Sbroglione.ViewModels;
 
 /// <summary>
@@ -78,7 +80,10 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     /// <summary>Pubblico per i test.</summary>
     public void AddRule()
     {
-        var rule = new WatchRuleViewModel(new WatchRule(), this);
+        var model = new WatchRule();
+        if (!AndroidRuntime.IsNotAndroid)
+            model.Mode = WatchMode.Interval;
+        var rule = new WatchRuleViewModel(model, this);
         Rules.Add(rule);
         _ruleIndex[rule.Model.Id] = rule;
         this.RaisePropertyChanged(nameof(HasRules));
@@ -231,6 +236,14 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
             try
             {
                 WatchFolderService.Start(rule.Model);
+
+                // Su Android il runner appena avviato muore con l'Activity se non c'è già un
+                // foreground service a tenerlo vivo (vedi App.axaml.cs, che lo avvia solo se
+                // trova regole abilitate AL LAUNCH): una regola abilitata a runtime, la prima
+                // di una sessione, non passa mai da lì. StartBackgroundWatchHost è idempotente
+                // (richiama solo StartForegroundService, no-op se già in esecuzione) e null su
+                // desktop, quindi è sicuro invocarlo qui a ogni avvio di runner.
+                App.StartBackgroundWatchHost?.Invoke();
             }
             catch (Exception)
             {

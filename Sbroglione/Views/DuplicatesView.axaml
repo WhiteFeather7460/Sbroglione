@@ -17,17 +17,19 @@
 
     <!-- Barra comandi -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" Padding="20,12">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-        <TextBox Grid.Column="0" Text="{Binding RootPath}" IsReadOnly="True"
+      <DockPanel>
+        <WrapPanel x:Name="CommandWrap" DockPanel.Dock="Right" HorizontalAlignment="Right">
+          <Button Classes="iconbtn" Margin="8,0,0,8"
+                  i:Attached.Icon="fa-solid fa-magnifying-glass"
+                  Command="{Binding BrowseRootCommand}" />
+          <Button Classes="primary" Content="{DynamicResource Str.Common.Analyze}" Margin="8,0,0,8"
+                  Command="{Binding ScanCommand}" IsEnabled="{Binding !IsScanning}" />
+          <Button Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="8,0,0,8"
+                  Command="{Binding CancelScanCommand}" IsEnabled="{Binding IsScanning}" />
+        </WrapPanel>
+        <TextBox Margin="0,0,8,8" Text="{Binding RootPath}" IsReadOnly="True"
                  Watermark="{DynamicResource Str.Common.AnalyzeFolderWatermark}" />
-        <Button Grid.Column="1" Classes="iconbtn" Margin="8,0,0,0"
-                i:Attached.Icon="fa-solid fa-magnifying-glass"
-                Command="{Binding BrowseRootCommand}" />
-        <Button Grid.Column="2" Classes="primary" Content="{DynamicResource Str.Common.Analyze}" Margin="8,0,0,0"
-                Command="{Binding ScanCommand}" IsEnabled="{Binding !IsScanning}" />
-        <Button Grid.Column="3" Classes="secondary" Content="{DynamicResource Str.Common.Cancel}" Margin="8,0,0,0"
-                Command="{Binding CancelScanCommand}" IsEnabled="{Binding IsScanning}" />
-      </Grid>
+      </DockPanel>
     </Border>
 
     <!-- Stato -->

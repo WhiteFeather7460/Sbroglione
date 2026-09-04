@@ -1,7 +1,8 @@
 using System;
 using System.Threading.Tasks;
-using Avalonia.Controls.ApplicationLifetimes;
+
 using Sbroglione.Models;
+using Sbroglione.Services;
 using Sbroglione.Views;
 
 namespace Sbroglione.ViewModels;
@@ -20,14 +21,10 @@ internal static class NetworkCredentialDialogHelper
         if (Override is not null)
             return await Override(server);
 
-        if ((App.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { } owner)
-            return null; // senza finestra non c'è input: nessuna azione.
-
-        var dialog = new NetworkCredentialDialog
-        {
-            DataContext = new NetworkCredentialDialogViewModel(server)
-        };
-
-        return await dialog.ShowDialog<NetworkCredentialResult?>(owner);
+        // Senza host non c'è input: nessuna azione.
+        return await DialogPresenter.ShowAsync<NetworkCredentialDialogContent, NetworkCredentialResult?>(
+            () => new NetworkCredentialDialog(),
+            () => new NetworkCredentialDialogContent(),
+            new NetworkCredentialDialogViewModel(server));
     }
 }

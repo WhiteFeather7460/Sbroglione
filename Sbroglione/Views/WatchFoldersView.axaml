@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:services="clr-namespace:Sbroglione.Services"
              x:Class="Sbroglione.Views.WatchFoldersView">
 
   <DockPanel>
@@ -74,7 +75,8 @@
                   <!-- Modalità + attivazione -->
                   <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                      <RadioButton Content="{DynamicResource Str.WatchFolders.OnChange}" IsChecked="{Binding IsOnChange}" />
+                      <RadioButton Content="{DynamicResource Str.WatchFolders.OnChange}" IsChecked="{Binding IsOnChange}"
+                                   IsVisible="{x:Static services:AndroidRuntime.IsNotAndroid}" />
                       <RadioButton Content="{DynamicResource Str.WatchFolders.Every}" IsChecked="{Binding IsInterval}" />
                       <NumericUpDown Width="120" Minimum="1" Maximum="1440" Increment="5"
                                      Value="{Binding IntervalMinutes}" IsEnabled="{Binding IsInterval}" />

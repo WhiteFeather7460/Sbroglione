@@ -155,6 +155,22 @@ public sealed class MainWindowViewModelTests : IDisposable
         Assert.False(vm.IsUpdating);
     }
 
+    [Fact]
+    public void IsWatchFolderSupported_DefaultsToTrue()
+    {
+        var vm = new MainWindowViewModel();
+
+        Assert.True(vm.IsWatchFolderSupported);
+    }
+
+    [Fact]
+    public void IsWatchFolderSupported_CanBeDisabled()
+    {
+        var vm = new MainWindowViewModel { IsWatchFolderSupported = false };
+
+        Assert.False(vm.IsWatchFolderSupported);
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly HttpStatusCode _status;
