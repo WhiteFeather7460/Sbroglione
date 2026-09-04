@@ -293,7 +293,8 @@
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               MaxHeight="220"
-                              Margin="0,5,0,0">
+                              Margin="0,5,0,0"
+                              SizeChanged="OnFilesGridSizeChanged">
                       <DataGrid.Columns>
                         <DataGridTemplateColumn Width="44">
                           <DataGridTemplateColumn.CellTemplate>
