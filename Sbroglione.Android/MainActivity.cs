@@ -72,10 +72,18 @@ public class MainActivity : AvaloniaMainActivity<App>
     /// da Android 12 avviare un foreground service da background lancerebbe
     /// <c>ForegroundServiceStartNotAllowedException</c>.
     /// </summary>
-    private void StartWatchFolderForegroundService()
+    /// <summary>
+    /// Static e su <see cref="global::Android.App.Application.Context"/> invece che su
+    /// <c>this</c>: <see cref="App.StartBackgroundWatchHost"/> è un campo statico registrato
+    /// una volta in <see cref="CustomizeAppBuilder"/> e vissuto per tutta la vita del processo,
+    /// quindi non deve mai catturare l'Activity corrente (che può essere distrutta e ricreata
+    /// più volte in quella finestra di tempo).
+    /// </summary>
+    private static void StartWatchFolderForegroundService()
     {
-        var intent = new Intent(this, typeof(WatchFolderForegroundService));
-        StartForegroundService(intent);
+        var context = global::Android.App.Application.Context;
+        var intent = new Intent(context, typeof(WatchFolderForegroundService));
+        context.StartForegroundService(intent);
     }
 
     /// <summary>

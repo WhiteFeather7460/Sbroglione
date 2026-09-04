@@ -60,10 +60,23 @@ public sealed class WatchFolderForegroundService : Service
         // Il tipo esplicito esiste da Android 10; sotto, startForeground non lo accetta.
         // Guardia con OperatingSystem e non con Build.VERSION.SdkInt: solo la prima è
         // riconosciuta dall'analyzer di compatibilità piattaforma (CA1416).
-        if (OperatingSystem.IsAndroidVersionAtLeast(29))
-            StartForeground(NotificationId, notification, ForegroundService.TypeDataSync);
-        else
-            StartForeground(NotificationId, notification);
+        //
+        // StartForeground può lanciare (ForegroundServiceDidNotStartInTimeException, o un
+        // rifiuto di sistema sotto restrizioni batteria): senza try/catch abbatterebbe il
+        // processo. Se fallisce, il service si ferma da solo invece di restare in uno stato
+        // a metà (avviato ma senza notifica, che il sistema tratterebbe come ANR).
+        try
+        {
+            if (OperatingSystem.IsAndroidVersionAtLeast(29))
+                StartForeground(NotificationId, notification, ForegroundService.TypeDataSync);
+            else
+                StartForeground(NotificationId, notification);
+        }
+        catch (Exception)
+        {
+            StopSelf();
+            return StartCommandResult.NotSticky;
+        }
 
         if (!_runnersStarted)
         {
