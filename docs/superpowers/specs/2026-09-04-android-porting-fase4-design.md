@@ -66,6 +66,15 @@ size (`SizeBytes`) e mtime (`LastModified`) su `FileSystemItem`. La nota in
 `IDEE.md` ("richiedono metadata non esposti dal seam") è superata: nessun lavoro
 di codice qui. Aggiornare solo il testo del punto 26 in `IDEE.md` a fine fase.
 
+**Nota correzione (verifica codice in fase di planning)**: anche
+`IsWatchFolderSupported` non è un flag statico da "flippare" — è già cablato
+dinamicamente su `StoragePermission.IsGranted` (`MainActivity.cs`,
+`App.axaml.cs:110/116`). Il gap osservato in sessione precedente ("manca
+MANAGE_EXTERNAL_STORAGE sull'emulatore") è un permesso da concedere a runtime,
+non codice mancante: la Sezione 3 sotto resta valida per i 4 concern reali
+(try/catch, stop path, race guard, leak di contesto), ma non c'è alcun flag da
+flippare in codice.
+
 ## 3. Watch-folder — abilitazione reale
 
 In `WatchFolderForegroundService` (Fase 3), risolvere i 5 concern noti prima di
@@ -87,17 +96,22 @@ flippare `FileSystemService`/config `IsWatchFolderSupported` a `true`:
   (fallback quando `LocalizationService` non è ancora inizializzato) — non è un
   bug da fixare, resta com'è.
 
-Dopo i fix: `IsWatchFolderSupported` passa a `true`. Verifica reale
-(notifica visibile, sopravvivenza a Doze, sync effettiva, limite 6h/24h FGS
-dataSync) rientra nella verifica manuale finale (fuori da questo spec).
+Dopo i fix, `IsWatchFolderSupported` segue automaticamente
+`StoragePermission.IsGranted` (nessun flip di codice richiesto — vedi nota
+Sezione 2). Verifica reale (notifica visibile, sopravvivenza a Doze, sync
+effettiva, limite 6h/24h FGS dataSync) rientra nella verifica manuale finale
+(fuori da questo spec).
 
-## 4. Dialoghi desktop-only
+## 4. Dialoghi desktop-only — già chiuso, verifica soltanto
 
-3 punti individuati in Fase 3 ma fuori scope: upload cartella remota, editor
-profili, editor temi. Stesso pattern già usato per Browse/rename/conferma/
-credenziali: doppio percorso Window-su-desktop/overlay-su-Android tramite
-`OverlayDialogHost`/`DialogPresenter`, zero regressione desktop attesa (verificare
-comunque, come nei fix precedenti).
+**Nota correzione (verifica codice in fase di planning)**: i 3 punti
+individuati in Fase 3 (upload cartella remota, editor profili, editor temi)
+sono già cablati su `DialogPresenter.ShowAsync` con doppio costruttore
+Window/overlay (`ProfileEditorHelper.cs`, `ThemeEditorHelper.cs`,
+`SelectPathDialogHelper.cs`, quest'ultimo usato anche dal bottone "Carica
+cartella" in `RemoteBrowserView.axaml.cs:83-88`). Nessun lavoro di codice qui:
+rientra solo nella verifica manuale finale (Sezione 5) — va solo confermato
+che le 3 view si aprano correttamente in overlay su Android.
 
 ## 5. Verifica manuale finale (criterio di uscita, non di codice)
 
@@ -114,7 +128,7 @@ apre la PR unica per l'intero porting Android.
   provider non risolvibile → errore).
 - Unit test per i fix di `WatchFolderForegroundService` dove isolabili senza
   Android runtime (es. guardia Start/Stop se estraibile in logica pura).
-- Nessun nuovo test per i 3 dialoghi oltre a quelli già esistenti per gli altri
-  dialoghi overlay (pattern consolidato).
+- Nessun nuovo codice/test per i 3 dialoghi (Sezione 4): già chiusi, solo
+  verifica manuale.
 - Verifica manuale (sezione 5) copre ciò che gli unit test su desktop non
   possono: comportamento reale su Android runtime.
