@@ -254,7 +254,12 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
 
         // Nessuna regola abilitata rimasta: ferma il foreground service invece di lasciarlo
         // vivo con una notifica persistente e nulla da sincronizzare. Null su desktop.
-        if (!Rules.Any(r => r.Model.Enabled))
+        // _ruleIndex (ConcurrentDictionary) invece di Rules: questo metodo gira su
+        // TaskScheduler.Default (thread di background, via QueueRunnerOp/ContinueWith), e Rules
+        // è un ObservableCollection mutato solo dal thread UI — enumerarla da qui rischierebbe
+        // un InvalidOperationException a metà enumerazione se l'utente aggiunge/rimuove una
+        // regola nello stesso momento.
+        if (!_ruleIndex.Values.Any(r => r.Model.Enabled))
         {
             App.StopBackgroundWatchHost?.Invoke();
         }
