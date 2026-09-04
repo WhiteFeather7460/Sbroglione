@@ -214,7 +214,7 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     /// Ferma il runner della regola e lo riavvia se la regola è attiva e completa.
     /// Non lancia mai: una catena che si guasta lascerebbe la regola senza riallineamenti.
     /// </summary>
-    private static void ApplyRunnerState(WatchRuleViewModel rule)
+    private void ApplyRunnerState(WatchRuleViewModel rule)
     {
         try
         {
@@ -250,6 +250,13 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
                 // Difesa in profondità: Start non lancia più, ma una singola regola
                 // malata non deve fermare l'arresto della precedente.
             }
+        }
+
+        // Nessuna regola abilitata rimasta: ferma il foreground service invece di lasciarlo
+        // vivo con una notifica persistente e nulla da sincronizzare. Null su desktop.
+        if (!Rules.Any(r => r.Model.Enabled))
+        {
+            App.StopBackgroundWatchHost?.Invoke();
         }
     }
 

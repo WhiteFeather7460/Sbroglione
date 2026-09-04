@@ -32,6 +32,7 @@ public class MainActivity : AvaloniaMainActivity<App>
         // c'è un host di background da avviare per i runner watch-folder, quale sia lo stato
         // dell'accesso allo storage e da quale radice partire.
         App.StartBackgroundWatchHost = StartWatchFolderForegroundService;
+        App.StopBackgroundWatchHost = StopWatchFolderForegroundService;
         App.StorageAccessGranted = () => StoragePermission.IsGranted;
         App.RequestStorageAccess = () => StoragePermission.RequestFromSettings(this);
         PlatformPaths.DefaultRootPathOverride = () =>
@@ -82,6 +83,17 @@ public class MainActivity : AvaloniaMainActivity<App>
         var context = global::Android.App.Application.Context;
         var intent = new Intent(context, typeof(WatchFolderForegroundService));
         context.StartForegroundService(intent);
+    }
+
+    /// <summary>
+    /// Simmetrico di <see cref="StartWatchFolderForegroundService"/>: ferma il foreground
+    /// service quando l'utente disabilita l'ultima regola watch-folder attiva, invece di
+    /// aspettare che sia il sistema a distruggerlo.
+    /// </summary>
+    private static void StopWatchFolderForegroundService()
+    {
+        var context = global::Android.App.Application.Context;
+        context.StopService(new Intent(context, typeof(WatchFolderForegroundService)));
     }
 
     /// <summary>

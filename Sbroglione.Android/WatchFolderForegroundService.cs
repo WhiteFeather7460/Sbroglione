@@ -45,6 +45,13 @@ public sealed class WatchFolderForegroundService : Service
     /// service già vivo) e <see cref="WatchFolderService.Start"/>, pur essendo idempotente,
     /// riavvierebbe ogni runner buttando via il debounce in corso.
     /// </summary>
+    /// <summary>
+    /// Protegge <c>_runnersStarted</c>: con uno stop raggiungibile dalla UI (oltre al riavvio
+    /// sticky del sistema), OnStartCommand e OnDestroy possono correre su thread diversi nello
+    /// stesso momento — senza lock una race lascerebbe i runner avviati ma il flag a false (o
+    /// viceversa), disallineando lo stato del service da quello reale di WatchFolderService.
+    /// </summary>
+    private readonly object _runnersLock = new();
     private bool _runnersStarted;
 
     public override IBinder? OnBind(Intent? intent) => null;
@@ -78,10 +85,18 @@ public sealed class WatchFolderForegroundService : Service
             return StartCommandResult.NotSticky;
         }
 
-        if (!_runnersStarted)
+        bool shouldStartRunners = false;
+        lock (_runnersLock)
         {
-            _runnersStarted = true;
+            if (!_runnersStarted)
+            {
+                _runnersStarted = true;
+                shouldStartRunners = true;
+            }
+        }
 
+        if (shouldStartRunners)
+        {
             // Fuori dal main thread: StartAllEnabledRules legge il file delle regole e crea
             // i FileSystemWatcher, e il main thread qui è quello della UI dell'app.
             _ = Task.Run(() =>
@@ -117,7 +132,11 @@ public sealed class WatchFolderForegroundService : Service
             // Lo shutdown non deve mai lanciare fuori da OnDestroy.
         }
 
-        _runnersStarted = false;
+        lock (_runnersLock)
+        {
+            _runnersStarted = false;
+        }
+
         base.OnDestroy();
     }
 

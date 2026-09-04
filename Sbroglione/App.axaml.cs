@@ -28,6 +28,14 @@ public partial class App : Application
     public static Action? StartBackgroundWatchHost { get; set; }
 
     /// <summary>
+    /// Seam piattaforma: ferma l'host di background avviato da
+    /// <see cref="StartBackgroundWatchHost"/>, quando l'ultima regola watch-folder abilitata
+    /// viene disabilitata — su desktop i runner restano semplicemente in-process finché il
+    /// processo vive, quindi non serve stop esplicito e questo resta <c>null</c> lì.
+    /// </summary>
+    public static Action? StopBackgroundWatchHost { get; set; }
+
+    /// <summary>
     /// Seam piattaforma: stato del permesso "All files access". <c>null</c> su desktop (dove
     /// non serve alcun permesso — <see cref="MainWindowViewModel.IsStorageAccessGranted"/> resta
     /// sempre <c>true</c>), impostato da <c>MainActivity</c> su Android.
