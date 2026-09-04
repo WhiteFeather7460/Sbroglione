@@ -5,130 +5,114 @@
 Fase 1-3 del porting Android (`ISingleViewApplicationLifetime`, `MainView` responsive,
 seam `IFileSystemAccessor`, watch-folder come foreground service scaffoldato,
 `OverlayDialogHost`/`DialogPresenter`) sono complete a livello di codice ma non
-verificate su device reale, e restano lacune elencate nel punto 26 di `IDEE.md`.
-Nessuna PR va aperta finché tutte le fasi pianificate non sono complete (istruzione
-esplicita utente): questo spec copre l'ultima fase di codice prima della verifica
-manuale finale e della PR unica.
+verificate su device reale. Nessuna PR va aperta finché tutte le fasi pianificate
+non sono complete (istruzione esplicita utente): questo spec copre l'ultima fase
+di codice prima della verifica manuale finale e della PR unica.
 
-## Scope
+## Correzioni rispetto alla nota IDEE.md punto 26 (verificate leggendo il codice)
 
-1. Accesso reale a cartelle fuori sandbox (SAF) tramite picker di sistema.
-2. Chiusura nota IDEE su metadata di list/enumerate (verifica, non implementazione).
-3. Abilitazione reale di `IsWatchFolderSupported` risolvendo i concern noti.
-4. Copertura dei 3 dialoghi desktop-only rimasti fuori scope Fase 3.
-5. Verifica manuale finale end-to-end (fuori da questo spec di codice, ma è il
-   criterio di uscita della fase).
+La nota IDEE elenca 4 voci come "da fare" per Fase 4. Verificando il codice
+attuale, solo una è reale lavoro:
 
-Fuori scope: accesso a provider SAF non risolvibili a path reale (cloud-backed,
-SD non standard) — vanno in errore esplicito, non supportati.
+1. **SAF reale — non necessario.** L'app usa già `MANAGE_EXTERNAL_STORAGE`
+   (all-files-access, `StoragePermission.cs`): una volta concesso dall'utente
+   (pagina di sistema, già cablata in `RequestStorageAccess`), ogni path
+   filesystem è accessibile via `System.IO` diretto, nessun `content://` URI
+   coinvolto. Un picker SAF a tree sarebbe un secondo modello di accesso
+   ridondante col permesso ampio già scelto. **Droppato dallo scope** (decisione
+   utente, 2026-09-04) — resta un'opzione per un eventuale futuro rilascio Play
+   Store, fuori da questa fase.
+2. **Metadata di list/enumerate — già chiuso.** `FileSystemService.ListDirectoryAsync`/
+   `ListFilesRecursiveAsync` chiamano già `Accessor.EnumerateEntries`/
+   `EnumerateEntriesRecursive`, estesi in Fase 3 con `SizeBytes`/`LastModified`
+   su `FileSystemItem`. Nessun lavoro di codice.
+3. **`IsWatchFolderSupported` — già cablato dinamicamente**, non un flag statico:
+   segue `StoragePermission.IsGranted` (`App.axaml.cs:110/116`,
+   `MainActivity.cs:35`). Il gap osservato in sessione precedente era il
+   permesso non ancora concesso sull'emulatore (azione utente a runtime), non
+   codice mancante.
+4. **3 dialoghi desktop-only — già chiusi.** `ProfileEditorHelper`,
+   `ThemeEditorHelper`, `SelectPathDialogHelper` (usato anche da "Carica
+   cartella" in `RemoteBrowserView.axaml.cs:83-88`) sono già cablati su
+   `DialogPresenter.ShowAsync` con doppio costruttore Window/overlay. Nessun
+   lavoro di codice, solo verifica manuale che si aprano in overlay su Android.
 
-## 1. SAF reale — picker di sistema + risoluzione path
+## Scope reale di Fase 4
 
-**Problema**: `IFileSystemAccessor` (seam Fase 2/3) astrae le operazioni file, ma
-copy/checksum/compare/dedup (`FileCopyService`, `ChecksumService`,
-`DirectoryComparisonService`, `DuplicateFinderService`, `FileByteCompareService`)
-usano `System.IO` diretto, bypassando il seam. Su Android, cartelle fuori dalla
-sandbox dell'app richiedono permesso esplicito (SAF); un URI `content://` non è
-apribile da `System.IO`.
+1. **`WatchFolderForegroundService` — 4 fix di robustezza** prima di considerare
+   il foreground service pronto per la verifica manuale finale.
+2. **Tasto Back hardware Android** — non instradato (solo Escape/Backspace via
+   tastiera), serve routing da `MainActivity.OnBackPressed` a `OverlayDialogHost`/
+   navigazione.
+3. **Verifica manuale finale end-to-end** (fuori da questo spec di codice, ma è
+   il criterio di uscita della fase — vedi sezione dedicata).
 
-**Approccio scelto**: nessuna nuova implementazione di `IFileSystemAccessor`. Il
-picker di sistema (`Intent.ActionOpenDocumentTree`) restituisce un `content://`
-URI; si richiede `ContentResolver.TakePersistableUriPermission` (sopravvive a
-riavvii/kill del processo) e si risolve l'URI a un path filesystem reale via
-`DocumentsContract` (funziona per storage primario e SD standard — path del tipo
-`/storage/emulated/0/...` o `/storage/<uuid>/...`). Il path risolto rientra nel
-flusso esistente: stessa `SelectPathDialogViewModel`, stesso
-`DefaultFileSystemAccessor`, nessuna modifica a copy/checksum/compare/dedup.
+Fuori scope: SAF, metadata seam, i 3 dialoghi (vedi correzioni sopra — già fatti
+o non necessari).
 
-Se la risoluzione fallisce (provider non standard, es. Google Drive montato,
-SD non riconosciuta): errore esplicito e leggibile ("cartella non supportata su
-questo dispositivo"), nessun fallback silenzioso, nessun crash.
+## 1. `WatchFolderForegroundService` — fix di robustezza
 
-**UI**: nuovo pulsante "Scegli con selettore di sistema" in
-`SelectPathDialogContent`, visibile solo su Android (desktop mantiene solo il
-browser custom esistente, che resta invariato). Il pulsante avvia il picker
-nativo via un seam statico (pattern analogo a `App.StartBackgroundWatchHost`
-usato per il foreground service in Fase 3), l'esito (path risolto o errore)
-torna al ViewModel come se l'utente avesse digitato/selezionato il path a mano.
+Concern noti dalla Fase 3, in `Sbroglione.Android/WatchFolderForegroundService.cs`:
 
-**Persistenza permesso**: le concessioni SAF vanno ri-prese a ogni avvio app per
-le cartelle già usate (regole watch-folder, coppie di copia salvate) — altrimenti
-il permesso "vive" ma va ri-confermato se l'utente non ripassa dal picker.
-`ContentResolver.PersistedUriPermissions` va controllato all'avvio e le entry
-scadute/non più valide vanno segnalate (non silenziosamente ignorate) dove usate
-(watch rule disabilitata con motivo visibile, non sparita).
-
-## 2. List/metadata — verifica, non implementazione
-
-`FileSystemService.ListDirectoryAsync`/`ListFilesRecursiveAsync` chiamano già
-`Accessor.EnumerateEntries`/`EnumerateEntriesRecursive`, estesi in Fase 3 con
-size (`SizeBytes`) e mtime (`LastModified`) su `FileSystemItem`. La nota in
-`IDEE.md` ("richiedono metadata non esposti dal seam") è superata: nessun lavoro
-di codice qui. Aggiornare solo il testo del punto 26 in `IDEE.md` a fine fase.
-
-**Nota correzione (verifica codice in fase di planning)**: anche
-`IsWatchFolderSupported` non è un flag statico da "flippare" — è già cablato
-dinamicamente su `StoragePermission.IsGranted` (`MainActivity.cs`,
-`App.axaml.cs:110/116`). Il gap osservato in sessione precedente ("manca
-MANAGE_EXTERNAL_STORAGE sull'emulatore") è un permesso da concedere a runtime,
-non codice mancante: la Sezione 3 sotto resta valida per i 4 concern reali
-(try/catch, stop path, race guard, leak di contesto), ma non c'è alcun flag da
-flippare in codice.
-
-## 3. Watch-folder — abilitazione reale
-
-In `WatchFolderForegroundService` (Fase 3), risolvere i 5 concern noti prima di
-flippare `FileSystemService`/config `IsWatchFolderSupported` a `true`:
-
-- **`StartForeground` senza try/catch**: può lanciare (`ForegroundServiceDidNotStartInTimeException`
-  o rifiuto di sistema su restrizioni batteria) — va in try/catch con log e stop
-  pulito del service, non crash del processo.
-- **Nessun percorso di stop esplicito oltre `OnDestroy`**: serve un comando stop
-  raggiungibile dalla UI (es. l'utente disabilita l'ultima regola attiva) che
-  fermi il service, non solo l'`Activity` che lo distrugge.
-- **Conflitto Start/Stop concorrente**: una volta che la UI può fermare il
-  service e il sistema può ri-avviarlo (sticky), serve una guardia (lock/flag)
-  contro race tra i due path.
-- **Leak del seam su `MainActivity` invece di `ApplicationContext`**: il seam
-  statico va agganciato al contesto applicazione, non all'Activity corrente,
-  per evitare di trattenere un riferimento a un'Activity distrutta.
+- **`StartForeground` senza try/catch** (righe 63-66): può lanciare
+  (`ForegroundServiceDidNotStartInTimeException` o rifiuto di sistema su
+  restrizioni batteria). Va in try/catch: se fallisce, fermare il service
+  pulito (`StopSelf()`) invece di lasciare il processo in stato inconsistente
+  o farlo crashare.
+- **Nessun percorso di stop esplicito oltre `OnDestroy`**: oggi l'unico modo di
+  fermare i runner è la distruzione del service da parte del sistema. Serve un
+  comando raggiungibile dalla UI quando l'utente disabilita l'ultima regola
+  attiva (`WatchFoldersViewModel`, dove oggi si chiama solo
+  `App.StartBackgroundWatchHost?.Invoke()` per l'avvio — manca il simmetrico
+  stop). Nuovo seam `App.StopBackgroundWatchHost` (stesso pattern di
+  `StartBackgroundWatchHost`), registrato in `MainActivity` per chiamare
+  `StopService(new Intent(this, typeof(WatchFolderForegroundService)))`.
+- **Conflitto Start/Stop concorrente**: con uno stop esplicito raggiungibile
+  dalla UI e un riavvio sticky lato sistema, serve una guardia contro race tra
+  `OnStartCommand` e `OnDestroy` che corrono su thread diversi. `_runnersStarted`
+  passa da `bool` semplice a un accesso `lock`-protetto (il campo non è mai
+  avuto necessità di thread-safety finora perché c'era un solo punto di stop).
+- **Leak del seam su `MainActivity` invece di `ApplicationContext`**: verificare
+  se `App.StartBackgroundWatchHost` (e il nuovo `StopBackgroundWatchHost`)
+  catturano `this` (l'Activity) nella closure registrata in
+  `MainActivity.CustomizeAppBuilder`. Se sì, il metodo che crea l'`Intent` va
+  cambiato per usare `Android.App.Application.Context` invece di `this`, così
+  la closure statica non trattiene un riferimento a un'Activity che può essere
+  distrutta e ricreata.
 - **Notifica sempre in EN su restart sticky**: comportamento noto e accettato
   (fallback quando `LocalizationService` non è ancora inizializzato) — non è un
-  bug da fixare, resta com'è.
+  bug, resta com'è, nessuna azione.
 
-Dopo i fix, `IsWatchFolderSupported` segue automaticamente
-`StoragePermission.IsGranted` (nessun flip di codice richiesto — vedi nota
-Sezione 2). Verifica reale (notifica visibile, sopravvivenza a Doze, sync
-effettiva, limite 6h/24h FGS dataSync) rientra nella verifica manuale finale
-(fuori da questo spec).
+## 2. Tasto Back hardware Android
 
-## 4. Dialoghi desktop-only — già chiuso, verifica soltanto
+`MainActivity` non sovrascrive `OnBackPressed`: il tasto Back di sistema non è
+instradato a nulla lato Avalonia (solo Escape/Backspace via tastiera sono
+mappati, inutili senza tastiera fisica). Serve:
 
-**Nota correzione (verifica codice in fase di planning)**: i 3 punti
-individuati in Fase 3 (upload cartella remota, editor profili, editor temi)
-sono già cablati su `DialogPresenter.ShowAsync` con doppio costruttore
-Window/overlay (`ProfileEditorHelper.cs`, `ThemeEditorHelper.cs`,
-`SelectPathDialogHelper.cs`, quest'ultimo usato anche dal bottone "Carica
-cartella" in `RemoteBrowserView.axaml.cs:83-88`). Nessun lavoro di codice qui:
-rientra solo nella verifica manuale finale (Sezione 5) — va solo confermato
-che le 3 view si aprano correttamente in overlay su Android.
+- Override `OnBackPressed` in `MainActivity` che, se un dialog overlay
+  (`OverlayDialogHost`) è aperto, lo chiude (equivalente ad Annulla) invece di
+  uscire dall'app o propagare al sistema.
+- Se nessun overlay è aperto, comportamento di default Android (torna alla
+  Home / esce dall'app) — nessuna navigazione custom da costruire ora, fuori
+  scope.
 
-## 5. Verifica manuale finale (criterio di uscita, non di codice)
+## 3. Verifica manuale finale (criterio di uscita, non di codice)
 
 Layout responsive, FTP/SFTP, tema custom, foreground service (notifica, Doze,
-sync reale), tutti i dialoghi (inclusi i 3 nuovi), tasto Back hardware
-(routing `MainActivity.OnBackPressed`, non ancora fatto — mappato solo
-Escape/Backspace). Su device reale se disponibile nella sessione di verifica,
-altrimenti emulatore con nota esplicita del gap. Solo dopo esito positivo si
-apre la PR unica per l'intero porting Android.
+sync reale, limite 6h/24h FGS dataSync), tutti i dialoghi overlay (inclusi i 3
+già chiusi via `DialogPresenter`), tasto Back hardware (fix sezione 2). Su
+device reale se disponibile nella sessione di verifica, altrimenti emulatore
+con nota esplicita del gap. Solo dopo esito positivo si apre la PR unica per
+l'intero porting Android.
 
 ## Testing
 
-- Unit test per la risoluzione URI→path (casi: storage primario, SD standard,
-  provider non risolvibile → errore).
-- Unit test per i fix di `WatchFolderForegroundService` dove isolabili senza
-  Android runtime (es. guardia Start/Stop se estraibile in logica pura).
-- Nessun nuovo codice/test per i 3 dialoghi (Sezione 4): già chiusi, solo
-  verifica manuale.
-- Verifica manuale (sezione 5) copre ciò che gli unit test su desktop non
-  possono: comportamento reale su Android runtime.
+- Unit test per la guardia Start/Stop di `WatchFolderForegroundService` se
+  estraibile in logica pura testabile senza Android runtime (es. una piccola
+  classe di stato con lock, testata isolatamente); se la logica resta troppo
+  legata alle API `Service`/`Intent` per essere isolata, verifica manuale nella
+  sezione 3 la copre.
+- Nessun unit test automatizzato per `OnBackPressed` (richiede Android runtime):
+  copre la verifica manuale.
+- Nessun nuovo codice/test per SAF, metadata, o i 3 dialoghi: già chiusi o fuori
+  scope (vedi correzioni).
