@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 
+using Sbroglione;
 using Sbroglione.Models;
 using Sbroglione.Services;
 using Sbroglione.ViewModels;
@@ -268,5 +269,120 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         Assert.Equal(afterDisable, Volatile.Read(ref syncCount));
 
         vm.Dispose();
+    }
+
+    /// <summary>
+    /// Disabilitare l'ultima regola abilitata deve fermare l'host in background
+    /// (<see cref="App.StopBackgroundWatchHost"/>): con zero regole attive non c'è più nulla
+    /// da tenere vivo, e senza questo il foreground service Android resterebbe con una
+    /// notifica persistente e nessun runner reale dietro.
+    /// </summary>
+    [Fact]
+    public async Task OnRuleChanged_DisablingLastEnabledRule_StopsBackgroundHost()
+    {
+        int stopCount = 0;
+        Action? originalStop = App.StopBackgroundWatchHost;
+        App.StopBackgroundWatchHost = () => Interlocked.Increment(ref stopCount);
+        try
+        {
+            var vm = CreateVmWithRunners();
+            await vm.RulesLoad;
+            WatchRuleViewModel rule = await AddValidRuleAsync(vm);
+            rule.Model.Enabled = true;
+
+            vm.OnRuleChanged(rule);
+            await vm.LastRunnerOpTask!;
+
+            Assert.Equal(0, Volatile.Read(ref stopCount));
+
+            rule.Model.Enabled = false;
+            vm.OnRuleChanged(rule);
+            await vm.LastRunnerOpTask!;
+
+            Assert.Equal(1, Volatile.Read(ref stopCount));
+
+            vm.Dispose();
+        }
+        finally
+        {
+            App.StopBackgroundWatchHost = originalStop;
+        }
+    }
+
+    /// <summary>
+    /// Come sopra, ma disabilitando una regola quando un'altra resta abilitata: l'host non
+    /// deve fermarsi, perché c'è ancora un runner da tenere vivo.
+    /// </summary>
+    [Fact]
+    public async Task OnRuleChanged_DisablingOneRuleWithAnotherStillEnabled_DoesNotStopBackgroundHost()
+    {
+        int stopCount = 0;
+        Action? originalStop = App.StopBackgroundWatchHost;
+        App.StopBackgroundWatchHost = () => Interlocked.Increment(ref stopCount);
+        try
+        {
+            var vm = CreateVmWithRunners();
+            await vm.RulesLoad;
+            WatchRuleViewModel ruleA = await AddValidRuleAsync(vm);
+            ruleA.Model.Enabled = true;
+            vm.OnRuleChanged(ruleA);
+            await vm.LastRunnerOpTask!;
+
+            WatchRuleViewModel ruleB = await AddValidRuleAsync(vm);
+            ruleB.Model.Enabled = true;
+            vm.OnRuleChanged(ruleB);
+            await vm.LastRunnerOpTask!;
+
+            ruleA.Model.Enabled = false;
+            vm.OnRuleChanged(ruleA);
+            await vm.LastRunnerOpTask!;
+
+            Assert.Equal(0, Volatile.Read(ref stopCount));
+
+            vm.Dispose();
+        }
+        finally
+        {
+            App.StopBackgroundWatchHost = originalStop;
+        }
+    }
+
+    /// <summary>
+    /// Cancellare l'ultima regola abilitata deve fermare l'host in background tanto quanto
+    /// disabilitarla: <see cref="WatchFoldersViewModel.RemoveRuleAsync"/> accodava solo uno
+    /// Stop diretto, saltando il check "nessuna regola abilitata rimasta" che gira invece
+    /// dentro ApplyRunnerState (vedi il fix per questo finding).
+    /// </summary>
+    [Fact]
+    public async Task RemoveRuleAsync_DeletingLastEnabledRule_StopsBackgroundHost()
+    {
+        int stopCount = 0;
+        Action? originalStop = App.StopBackgroundWatchHost;
+        App.StopBackgroundWatchHost = () => Interlocked.Increment(ref stopCount);
+        Func<string, string, string, Task<bool>>? originalConfirm = ConfirmDialogHelper.Override;
+        ConfirmDialogHelper.Override = (_, _, _) => Task.FromResult(true);
+        try
+        {
+            var vm = CreateVmWithRunners();
+            await vm.RulesLoad;
+            WatchRuleViewModel rule = await AddValidRuleAsync(vm);
+            rule.Model.Enabled = true;
+            vm.OnRuleChanged(rule);
+            await vm.LastRunnerOpTask!;
+
+            Assert.Equal(0, Volatile.Read(ref stopCount));
+
+            await vm.RemoveRuleAsync(rule);
+            await vm.LastRunnerOpTask!;
+
+            Assert.Equal(1, Volatile.Read(ref stopCount));
+
+            vm.Dispose();
+        }
+        finally
+        {
+            App.StopBackgroundWatchHost = originalStop;
+            ConfirmDialogHelper.Override = originalConfirm;
+        }
     }
 }

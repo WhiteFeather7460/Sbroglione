@@ -45,14 +45,22 @@ public sealed class WatchFolderForegroundService : Service
     /// service già vivo) e <see cref="WatchFolderService.Start"/>, pur essendo idempotente,
     /// riavvierebbe ogni runner buttando via il debounce in corso.
     /// </summary>
+    private bool _runnersStarted;
+
     /// <summary>
-    /// Protegge <c>_runnersStarted</c>: con uno stop raggiungibile dalla UI (oltre al riavvio
-    /// sticky del sistema), OnStartCommand e OnDestroy possono correre su thread diversi nello
-    /// stesso momento — senza lock una race lascerebbe i runner avviati ma il flag a false (o
-    /// viceversa), disallineando lo stato del service da quello reale di WatchFolderService.
+    /// Protegge l'avvio/arresto reale dei runner, non la sola lettura/scrittura di
+    /// <c>_runnersStarted</c>. <c>OnStartCommand</c> e <c>OnDestroy</c> girano entrambi sul
+    /// main looper thread di Android, quindi non corrono mai fra loro — ma
+    /// <c>OnStartCommand</c> accoda l'avvio vero e proprio (<see cref="WatchFolderService.StartAllEnabledRules"/>)
+    /// su un thread di pool via <c>Task.Run</c>, mentre <c>OnDestroy</c> chiama
+    /// <see cref="WatchFolderService.StopAll"/> in modo sincrono sul main thread: se il service
+    /// viene fermato subito dopo essere stato avviato, lo stop può eseguire prima che il task
+    /// accodato parta, e quel task avvierebbe i runner (watcher/timer) di un service già in fase
+    /// di distruzione, senza notifica né host a possederli. Il lock serializza lo start reale
+    /// (dentro il Task.Run, con un ricontrollo di <c>_runnersStarted</c>) e lo stop di
+    /// <c>OnDestroy</c>, così i due non possono più interlacciarsi.
     /// </summary>
     private readonly object _runnersLock = new();
-    private bool _runnersStarted;
 
     public override IBinder? OnBind(Intent? intent) => null;
 
@@ -85,25 +93,45 @@ public sealed class WatchFolderForegroundService : Service
             return StartCommandResult.NotSticky;
         }
 
-        bool shouldStartRunners = false;
+        bool shouldScheduleStart = false;
         lock (_runnersLock)
         {
             if (!_runnersStarted)
             {
                 _runnersStarted = true;
-                shouldStartRunners = true;
+                shouldScheduleStart = true;
             }
         }
 
-        if (shouldStartRunners)
+        if (shouldScheduleStart)
         {
             // Fuori dal main thread: StartAllEnabledRules legge il file delle regole e crea
             // i FileSystemWatcher, e il main thread qui è quello della UI dell'app.
+            //
+            // La chiamata vera e propria vive dentro il lock, con un ricontrollo di
+            // _runnersStarted appena prima: se OnDestroy ferma il service (e azzera il flag)
+            // prima che questo task di pool riesca a partire, la regola qui sotto non avvia
+            // più nulla — senza il ricontrollo resusciteremmo watcher/timer per un service già
+            // in fase di distruzione, senza notifica né host a possederli. Lo stesso lock è
+            // preso da OnDestroy attorno a StopAll, quindi le due operazioni non possono più
+            // interlacciarsi.
             _ = Task.Run(() =>
             {
                 try
                 {
-                    WatchFolderService.StartAllEnabledRules();
+                    lock (_runnersLock)
+                    {
+                        if (!_runnersStarted)
+                            return;
+
+                        int started = WatchFolderService.StartAllEnabledRules();
+
+                        // Riavvio sticky del sistema con zero regole abilitate: nessun runner
+                        // avviato, quindi niente da sincronizzare. Fermarsi invece di restare
+                        // vivi indefinitamente con una notifica persistente e inutile.
+                        if (started == 0)
+                            StopSelf();
+                    }
                 }
                 catch (Exception)
                 {
@@ -123,17 +151,20 @@ public sealed class WatchFolderForegroundService : Service
         // Su desktop i runner muoiono col processo; qui il service può essere fermato mentre
         // il processo resta vivo, quindi lo stop dev'essere esplicito: senza, resterebbero
         // watcher e timer a copiare file con la notifica ormai sparita.
-        try
-        {
-            WatchFolderService.StopAll();
-        }
-        catch (Exception)
-        {
-            // Lo shutdown non deve mai lanciare fuori da OnDestroy.
-        }
-
+        //
+        // Sotto lo stesso _runnersLock del Task.Run in OnStartCommand: previene la race in cui
+        // quel task di pool avvia i runner subito dopo che questo stop li ha appena fermati.
         lock (_runnersLock)
         {
+            try
+            {
+                WatchFolderService.StopAll();
+            }
+            catch (Exception)
+            {
+                // Lo shutdown non deve mai lanciare fuori da OnDestroy.
+            }
+
             _runnersStarted = false;
         }
 
