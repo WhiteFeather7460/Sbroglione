@@ -38,7 +38,7 @@
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="1" Classes="nav" Padding="0"
+    <TabControl Grid.Row="1" Name="NavTabControl" Classes="nav" Padding="0"
                 Classes.nav-bottom="{Binding #RootGrid.Bounds.Width, Converter={StaticResource WidthIsWide}, ConverterParameter=Invert}"
                 TabStripPlacement="{Binding #RootGrid.Bounds.Width, Converter={StaticResource WidthToTabStripPlacement}}">
       <TabItem ToolTip.Tip="{DynamicResource Str.Nav.Copy}">
