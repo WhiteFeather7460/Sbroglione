@@ -52,8 +52,9 @@
       <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" />
     </StackPanel>
 
-    <!-- Lista file/cartelle -->
-    <Border Grid.Row="2" Classes="card" Padding="4" Margin="0">
+    <!-- Lista file/cartelle: DataGrid su desktop (colonne separate, sort da intestazione). -->
+    <Border Grid.Row="2" Classes="card" Padding="4" Margin="0"
+            IsVisible="{x:Static services:AndroidRuntime.IsNotAndroid}">
       <DataGrid ItemsSource="{Binding Items}"
                 SelectedItem="{Binding SelectedItem}"
                 DoubleTapped="OnItemDoubleTapped"
@@ -81,6 +82,38 @@
           <DataGridTextColumn Header="{DynamicResource Str.Common.Modified}" Binding="{Binding LastModified}" Width="170" />
         </DataGrid.Columns>
       </DataGrid>
+    </Border>
+
+    <!-- Lista file/cartelle: righe a tocco largo su Android — icona + nome, dimensione/data
+         come sottotitolo piccolo, tutta la riga è il target di tocco (niente colonne strette
+         né sort da intestazione, inadatti al dito). -->
+    <Border Grid.Row="2" Classes="card" Padding="4" Margin="0"
+            IsVisible="{x:Static services:AndroidRuntime.IsAndroid}">
+      <ListBox ItemsSource="{Binding Items}"
+               SelectedItem="{Binding SelectedItem}"
+               DoubleTapped="OnItemDoubleTapped"
+               SelectionMode="Single">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="Auto,*" Margin="4,8">
+              <Panel Grid.Column="0" Width="36" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <i:Icon Value="fa-solid fa-folder" IsVisible="{Binding IsDirectory}"
+                        Foreground="{DynamicResource Brush.WarningFg}" />
+                <i:Icon Value="fa-regular fa-file" IsVisible="{Binding !IsDirectory}"
+                        Foreground="{DynamicResource Brush.TextMuted}" />
+              </Panel>
+              <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Brush.TextPrimary}"
+                           TextTrimming="CharacterEllipsis" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding Size}" FontSize="11" Foreground="{DynamicResource Brush.TextMuted}" />
+                  <TextBlock Text="{Binding LastModified}" FontSize="11" Foreground="{DynamicResource Brush.TextMuted}" />
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
     </Border>
 
     <!-- Footer -->
