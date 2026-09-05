@@ -9,5 +9,7 @@ namespace Sbroglione.Services;
 /// </summary>
 public static class AndroidRuntime
 {
+    public static bool IsAndroid { get; } = OperatingSystem.IsAndroid();
+
     public static bool IsNotAndroid { get; } = !OperatingSystem.IsAndroid();
 }

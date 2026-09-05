@@ -10,7 +10,7 @@
     <ItemsControl.ItemTemplate>
       <DataTemplate>
         <StackPanel Orientation="Horizontal">
-          <Button Classes="iconbtn" Content="{Binding Label}" Tag="{Binding FullPath}"
+          <Button Classes="breadcrumb" Content="{Binding Label}" Tag="{Binding FullPath}"
                   Click="OnSegmentClick" />
           <TextBlock Text="/" VerticalAlignment="Center"
                       Foreground="{DynamicResource Brush.TextMuted}" Margin="2,0" />

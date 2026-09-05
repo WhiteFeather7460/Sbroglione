@@ -1,13 +1,17 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:controls="clr-namespace:Sbroglione.Views.Controls"
+             xmlns:services="clr-namespace:Sbroglione.Services"
              x:Class="Sbroglione.Views.SelectPathDialogContent"
              Background="{DynamicResource Brush.Surface}">
 
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="12">
 
-    <!-- Barra del percorso -->
-    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+    <!-- Barra del percorso: editor manuale — sempre su desktop, su Android solo dopo aver
+         toccato la matita (digitare un percorso su schermo touch è scomodo, ma resta possibile
+         per casi come un percorso UNC incollato). -->
+    <Grid Grid.Row="0" x:Name="ManualPathRow" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
       <Button Grid.Column="0" Classes="iconbtn"
               i:Attached.Icon="fa-solid fa-arrow-left"
               Click="OnBackClick" Margin="0,0,8,0" />
@@ -16,6 +20,21 @@
                Text="{Binding CurrentPath, Mode=TwoWay}"
                KeyDown="OnPathKeyDown" />
       <Button Grid.Column="2" Classes="primary" Content="{DynamicResource Str.PathPicker.Go}" Click="OnGoClick" Margin="8,0,0,0" />
+    </Grid>
+
+    <!-- Barra del percorso: breadcrumb a segmenti toccabili, per navigare senza tastiera
+         su Android. -->
+    <Grid Grid.Row="0" x:Name="BreadcrumbPathRow" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+      <Button Grid.Column="0" Classes="iconbtn"
+              i:Attached.Icon="fa-solid fa-arrow-left"
+              Click="OnBackClick" Margin="0,0,8,0" />
+      <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <controls:BreadcrumbBar Path="{Binding CurrentPath}" SegmentClicked="OnBreadcrumbSegmentClicked"
+                                 VerticalAlignment="Center" />
+      </ScrollViewer>
+      <Button Grid.Column="2" Classes="iconbtn" i:Attached.Icon="fa-solid fa-pen"
+              Click="OnEditPathClick" Margin="8,0,0,0"
+              ToolTip.Tip="{DynamicResource Str.PathPicker.EditManually}" />
     </Grid>
 
     <!-- Stato: errore dell'ultimo caricamento o caricamento in corso (percorsi di rete lenti) -->
@@ -33,8 +52,9 @@
       <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" />
     </StackPanel>
 
-    <!-- Lista file/cartelle -->
-    <Border Grid.Row="2" Classes="card" Padding="4" Margin="0">
+    <!-- Lista file/cartelle: DataGrid su desktop (colonne separate, sort da intestazione). -->
+    <Border Grid.Row="2" Classes="card" Padding="4" Margin="0"
+            IsVisible="{x:Static services:AndroidRuntime.IsNotAndroid}">
       <DataGrid ItemsSource="{Binding Items}"
                 SelectedItem="{Binding SelectedItem}"
                 DoubleTapped="OnItemDoubleTapped"
@@ -62,6 +82,38 @@
           <DataGridTextColumn Header="{DynamicResource Str.Common.Modified}" Binding="{Binding LastModified}" Width="170" />
         </DataGrid.Columns>
       </DataGrid>
+    </Border>
+
+    <!-- Lista file/cartelle: righe a tocco largo su Android — icona + nome, dimensione/data
+         come sottotitolo piccolo, tutta la riga è il target di tocco (niente colonne strette
+         né sort da intestazione, inadatti al dito). -->
+    <Border Grid.Row="2" Classes="card" Padding="4" Margin="0"
+            IsVisible="{x:Static services:AndroidRuntime.IsAndroid}">
+      <ListBox ItemsSource="{Binding Items}"
+               SelectedItem="{Binding SelectedItem}"
+               DoubleTapped="OnItemDoubleTapped"
+               SelectionMode="Single">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="Auto,*" Margin="4,8">
+              <Panel Grid.Column="0" Width="36" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <i:Icon Value="fa-solid fa-folder" IsVisible="{Binding IsDirectory}"
+                        Foreground="{DynamicResource Brush.WarningFg}" />
+                <i:Icon Value="fa-regular fa-file" IsVisible="{Binding !IsDirectory}"
+                        Foreground="{DynamicResource Brush.TextMuted}" />
+              </Panel>
+              <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Brush.TextPrimary}"
+                           TextTrimming="CharacterEllipsis" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding Size}" FontSize="11" Foreground="{DynamicResource Brush.TextMuted}" />
+                  <TextBlock Text="{Binding LastModified}" FontSize="11" Foreground="{DynamicResource Brush.TextMuted}" />
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
     </Border>
 
     <!-- Footer -->

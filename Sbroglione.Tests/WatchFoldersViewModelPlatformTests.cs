@@ -12,4 +12,10 @@ public class WatchFoldersViewModelPlatformTests
         // correttamente OperatingSystem.IsAndroid() anche fuori da un TFM Android.
         Assert.True(AndroidRuntime.IsNotAndroid);
     }
+
+    [Fact]
+    public void AndroidRuntime_OnTestHost_IsAndroidIsFalse()
+    {
+        Assert.False(AndroidRuntime.IsAndroid);
+    }
 }

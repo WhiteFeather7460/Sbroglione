@@ -9,6 +9,7 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
     private readonly string _root;
     private readonly string _dest;
     private readonly FakeRemoteClient _client = new();
+    private readonly string _originalLanguage = LocalizationService.CurrentLanguage;
 
     public RemoteBrowserDownloadTests()
     {
@@ -19,11 +20,15 @@ public sealed class RemoteBrowserDownloadTests : IDisposable
         // di un filtro (stesso pattern di UiDispatch.Override usato dal Task 2 nelle altre suite).
         RemoteBrowserViewModel.FilterDebounce = TimeSpan.Zero;
         UiDispatch.Override = action => action();
+        // Asserzioni sotto assumono stringhe IT: LocalizationService.CurrentLanguage è
+        // stato statico condiviso, non garantito dall'ordine di esecuzione dei test.
+        LocalizationService.Apply(LocalizationService.Italian);
     }
 
     public void Dispose()
     {
         UiDispatch.Override = null;
+        LocalizationService.Apply(_originalLanguage);
         RemoteBrowserViewModel.FilterDebounce = TimeSpan.FromMilliseconds(200);
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }

@@ -18,10 +18,12 @@ namespace Sbroglione.Views;
 public partial class SelectPathDialogContent : UserControl, IDialogContent<string?>
 {
     private bool _initialized;
+    private bool _manualEntry = AndroidRuntime.IsNotAndroid;
 
     public SelectPathDialogContent()
     {
         InitializeComponent();
+        UpdatePathRowVisibility();
 
         // Il caricamento iniziale parte all'aggancio all'albero visuale: il costruttore del
         // ViewModel non fa I/O (i percorsi di rete possono essere lenti o irraggiungibili).
@@ -124,6 +126,40 @@ public partial class SelectPathDialogContent : UserControl, IDialogContent<strin
 
         await vm.NavigateToAsync(vm.CurrentPath);
         UpdatePathBarErrorClass();
+        RevertToBreadcrumbOnSuccessIfAndroid(vm);
+    }
+
+    /// <summary>
+    /// Mostra/nasconde le due varianti della barra del percorso: editor manuale (desktop, o
+    /// Android dopo aver toccato la matita) contro breadcrumb (Android, di default).
+    /// </summary>
+    private void UpdatePathRowVisibility()
+    {
+        ManualPathRow.IsVisible = _manualEntry;
+        BreadcrumbPathRow.IsVisible = !_manualEntry;
+    }
+
+    /// <summary>
+    /// Tocco sulla matita: passa dalla breadcrumb all'editor manuale per digitare/incollare
+    /// un percorso (es. UNC).
+    /// </summary>
+    public void OnEditPathClick(object? sender, RoutedEventArgs e)
+    {
+        _manualEntry = true;
+        UpdatePathRowVisibility();
+        PathTextBar.Focus();
+    }
+
+    /// <summary>
+    /// Tocco su un segmento della breadcrumb: naviga al percorso cumulativo di quel segmento.
+    /// </summary>
+    public async void OnBreadcrumbSegmentClicked(object? sender, string path)
+    {
+        if (ViewModel is not { } vm)
+            return;
+
+        await vm.NavigateToAsync(path);
+        UpdatePathBarErrorClass();
     }
 
     public async void OnBackClick(object? sender, RoutedEventArgs e)
@@ -132,6 +168,20 @@ public partial class SelectPathDialogContent : UserControl, IDialogContent<strin
         {
             await vm.NavigateToAsync(parent);
             UpdatePathBarErrorClass();
+            RevertToBreadcrumbOnSuccessIfAndroid(vm);
+        }
+    }
+
+    /// <summary>
+    /// Su Android, dopo una navigazione riuscita dall'editor manuale, torna alla breadcrumb:
+    /// l'editor è una via di fuga (es. percorsi UNC), non la modalità di default.
+    /// </summary>
+    private void RevertToBreadcrumbOnSuccessIfAndroid(SelectPathDialogViewModel vm)
+    {
+        if (AndroidRuntime.IsAndroid && vm.ErrorMessage is null)
+        {
+            _manualEntry = false;
+            UpdatePathRowVisibility();
         }
     }
 

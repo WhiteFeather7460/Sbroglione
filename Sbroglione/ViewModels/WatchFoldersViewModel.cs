@@ -116,6 +116,12 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
                 {
                     // best effort: la riga sparisce comunque dalla lista
                 }
+
+                // Come in ApplyRunnerState: se la regola rimossa era l'ultima abilitata, ferma
+                // il foreground service. _ruleIndex.TryRemove (sotto) è sincrono e gira sul
+                // thread UI subito dopo l'accodamento, quindi è già avvenuto quando questo
+                // continuation esegue sul thread di pool.
+                StopBackgroundHostIfNoneEnabled();
             });
         }
 
@@ -214,7 +220,7 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
     /// Ferma il runner della regola e lo riavvia se la regola è attiva e completa.
     /// Non lancia mai: una catena che si guasta lascerebbe la regola senza riallineamenti.
     /// </summary>
-    private static void ApplyRunnerState(WatchRuleViewModel rule)
+    private void ApplyRunnerState(WatchRuleViewModel rule)
     {
         try
         {
@@ -250,6 +256,28 @@ public class WatchFoldersViewModel : ViewModelBase, IDisposable
                 // Difesa in profondità: Start non lancia più, ma una singola regola
                 // malata non deve fermare l'arresto della precedente.
             }
+        }
+
+        StopBackgroundHostIfNoneEnabled();
+    }
+
+    /// <summary>
+    /// Ferma il foreground service se nessuna regola rimane abilitata, invece di lasciarlo
+    /// vivo con una notifica persistente e nulla da sincronizzare. Null su desktop. Chiamato
+    /// sia da <see cref="ApplyRunnerState"/> (dopo un disable/riallineamento) sia dall'op
+    /// accodata da <see cref="RemoveRuleAsync"/> (dopo una cancellazione): entrambi i percorsi
+    /// possono lasciare zero regole abilitate.
+    /// _ruleIndex (ConcurrentDictionary) invece di Rules: questo metodo gira su
+    /// TaskScheduler.Default (thread di background, via QueueRunnerOp/ContinueWith), e Rules
+    /// è un ObservableCollection mutato solo dal thread UI — enumerarla da qui rischierebbe
+    /// un InvalidOperationException a metà enumerazione se l'utente aggiunge/rimuove una
+    /// regola nello stesso momento.
+    /// </summary>
+    private void StopBackgroundHostIfNoneEnabled()
+    {
+        if (!_ruleIndex.Values.Any(r => r.Model.Enabled))
+        {
+            App.StopBackgroundWatchHost?.Invoke();
         }
     }
 

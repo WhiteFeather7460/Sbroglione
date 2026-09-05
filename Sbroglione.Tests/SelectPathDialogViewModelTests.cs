@@ -1,3 +1,4 @@
+using Sbroglione.Services;
 using Sbroglione.ViewModels;
 
 namespace Sbroglione.Tests;
@@ -5,15 +6,20 @@ namespace Sbroglione.Tests;
 public sealed class SelectPathDialogViewModelTests : IDisposable
 {
     private readonly string _root;
+    private readonly string _originalLanguage = LocalizationService.CurrentLanguage;
 
     public SelectPathDialogViewModelTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "fe-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        // Asserzioni sotto assumono stringhe IT: LocalizationService.CurrentLanguage è
+        // stato statico condiviso, non garantito dall'ordine di esecuzione dei test.
+        LocalizationService.Apply(LocalizationService.Italian);
     }
 
     public void Dispose()
     {
+        LocalizationService.Apply(_originalLanguage);
         try
         {
             Directory.Delete(_root, recursive: true);

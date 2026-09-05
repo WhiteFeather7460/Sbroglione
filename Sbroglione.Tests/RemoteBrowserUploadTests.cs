@@ -9,16 +9,21 @@ public sealed class RemoteBrowserUploadTests : IDisposable
     private readonly string _root;
     private readonly string _source;
     private readonly FakeRemoteClient _client = new();
+    private readonly string _originalLanguage = LocalizationService.CurrentLanguage;
 
     public RemoteBrowserUploadTests()
     {
         _root = Path.Combine(Path.GetTempPath(), "fe-vmup-" + Guid.NewGuid().ToString("N"));
         _source = Path.Combine(_root, "source");
         Directory.CreateDirectory(_source);
+        // Asserzioni sotto assumono stringhe IT: LocalizationService.CurrentLanguage è
+        // stato statico condiviso, non garantito dall'ordine di esecuzione dei test.
+        LocalizationService.Apply(LocalizationService.Italian);
     }
 
     public void Dispose()
     {
+        LocalizationService.Apply(_originalLanguage);
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 

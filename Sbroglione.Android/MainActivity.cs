@@ -32,6 +32,7 @@ public class MainActivity : AvaloniaMainActivity<App>
         // c'è un host di background da avviare per i runner watch-folder, quale sia lo stato
         // dell'accesso allo storage e da quale radice partire.
         App.StartBackgroundWatchHost = StartWatchFolderForegroundService;
+        App.StopBackgroundWatchHost = StopWatchFolderForegroundService;
         App.StorageAccessGranted = () => StoragePermission.IsGranted;
         App.RequestStorageAccess = () => StoragePermission.RequestFromSettings(this);
         PlatformPaths.DefaultRootPathOverride = () =>
@@ -70,12 +71,29 @@ public class MainActivity : AvaloniaMainActivity<App>
     /// <c>App.OnFrameworkInitializationCompleted</c> tramite
     /// <see cref="App.StartBackgroundWatchHost"/>, quindi mentre l'Activity è in primo piano:
     /// da Android 12 avviare un foreground service da background lancerebbe
-    /// <c>ForegroundServiceStartNotAllowedException</c>.
+    /// <c>ForegroundServiceStartNotAllowedException</c>. Static e su
+    /// <see cref="global::Android.App.Application.Context"/> invece che su <c>this</c>:
+    /// <see cref="App.StartBackgroundWatchHost"/> è un campo statico registrato una volta in
+    /// <see cref="CustomizeAppBuilder"/> e vissuto per tutta la vita del processo, quindi non
+    /// deve mai catturare l'Activity corrente (che può essere distrutta e ricreata più volte in
+    /// quella finestra di tempo).
     /// </summary>
-    private void StartWatchFolderForegroundService()
+    private static void StartWatchFolderForegroundService()
     {
-        var intent = new Intent(this, typeof(WatchFolderForegroundService));
-        StartForegroundService(intent);
+        var context = global::Android.App.Application.Context;
+        var intent = new Intent(context, typeof(WatchFolderForegroundService));
+        context.StartForegroundService(intent);
+    }
+
+    /// <summary>
+    /// Simmetrico di <see cref="StartWatchFolderForegroundService"/>: ferma il foreground
+    /// service quando l'utente disabilita l'ultima regola watch-folder attiva, invece di
+    /// aspettare che sia il sistema a distruggerlo.
+    /// </summary>
+    private static void StopWatchFolderForegroundService()
+    {
+        var context = global::Android.App.Application.Context;
+        context.StopService(new Intent(context, typeof(WatchFolderForegroundService)));
     }
 
     /// <summary>

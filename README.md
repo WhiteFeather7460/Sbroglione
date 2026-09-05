@@ -18,12 +18,15 @@ The UI is organized into tabs:
 
 - [.NET SDK 10.0](https://dotnet.microsoft.com/download) or later
 - Linux, Windows, or macOS (desktop)
+- For Android: `android` workload, JDK 17, and `ANDROID_HOME`/`JAVA_HOME` set (see [Android](#android) below)
 
 ## Build
 
 ```bash
 dotnet build Sbroglione.sln
 ```
+
+`Sbroglione.Android` is excluded from the solution's build (`.Build.0`), so this command never touches it — build it separately (see [Android](#android)).
 
 ## Run
 
@@ -95,6 +98,57 @@ dotnet publish Sbroglione.Desktop -c Release -r osx-x64 --self-contained
 
 Wrap the output in a `.app` bundle using Avalonia's official script (see docs).
 
+## Android
+
+`Sbroglione.Android` (package `com.whitefeather.sbroglione`, min SDK 26 / target SDK 36) is a separate head project, excluded from `Sbroglione.sln`'s build — build and deploy it on its own.
+
+### Setup
+
+```bash
+dotnet workload install android
+```
+
+Also needs a JDK 17 and `ANDROID_HOME`/`JAVA_HOME` pointing at it and at your Android SDK install.
+
+### Build (debug, for an emulator/device)
+
+```bash
+dotnet build Sbroglione.Android/Sbroglione.Android.csproj -c Debug -f net10.0-android \
+  -p:AndroidSdkDirectory="$ANDROID_HOME"
+```
+
+Output: `Sbroglione.Android/bin/Debug/net10.0-android/com.whitefeather.sbroglione-Signed.apk`
+
+> **Note:** a plain Debug build uses Fast Deployment (assemblies are pushed to the device separately from the APK by IDE tooling); installing that APK with a bare `adb install` crashes at startup with `No assemblies found ... Assuming this is part of Fast Deployment`. For a command-line `adb install` workflow, embed the assemblies into the APK instead:
+> ```bash
+> dotnet build Sbroglione.Android/Sbroglione.Android.csproj -c Debug -f net10.0-android \
+>   -p:AndroidSdkDirectory="$ANDROID_HOME" \
+>   -p:EmbedAssembliesIntoApk=true -p:AndroidFastDeploymentType=None
+> ```
+
+### Install and run on an emulator/device
+
+```bash
+adb devices  # confirm the target is listed as "device"
+adb install -r Sbroglione.Android/bin/Debug/net10.0-android/com.whitefeather.sbroglione-Signed.apk
+adb shell monkey -p com.whitefeather.sbroglione -c android.intent.category.LAUNCHER 1
+```
+
+If you reinstall over a build that used Fast Deployment (or vice versa), uninstall first (`adb uninstall com.whitefeather.sbroglione`) rather than `-r`, since Android caches the previous deployment mode.
+
+### First-run permission
+
+The app needs "All files access" (`MANAGE_EXTERNAL_STORAGE`) to browse arbitrary paths — Android doesn't grant this at install time, it must be enabled manually after first launch: Settings → Apps → Sbroglione → Permissions → "Allow management of all files".
+
+### Release build (signed APK)
+
+```bash
+dotnet build Sbroglione.Android/Sbroglione.Android.csproj -c Release -f net10.0-android \
+  -p:ApplicationDisplayVersion=1.0.0
+```
+
+Output: `Sbroglione.Android/bin/Release/net10.0-android/com.whitefeather.sbroglione-Signed.apk`
+
 ## Project structure
 
 ```
@@ -107,6 +161,7 @@ Sbroglione/               Core project
   Converters/               Value converters for binding
   Styles/                   Palette.axaml (theme-aware brushes) and Controls.axaml (class-based styles)
 Sbroglione.Desktop/       Desktop entry point (WinExe)
+Sbroglione.Android/       Android head project (excluded from Sbroglione.sln's build)
 Sbroglione.Tests/         xunit tests
 ```
 
