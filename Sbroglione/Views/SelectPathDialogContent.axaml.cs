@@ -126,12 +126,7 @@ public partial class SelectPathDialogContent : UserControl, IDialogContent<strin
 
         await vm.NavigateToAsync(vm.CurrentPath);
         UpdatePathBarErrorClass();
-
-        if (AndroidRuntime.IsAndroid)
-        {
-            _manualEntry = false;
-            UpdatePathRowVisibility();
-        }
+        RevertToBreadcrumbOnSuccessIfAndroid(vm);
     }
 
     /// <summary>
@@ -173,6 +168,20 @@ public partial class SelectPathDialogContent : UserControl, IDialogContent<strin
         {
             await vm.NavigateToAsync(parent);
             UpdatePathBarErrorClass();
+            RevertToBreadcrumbOnSuccessIfAndroid(vm);
+        }
+    }
+
+    /// <summary>
+    /// Su Android, dopo una navigazione riuscita dall'editor manuale, torna alla breadcrumb:
+    /// l'editor è una via di fuga (es. percorsi UNC), non la modalità di default.
+    /// </summary>
+    private void RevertToBreadcrumbOnSuccessIfAndroid(SelectPathDialogViewModel vm)
+    {
+        if (AndroidRuntime.IsAndroid && vm.ErrorMessage is null)
+        {
+            _manualEntry = false;
+            UpdatePathRowVisibility();
         }
     }
 
