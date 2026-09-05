@@ -11,6 +11,7 @@ public sealed class CopyPairsViewModelTests : IDisposable
     private readonly string _originalCurrentPath;
     private readonly string _originalJournalPath;
     private readonly string _originalProfilesPath;
+    private readonly string _originalLanguage = LocalizationService.CurrentLanguage;
 
     public CopyPairsViewModelTests()
     {
@@ -26,11 +27,15 @@ public sealed class CopyPairsViewModelTests : IDisposable
         CopyProfileStore.CurrentPath = Path.Combine(_root, "copy-profiles.json");
         // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
         UiDispatch.Override = action => action();
+        // Asserzioni sotto assumono stringhe IT: LocalizationService.CurrentLanguage è
+        // stato statico condiviso, non garantito dall'ordine di esecuzione dei test.
+        LocalizationService.Apply(LocalizationService.Italian);
     }
 
     public void Dispose()
     {
         UiDispatch.Override = null;
+        LocalizationService.Apply(_originalLanguage);
         AppSettingsStore.Current = _originalCurrent;
         AppSettingsStore.CurrentPath = _originalCurrentPath;
         CopyJournalStore.CurrentPath = _originalJournalPath;

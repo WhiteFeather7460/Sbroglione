@@ -14,6 +14,7 @@ public sealed class ComparisonViewModelTests : IDisposable
         Path.Combine(Path.GetTempPath(), "fe-comparevm-" + Guid.NewGuid().ToString("N"));
     private readonly string _left;
     private readonly string _right;
+    private readonly string _originalLanguage = LocalizationService.CurrentLanguage;
 
     public ComparisonViewModelTests()
     {
@@ -23,11 +24,15 @@ public sealed class ComparisonViewModelTests : IDisposable
         Directory.CreateDirectory(_right);
         // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
         UiDispatch.Override = action => action();
+        // Asserzioni sotto assumono stringhe IT: LocalizationService.CurrentLanguage è
+        // stato statico condiviso, non garantito dall'ordine di esecuzione dei test.
+        LocalizationService.Apply(LocalizationService.Italian);
     }
 
     public void Dispose()
     {
         UiDispatch.Override = null;
+        LocalizationService.Apply(_originalLanguage);
         try { Directory.Delete(_tempDir, recursive: true); } catch (IOException) { }
     }
 

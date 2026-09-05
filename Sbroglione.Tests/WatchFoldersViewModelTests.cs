@@ -14,6 +14,7 @@ public sealed class WatchFoldersViewModelTests : IDisposable
     private readonly Func<string, string, string, Task<bool>>? _originalConfirm;
     private readonly Func<WatchRule, TimeSpan>? _originalInterval;
     private readonly Func<WatchRule, CancellationToken, Task>? _originalSync;
+    private readonly string _originalLanguage = LocalizationService.CurrentLanguage;
 
     // VM create dai singoli test tramite CreateVm(): disposte tutte a fine test, così
     // _statusHandler non resta iscritto a WatchFolderService.StatusChanged (evento statico,
@@ -31,11 +32,15 @@ public sealed class WatchFoldersViewModelTests : IDisposable
         _originalSync = WatchFolderService.SyncOverride;
         // Senza loop del dispatcher i Post andrebbero persi: esecuzione sincrona nei test.
         UiDispatch.Override = action => action();
+        // Asserzioni sotto assumono stringhe IT: LocalizationService.CurrentLanguage è
+        // stato statico condiviso, non garantito dall'ordine di esecuzione dei test.
+        LocalizationService.Apply(LocalizationService.Italian);
     }
 
     public void Dispose()
     {
         UiDispatch.Override = null;
+        LocalizationService.Apply(_originalLanguage);
         // Dispose() è idempotente (-= su handler già rimosso è un no-op): sicuro anche
         // per i test che chiamano vm.Dispose() esplicitamente prima di questo cleanup.
         foreach (WatchFoldersViewModel vm in _createdVms)

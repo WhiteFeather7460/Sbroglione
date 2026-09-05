@@ -23,7 +23,7 @@ public class AppSettings
     public string? CustomThemeId { get; set; }
 
     /// <summary>Lingua dell'interfaccia: "it" o "en".</summary>
-    public string Language { get; set; } = "en";
+    public string Language { get; set; } = "it";
 
     /// <summary>Pannello di navigazione laterale espanso (icone + etichette) o collassato (solo icone).</summary>
     public bool NavExpanded { get; set; } = true;
