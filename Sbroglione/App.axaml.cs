@@ -74,6 +74,23 @@ public partial class App : Application
             SelfUpdateService.CleanupOrphanBackup();
 
             var mainWindowViewModel = new MainWindowViewModel();
+
+            desktop.ShutdownRequested += (_, _) =>
+            {
+                foreach (var plugin in mainWindowViewModel.LoadedPlugins)
+                {
+                    try
+                    {
+                        plugin.OnUnload();
+                    }
+                    catch (Exception)
+                    {
+                        // Un OnUnload che lancia non deve impedire la chiusura pulita dell'app
+                        // né bloccare l'OnUnload degli altri plugin.
+                    }
+                }
+            };
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = mainWindowViewModel
