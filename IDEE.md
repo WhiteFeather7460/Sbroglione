@@ -72,6 +72,10 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 28. `[x]` **Auto-updater** — Quando viene rilasciata una nuova versione su git deve fare notifica all'avvio. Aggiungere inoltre un pulsante nelle opzioni per fare l'update manuale.
 
+29. `[~]` **Sistema plugin per tab custom** — Permettere a repo esterni di sviluppare nuove tab (es. YoutubeDownloader) caricate a runtime dall'host, senza toccare il codice core. Contract minimo (`ITabPlugin`: Id/Header/IconGlyph/CreateView), nessun accesso a service interni (solo picker nativo Avalonia `StorageProvider`). Richiede prima convertire il `TabControl` di `MainView.axaml` da `TabItem` statici a `ItemsSource` data-driven. *(A)* *(design in corso in brainstorming, 2026-09-05)*
+
+30. `[ ]` **Spezzare service monolitici in responsabilità più piccole** — `FileSystemService` (e probabilmente altri: `DirectoryComparisonService`, `WatchFolderService`) accumulano più responsabilità distinte in un solo file statico (es. `FileSystemService` fa: path-type query, listing semplice/ricorsivo, create/rename/delete, gestione path UNC, mapping eccezioni→`ListingError`). Valutare split in classi/file dedicati per singola responsabilità, mantenendo la stessa API pubblica dove possibile per non rompere i chiamanti. *(M)*
+
 ---
 
 ## Note di priorità
