@@ -34,10 +34,23 @@ public static class PluginLoader
         if (!Directory.Exists(PluginsRootPath))
             return result;
 
-        foreach (string pluginDir in Directory.EnumerateDirectories(PluginsRootPath))
+        // Directory.EnumerateDirectories è lazy: un errore di I/O può emergere a metà iterazione,
+        // non solo alla chiamata. Un fallimento di enumerazione interrompe la scoperta ma non deve
+        // mai impedire l'avvio dell'app: si restituisce quanto raccolto fino a quel punto.
+        try
         {
-            if (TryLoadPlugin(pluginDir, out ITabPlugin? plugin))
-                result.Add(plugin!);
+            foreach (string pluginDir in Directory.EnumerateDirectories(PluginsRootPath))
+            {
+                if (TryLoadPlugin(pluginDir, out ITabPlugin? plugin))
+                    result.Add(plugin!);
+            }
+        }
+#pragma warning disable CA1031 // nessuna eccezione deve propagarsi da Discover: vedi doc di classe
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            // Root cancellata/smontata sotto i piedi, permessi negati, I/O error: si smette di
+            // scoprire, senza propagare.
         }
 
         return result;
@@ -47,19 +60,22 @@ public static class PluginLoader
     {
         plugin = null;
 
-        string manifestPath = Path.Combine(pluginDir, "plugin.json");
-        if (!PluginManifestReader.TryRead(manifestPath, out PluginManifest? manifest))
-            return false;
-
-        if (!ContractVersionCompatibility.IsCompatible(manifest!.ContractVersion, SupportedContractMajor))
-            return false;
-
-        string dllPath = Path.Combine(pluginDir, manifest.MainAssemblyFileName);
-        if (!File.Exists(dllPath))
-            return false;
-
+        // L'intero corpo è protetto: anche la lettura del manifest può fallire con IOException o
+        // UnauthorizedAccessException (plugin.json esistente ma illeggibile, lockato, o in realtà
+        // una directory), casi che PluginManifestReader.TryRead non intercetta.
         try
         {
+            string manifestPath = Path.Combine(pluginDir, "plugin.json");
+            if (!PluginManifestReader.TryRead(manifestPath, out PluginManifest? manifest))
+                return false;
+
+            if (!ContractVersionCompatibility.IsCompatible(manifest!.ContractVersion, SupportedContractMajor))
+                return false;
+
+            string dllPath = Path.Combine(pluginDir, manifest.MainAssemblyFileName);
+            if (!File.Exists(dllPath))
+                return false;
+
             var context = new AssemblyLoadContext($"plugin-{manifest.Id}", isCollectible: true);
             Assembly assembly = context.LoadFromAssemblyPath(dllPath);
 
@@ -79,8 +95,9 @@ public static class PluginLoader
         catch (Exception)
 #pragma warning restore CA1031
         {
-            // DLL corrotta, dipendenza mancante, eccezione nel costruttore del plugin, ecc.:
-            // un plugin rotto non deve impedire l'avvio dell'app né il caricamento degli altri.
+            // Manifest illeggibile, DLL corrotta, dipendenza mancante, eccezione nel costruttore
+            // del plugin, ecc.: un plugin rotto non deve impedire l'avvio dell'app né il
+            // caricamento degli altri.
             return false;
         }
     }

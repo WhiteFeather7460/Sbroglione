@@ -119,6 +119,82 @@ public sealed class PluginLoaderTests : IDisposable
     }
 
     [Fact]
+    public void Discover_UnreadableManifest_SkipsPluginWithoutThrowing()
+    {
+        // File.ReadAllText dentro PluginManifestReader.TryRead lancia UnauthorizedAccessException
+        // su un plugin.json esistente ma non leggibile: TryRead intercetta solo JsonException, quindi
+        // deve essere PluginLoader a contenere l'errore.
+        if (OperatingSystem.IsWindows())
+            return; // i permessi POSIX non si applicano
+
+        string pluginDir = Path.Combine(_root, "unreadable-plugin");
+        Directory.CreateDirectory(pluginDir);
+        string manifestPath = Path.Combine(pluginDir, "plugin.json");
+        File.WriteAllText(manifestPath, "{}");
+        File.SetUnixFileMode(manifestPath, UnixFileMode.None);
+
+        try
+        {
+            IReadOnlyList<ITabPlugin> plugins = PluginLoader.Discover();
+
+            Assert.Empty(plugins);
+        }
+        finally
+        {
+            // ripristina i permessi, altrimenti Dispose non riesce a cancellare la temp dir
+            File.SetUnixFileMode(manifestPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+    }
+
+    [Fact]
+    public void Discover_CorruptDll_SkipsPluginWithoutThrowing()
+    {
+        string pluginDir = Path.Combine(_root, "corrupt-plugin");
+        Directory.CreateDirectory(pluginDir);
+        // File con estensione .dll ma che non è affatto un PE valido: il load deve fallire
+        // dentro PluginLoader, non propagare.
+        File.WriteAllText(Path.Combine(pluginDir, "Corrupt.dll"), "not a valid PE file");
+        File.WriteAllText(Path.Combine(pluginDir, "plugin.json"), """
+            {
+              "id": "corrupt-plugin",
+              "displayName": "Corrupt",
+              "version": "1.0.0",
+              "contractVersion": "1.0.0",
+              "mainAssemblyFileName": "Corrupt.dll"
+            }
+            """);
+
+        IReadOnlyList<ITabPlugin> plugins = PluginLoader.Discover();
+
+        Assert.Empty(plugins);
+    }
+
+    [Fact]
+    public void Discover_AssemblyWithoutTabPluginType_SkipsPluginWithoutThrowing()
+    {
+        string pluginDir = Path.Combine(_root, "no-plugin-type");
+        Directory.CreateDirectory(pluginDir);
+
+        // Sbroglione.PluginContracts è un assembly PE perfettamente valido che però non contiene
+        // nessun tipo concreto che implementa ITabPlugin (solo l'interfaccia e il record manifest).
+        string contractsDll = typeof(PluginManifest).Assembly.Location;
+        File.Copy(contractsDll, Path.Combine(pluginDir, "Sbroglione.PluginContracts.dll"), overwrite: true);
+        File.WriteAllText(Path.Combine(pluginDir, "plugin.json"), """
+            {
+              "id": "no-plugin-type",
+              "displayName": "No Plugin Type",
+              "version": "1.0.0",
+              "contractVersion": "1.0.0",
+              "mainAssemblyFileName": "Sbroglione.PluginContracts.dll"
+            }
+            """);
+
+        IReadOnlyList<ITabPlugin> plugins = PluginLoader.Discover();
+
+        Assert.Empty(plugins);
+    }
+
+    [Fact]
     public void Discover_OneValidOneBroken_LoadsOnlyValid()
     {
         InstallFixturePlugin("good-plugin");
