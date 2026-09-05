@@ -28,6 +28,7 @@ public static class StringsEn
         ["Str.InputDialog.Watermark"] = "Name…",
         ["Str.PathPicker.Go"] = "Go",
         ["Str.PathPicker.Select"] = "Select",
+        ["Str.PathPicker.EditManually"] = "Type a path",
         ["Str.SelectPathDialog.Title"] = "Select file or folder",
         ["Str.SelectPathDialog.UncNotSupported"] = "UNC path not supported on this system: mount the network share and use the mount point.",
         ["Str.SelectPathDialog.Error.NotFound"] = "Path does not exist.",

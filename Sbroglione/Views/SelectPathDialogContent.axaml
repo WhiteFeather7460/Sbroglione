@@ -1,13 +1,17 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="https://github.com/projektanker/icons.avalonia"
+             xmlns:controls="clr-namespace:Sbroglione.Views.Controls"
+             xmlns:services="clr-namespace:Sbroglione.Services"
              x:Class="Sbroglione.Views.SelectPathDialogContent"
              Background="{DynamicResource Brush.Surface}">
 
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="12">
 
-    <!-- Barra del percorso -->
-    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+    <!-- Barra del percorso: editor manuale — sempre su desktop, su Android solo dopo aver
+         toccato la matita (digitare un percorso su schermo touch è scomodo, ma resta possibile
+         per casi come un percorso UNC incollato). -->
+    <Grid Grid.Row="0" x:Name="ManualPathRow" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
       <Button Grid.Column="0" Classes="iconbtn"
               i:Attached.Icon="fa-solid fa-arrow-left"
               Click="OnBackClick" Margin="0,0,8,0" />
@@ -16,6 +20,21 @@
                Text="{Binding CurrentPath, Mode=TwoWay}"
                KeyDown="OnPathKeyDown" />
       <Button Grid.Column="2" Classes="primary" Content="{DynamicResource Str.PathPicker.Go}" Click="OnGoClick" Margin="8,0,0,0" />
+    </Grid>
+
+    <!-- Barra del percorso: breadcrumb a segmenti toccabili, per navigare senza tastiera
+         su Android. -->
+    <Grid Grid.Row="0" x:Name="BreadcrumbPathRow" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+      <Button Grid.Column="0" Classes="iconbtn"
+              i:Attached.Icon="fa-solid fa-arrow-left"
+              Click="OnBackClick" Margin="0,0,8,0" />
+      <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <controls:BreadcrumbBar Path="{Binding CurrentPath}" SegmentClicked="OnBreadcrumbSegmentClicked"
+                                 VerticalAlignment="Center" />
+      </ScrollViewer>
+      <Button Grid.Column="2" Classes="iconbtn" i:Attached.Icon="fa-solid fa-pen"
+              Click="OnEditPathClick" Margin="8,0,0,0"
+              ToolTip.Tip="{DynamicResource Str.PathPicker.EditManually}" />
     </Grid>
 
     <!-- Stato: errore dell'ultimo caricamento o caricamento in corso (percorsi di rete lenti) -->

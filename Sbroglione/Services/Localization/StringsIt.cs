@@ -32,6 +32,7 @@ public static class StringsIt
         ["Str.InputDialog.Watermark"] = "Nome…",
         ["Str.PathPicker.Go"] = "Vai",
         ["Str.PathPicker.Select"] = "Seleziona",
+        ["Str.PathPicker.EditManually"] = "Digita un percorso",
         ["Str.SelectPathDialog.Title"] = "Seleziona file o cartella",
         ["Str.SelectPathDialog.UncNotSupported"] = "Percorso UNC non supportato su questo sistema: montare la condivisione di rete e usare il punto di mount.",
         ["Str.SelectPathDialog.Error.NotFound"] = "Percorso inesistente.",

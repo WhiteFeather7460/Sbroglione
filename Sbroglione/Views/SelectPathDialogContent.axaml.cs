@@ -18,10 +18,12 @@ namespace Sbroglione.Views;
 public partial class SelectPathDialogContent : UserControl, IDialogContent<string?>
 {
     private bool _initialized;
+    private bool _manualEntry = AndroidRuntime.IsNotAndroid;
 
     public SelectPathDialogContent()
     {
         InitializeComponent();
+        UpdatePathRowVisibility();
 
         // Il caricamento iniziale parte all'aggancio all'albero visuale: il costruttore del
         // ViewModel non fa I/O (i percorsi di rete possono essere lenti o irraggiungibili).
@@ -123,6 +125,45 @@ public partial class SelectPathDialogContent : UserControl, IDialogContent<strin
             return;
 
         await vm.NavigateToAsync(vm.CurrentPath);
+        UpdatePathBarErrorClass();
+
+        if (AndroidRuntime.IsAndroid)
+        {
+            _manualEntry = false;
+            UpdatePathRowVisibility();
+        }
+    }
+
+    /// <summary>
+    /// Mostra/nasconde le due varianti della barra del percorso: editor manuale (desktop, o
+    /// Android dopo aver toccato la matita) contro breadcrumb (Android, di default).
+    /// </summary>
+    private void UpdatePathRowVisibility()
+    {
+        ManualPathRow.IsVisible = _manualEntry;
+        BreadcrumbPathRow.IsVisible = !_manualEntry;
+    }
+
+    /// <summary>
+    /// Tocco sulla matita: passa dalla breadcrumb all'editor manuale per digitare/incollare
+    /// un percorso (es. UNC).
+    /// </summary>
+    public void OnEditPathClick(object? sender, RoutedEventArgs e)
+    {
+        _manualEntry = true;
+        UpdatePathRowVisibility();
+        PathTextBar.Focus();
+    }
+
+    /// <summary>
+    /// Tocco su un segmento della breadcrumb: naviga al percorso cumulativo di quel segmento.
+    /// </summary>
+    public async void OnBreadcrumbSegmentClicked(object? sender, string path)
+    {
+        if (ViewModel is not { } vm)
+            return;
+
+        await vm.NavigateToAsync(path);
         UpdatePathBarErrorClass();
     }
 
