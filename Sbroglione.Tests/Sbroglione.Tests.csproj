@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sbroglione\Sbroglione.csproj" />
+    <ProjectReference Include="..\Sbroglione.TestPluginFixture\Sbroglione.TestPluginFixture.csproj" />
   </ItemGroup>
 
   <ItemGroup>
