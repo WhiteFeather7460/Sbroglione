@@ -195,6 +195,71 @@ public sealed class PluginLoaderTests : IDisposable
     }
 
     [Fact]
+    public void Discover_UnsafeMainAssemblyFileName_SkipsPlugin()
+    {
+        string pluginDir = Path.Combine(_root, "traversal-plugin");
+        Directory.CreateDirectory(pluginDir);
+        string fixtureDllSource = typeof(FixtureTabPlugin).Assembly.Location;
+        // Il file esiste davvero (fuori da pluginDir, nella cartella di output della fixture):
+        // un path traversal riuscito caricherebbe comunque questa DLL valida, quindi solo la
+        // guardia sul nome file impedisce il caricamento qui, non un semplice "file mancante".
+        File.WriteAllText(Path.Combine(pluginDir, "plugin.json"), $$"""
+            {
+              "id": "traversal-plugin",
+              "displayName": "Traversal",
+              "version": "1.0.0",
+              "contractVersion": "1.0.0",
+              "mainAssemblyFileName": "../{{Path.GetFileName(fixtureDllSource)}}"
+            }
+            """);
+
+        IReadOnlyList<ITabPlugin> plugins = PluginLoader.Discover();
+
+        Assert.Empty(plugins);
+    }
+
+    [Fact]
+    public void Discover_TwoPluginsSameManifestId_LoadsOnlyFirstInFolderOrder()
+    {
+        // "aaa-plugin" precede "zzz-plugin" nell'ordine alfabetico deterministico di Discover:
+        // deve essere quello caricato, l'altro va scartato come duplicato dello stesso Id.
+        InstallFixturePluginInFolder("aaa-plugin", manifestId: "dup-id");
+        InstallFixturePluginInFolder("zzz-plugin", manifestId: "dup-id");
+
+        IReadOnlyList<ITabPlugin> plugins = PluginLoader.Discover();
+
+        Assert.Single(plugins);
+    }
+
+    /// <summary>Come <see cref="InstallFixturePlugin"/> ma con cartella e Id manifest indipendenti,
+    /// per testare la dedup per Id a parità di ordine di scoperta.</summary>
+    private void InstallFixturePluginInFolder(string folderName, string manifestId)
+    {
+        string pluginDir = Path.Combine(_root, folderName);
+        Directory.CreateDirectory(pluginDir);
+
+        string fixtureDllSource = typeof(FixtureTabPlugin).Assembly.Location;
+        string fixtureDllName = Path.GetFileName(fixtureDllSource);
+        File.Copy(fixtureDllSource, Path.Combine(pluginDir, fixtureDllName), overwrite: true);
+
+        string contractsDllSource = Path.Combine(
+            Path.GetDirectoryName(fixtureDllSource)!,
+            "Sbroglione.PluginContracts.dll");
+        File.Copy(contractsDllSource, Path.Combine(pluginDir, "Sbroglione.PluginContracts.dll"), overwrite: true);
+
+        string manifestJson = $$"""
+            {
+              "id": "{{manifestId}}",
+              "displayName": "Fixture Plugin",
+              "version": "1.0.0",
+              "contractVersion": "1.0.0",
+              "mainAssemblyFileName": "{{fixtureDllName}}"
+            }
+            """;
+        File.WriteAllText(Path.Combine(pluginDir, "plugin.json"), manifestJson);
+    }
+
+    [Fact]
     public void Discover_OneValidOneBroken_LoadsOnlyValid()
     {
         InstallFixturePlugin("good-plugin");

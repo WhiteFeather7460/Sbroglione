@@ -1,3 +1,5 @@
+using System;
+
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Projektanker.Icons.Avalonia;
@@ -31,16 +33,30 @@ public partial class MainView : UserControl
 
         foreach (ITabPlugin plugin in vm.LoadedPlugins)
         {
-            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            header.Children.Add(new Icon { Value = plugin.IconGlyph });
-            header.Children.Add(new TextBlock { Text = plugin.Header });
-
-            var tabItem = new TabItem
+            // Un plugin di terze parti può lanciare in CreateView()/Header/IconGlyph (getter con
+            // logica, view il cui costruttore fallisce, ecc.): va isolato come già fa PluginLoader
+            // in fase di discovery, altrimenti un plugin rotto impedirebbe la costruzione delle
+            // tab per tutti gli altri.
+#pragma warning disable CA1031 // vedi commento sopra: un plugin può fallire in qualunque modo
+            try
             {
-                Header = header,
-                Content = plugin.CreateView()
-            };
-            NavTabControl.Items.Add(tabItem);
+                var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                header.Children.Add(new Icon { Value = plugin.IconGlyph });
+                header.Children.Add(new TextBlock { Text = plugin.Header });
+
+                var tabItem = new TabItem
+                {
+                    Header = header,
+                    Content = plugin.CreateView()
+                };
+                NavTabControl.Items.Add(tabItem);
+            }
+            catch (Exception)
+            {
+                // Un plugin rotto in fase di costruzione tab non deve impedire l'aggiunta delle
+                // tab degli altri plugin né la costruzione di MainView.
+            }
+#pragma warning restore CA1031
         }
     }
 }
