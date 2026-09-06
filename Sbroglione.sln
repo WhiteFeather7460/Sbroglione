@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sbroglione.Tests", "Sbrogli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sbroglione.Android", "Sbroglione.Android\Sbroglione.Android.csproj", "{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sbroglione.PluginContracts", "Sbroglione.PluginContracts\Sbroglione.PluginContracts.csproj", "{27504ADC-69BD-4279-BAB0-329AC970D04B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sbroglione.TestPluginFixture", "Sbroglione.TestPluginFixture\Sbroglione.TestPluginFixture.csproj", "{3A7971B5-C879-47E0-B284-A5C4A823B7E0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +67,30 @@ Global
 		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|x64.ActiveCfg = Release|Any CPU
 		{BFC54AD0-B88B-4850-876E-7BC1FCBD180B}.Release|x86.ActiveCfg = Release|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Debug|x64.Build.0 = Debug|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Debug|x86.Build.0 = Debug|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Release|x64.ActiveCfg = Release|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Release|x64.Build.0 = Release|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Release|x86.ActiveCfg = Release|Any CPU
+		{27504ADC-69BD-4279-BAB0-329AC970D04B}.Release|x86.Build.0 = Release|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Debug|x64.Build.0 = Debug|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Debug|x86.Build.0 = Debug|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Release|x64.ActiveCfg = Release|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Release|x64.Build.0 = Release|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Release|x86.ActiveCfg = Release|Any CPU
+		{3A7971B5-C879-47E0-B284-A5C4A823B7E0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

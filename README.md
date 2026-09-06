@@ -14,6 +14,44 @@ The UI is organized into tabs:
 - **Disk usage** — disk usage analysis with treemap visualization.
 - **Settings** — app preferences and themes: light/dark plus custom themes creatable with a dedicated editor.
 
+## Plugins
+
+Sbroglione (desktop) can load third-party tab plugins at runtime, discovered from `~/.config/Sbroglione/plugins/`. Minimal plugin:
+
+```csharp
+using Avalonia.Controls;
+using Sbroglione.PluginContracts;
+
+public sealed class MyTabPlugin : ITabPlugin
+{
+    public string Id => "my-plugin";
+    public string Header => "My Plugin";
+    public string IconGlyph => "fa-solid fa-flask";
+
+    public Control CreateView() => new TextBlock { Text = "Hello from my plugin!" };
+
+    public void OnUnload() { /* stop threads/connections, flush state */ }
+}
+```
+
+```
+~/.config/Sbroglione/plugins/my-plugin/
+    plugin.json
+    MyPlugin.dll
+```
+
+```json
+{
+  "id": "my-plugin",
+  "displayName": "My Plugin",
+  "version": "1.0.0",
+  "contractVersion": "1.0.0",
+  "mainAssemblyFileName": "MyPlugin.dll"
+}
+```
+
+Full contract, manifest fields, dependency resolution, failure modes, and version-compatibility rules: see [`docs/plugins.md`](docs/plugins.md).
+
 ## Requirements
 
 - [.NET SDK 10.0](https://dotnet.microsoft.com/download) or later

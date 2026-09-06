@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive;
 using System.Threading.Tasks;
 using Sbroglione.Models;
+using Sbroglione.PluginContracts;
 using Sbroglione.Services;
 using ReactiveUI;
 
@@ -19,15 +21,41 @@ public class MainWindowViewModel : ViewModelBase
     private UpdateInfo? _pendingUpdate;
     private bool _isWatchFolderSupported = true;
     private bool _isStorageAccessGranted = true;
+    private readonly IReadOnlyList<ITabPlugin> _loadedPlugins;
 
-    public MainWindowViewModel()
+    public MainWindowViewModel() : this(discoverPlugins: null) { }
+
+    public MainWindowViewModel(Func<IReadOnlyList<ITabPlugin>>? discoverPlugins)
     {
         _isNavExpanded = AppSettingsStore.Current.NavExpanded;
         ToggleNavCommand = ReactiveCommand.CreateFromTask(ToggleNavAsync);
         UpdateCommand = ReactiveCommand.CreateFromTask(ApplyUpdateAsync);
         DismissUpdateCommand = ReactiveCommand.CreateFromTask(DismissUpdateAsync);
         RequestStorageAccessCommand = ReactiveCommand.Create(() => App.RequestStorageAccess?.Invoke());
+
+        Func<IReadOnlyList<ITabPlugin>> discover = discoverPlugins ?? DiscoverPluginsUnlessAndroid;
+        try
+        {
+            _loadedPlugins = discover();
+        }
+        catch (Exception)
+        {
+            // Il caricamento plugin non deve mai impedire l'avvio dell'app.
+            _loadedPlugins = Array.Empty<ITabPlugin>();
+        }
     }
+
+    /// <summary>Plugin caricati con successo da <see cref="PluginLoader"/> (vuoto se nessuno installato/valido).</summary>
+    public IReadOnlyList<ITabPlugin> LoadedPlugins => _loadedPlugins;
+
+    /// <summary>
+    /// Su Android il caricamento plugin non è supportato (nessun <c>AssemblyLoadContext</c>
+    /// affidabile con codegen limitata dal runtime, e nessuna UI/percorso di installazione plugin
+    /// pensati per quella piattaforma): si salta del tutto la discovery, che su desktop resta
+    /// <see cref="PluginLoader.Discover"/> invariata.
+    /// </summary>
+    private static IReadOnlyList<ITabPlugin> DiscoverPluginsUnlessAndroid() =>
+        AndroidRuntime.IsAndroid ? Array.Empty<ITabPlugin>() : PluginLoader.Discover();
 
     public bool IsNavExpanded
     {
