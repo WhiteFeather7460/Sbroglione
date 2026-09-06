@@ -32,9 +32,15 @@ public static class WatchFolderService
     /// <summary>
     /// Un lock per Id di regola: rende atomica l'intera sequenza di <see cref="Start"/>
     /// (stop → controlli → registrazione → avvio) rispetto a qualunque altro Start/Stop
-    /// sulla stessa regola. I lock non vengono mai rimossi: toglierli in Stop mentre uno
-    /// Start li tiene occupati farebbe creare un oggetto diverso al chiamante successivo,
-    /// annullando la mutua esclusione.
+    /// sulla stessa regola. Il solo <see cref="Gate"/> proteggeva il dizionario, non la
+    /// sequenza: due Start ravvicinati (due OnRuleChanged, oppure la UI contro l'avvio
+    /// iniziale di App) potevano interlacciarsi e il più lento nei controlli (es.
+    /// Directory.Exists su una share lenta) registrava il proprio runner sopra quello
+    /// dell'altro — che restava vivo ma non più fermabile: due runner sulla stessa regola
+    /// e uno zombie che continua a copiare anche dopo averla disabilitata. I lock non
+    /// vengono mai rimossi: toglierli in Stop mentre uno Start li tiene occupati farebbe
+    /// creare un oggetto diverso al chiamante successivo, annullando la mutua esclusione.
+    /// Sono uno per Id di regola vista nella sessione: quantità trascurabile.
     /// </summary>
     private static readonly Dictionary<string, object> RuleGates = new();
 
@@ -93,6 +99,12 @@ public static class WatchFolderService
     /// l'avvio desktop e l'host di background Android. Non lancia mai: una singola regola
     /// malata non deve impedire l'avvio delle altre.
     /// </summary>
+    /// <returns>
+    /// Numero di regole abilitate per cui <see cref="Start"/> è stato invocato senza
+    /// eccezioni. Non è il numero di runner effettivamente attivi: <see cref="Start"/>
+    /// può non registrare alcun runner (sorgente assente, regola autoalimentante)
+    /// segnalandolo solo via <see cref="StatusChanged"/>.
+    /// </returns>
     public static int StartAllEnabledRules(IEnumerable<WatchRule>? rules = null)
     {
         int started = 0;
@@ -228,7 +240,8 @@ public static class WatchFolderService
 
     /// <summary>
     /// Esegue subito una sync: tramite il runner se attivo (serializzata con quelle del loop),
-    /// altrimenti one-shot.
+    /// altrimenti one-shot. Il percorso one-shot non è serializzato con nulla: due chiamate
+    /// concorrenti sulla stessa regola senza runner attivo possono sovrapporsi.
     /// </summary>
     public static async Task RunNowAsync(WatchRule rule)
     {
