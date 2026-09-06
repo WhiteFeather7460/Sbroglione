@@ -33,7 +33,7 @@ public class MainWindowViewModel : ViewModelBase
         DismissUpdateCommand = ReactiveCommand.CreateFromTask(DismissUpdateAsync);
         RequestStorageAccessCommand = ReactiveCommand.Create(() => App.RequestStorageAccess?.Invoke());
 
-        Func<IReadOnlyList<ITabPlugin>> discover = discoverPlugins ?? PluginLoader.Discover;
+        Func<IReadOnlyList<ITabPlugin>> discover = discoverPlugins ?? DiscoverPluginsUnlessAndroid;
         try
         {
             _loadedPlugins = discover();
@@ -47,6 +47,15 @@ public class MainWindowViewModel : ViewModelBase
 
     /// <summary>Plugin caricati con successo da <see cref="PluginLoader"/> (vuoto se nessuno installato/valido).</summary>
     public IReadOnlyList<ITabPlugin> LoadedPlugins => _loadedPlugins;
+
+    /// <summary>
+    /// Su Android il caricamento plugin non è supportato (nessun <c>AssemblyLoadContext</c>
+    /// affidabile con codegen limitata dal runtime, e nessuna UI/percorso di installazione plugin
+    /// pensati per quella piattaforma): si salta del tutto la discovery, che su desktop resta
+    /// <see cref="PluginLoader.Discover"/> invariata.
+    /// </summary>
+    private static IReadOnlyList<ITabPlugin> DiscoverPluginsUnlessAndroid() =>
+        AndroidRuntime.IsAndroid ? Array.Empty<ITabPlugin>() : PluginLoader.Discover();
 
     public bool IsNavExpanded
     {

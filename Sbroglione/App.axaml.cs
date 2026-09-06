@@ -75,21 +75,18 @@ public partial class App : Application
 
             var mainWindowViewModel = new MainWindowViewModel();
 
-            desktop.ShutdownRequested += (_, _) =>
-            {
-                foreach (var plugin in mainWindowViewModel.LoadedPlugins)
-                {
-                    try
-                    {
-                        plugin.OnUnload();
-                    }
-                    catch (Exception)
-                    {
-                        // Un OnUnload che lancia non deve impedire la chiusura pulita dell'app
-                        // né bloccare l'OnUnload degli altri plugin.
-                    }
-                }
-            };
+            // Percorso di chiusura "normale" (utente chiude la finestra, Alt+F4, ecc.).
+            desktop.ShutdownRequested += (_, _) => UnloadAllPlugins(mainWindowViewModel);
+
+            // SelfUpdateService.ApplyUpdateAsync termina il processo via ExitProcess (default
+            // Environment.Exit) DOPO aver rilanciato l'eseguibile aggiornato, senza passare da
+            // IClassicDesktopStyleApplicationLifetime.Shutdown(): ShutdownRequested sopra non
+            // scatta in quel percorso, quindi OnUnload non verrebbe mai chiamato durante un
+            // self-update. AppDomain.ProcessExit scatta invece per QUALUNQUE causa di terminazione
+            // del processo (Shutdown normale incluso — da qui il controllo idempotente in
+            // UnloadAllPlugins), garantendo che OnUnload giri sempre, indipendentemente dal path
+            // di uscita.
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => UnloadAllPlugins(mainWindowViewModel);
 
             desktop.MainWindow = new MainWindow
             {
@@ -147,6 +144,34 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// <c>true</c> dopo la prima chiamata a <see cref="UnloadAllPlugins"/>: sia
+    /// <c>ShutdownRequested</c> sia <c>ProcessExit</c> possono scatenarla per una chiusura
+    /// "normale" (il primo tipicamente scatta prima e innesca comunque la terminazione del
+    /// processo che fa scattare il secondo), quindi va garantita l'esecuzione una sola volta.
+    /// </summary>
+    private static bool _pluginsUnloaded;
+
+    private static void UnloadAllPlugins(MainWindowViewModel mainWindowViewModel)
+    {
+        if (_pluginsUnloaded)
+            return;
+        _pluginsUnloaded = true;
+
+        foreach (var plugin in mainWindowViewModel.LoadedPlugins)
+        {
+            try
+            {
+                plugin.OnUnload();
+            }
+            catch (Exception)
+            {
+                // Un OnUnload che lancia non deve impedire la chiusura pulita dell'app
+                // né bloccare l'OnUnload degli altri plugin.
+            }
+        }
     }
 
     /// <summary>
