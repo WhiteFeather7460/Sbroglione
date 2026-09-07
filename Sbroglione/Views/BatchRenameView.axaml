@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Sbroglione.ViewModels"
+             x:Class="Sbroglione.Views.BatchRenameView"
+             x:DataType="vm:BatchRenameViewModel">
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Classes="card" Margin="16,16,16,8" Padding="16">
+      <StackPanel Spacing="8">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding FolderPath}" Watermark="{DynamicResource Str.BatchRename.FolderWatermark}" Width="400" IsReadOnly="True" />
+          <Button Classes="secondary" Content="{DynamicResource Str.BatchRename.SelectFolder}" Command="{Binding BrowseFolderCommand}" />
+        </StackPanel>
+        <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="0,8,0,0">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Str.BatchRename.FindLabel}" VerticalAlignment="Center" Margin="0,0,8,4" />
+          <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FindPattern}" Margin="0,0,16,4" />
+          <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource Str.BatchRename.ReplaceLabel}" VerticalAlignment="Center" Margin="0,0,8,4" />
+          <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding ReplacePattern}" Margin="0,0,0,4" />
+
+          <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="{DynamicResource Str.BatchRename.UseRegex}" IsChecked="{Binding UseRegex}" Margin="0,0,0,4" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Str.BatchRename.TemplateLabel}" VerticalAlignment="Center" Margin="0,0,8,0" />
+          <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding Template}" Watermark="{DynamicResource Str.BatchRename.TemplateWatermark}" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{DynamicResource Str.BatchRename.CounterStartLabel}" VerticalAlignment="Center" />
+            <NumericUpDown Value="{Binding CounterStart}" Minimum="0" Width="100" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{DynamicResource Str.BatchRename.CounterStepLabel}" VerticalAlignment="Center" />
+            <NumericUpDown Value="{Binding CounterStep}" Minimum="1" Width="100" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Classes="primary" Content="{DynamicResource Str.BatchRename.Apply}" Command="{Binding ApplyCommand}" />
+          <Button Classes="secondary" Content="{DynamicResource Str.BatchRename.Undo}" Command="{Binding UndoCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource Brush.TextMuted}" />
+      </StackPanel>
+    </Border>
+    <Panel Margin="16,0,16,16">
+      <StackPanel IsVisible="{Binding !HasItems}" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <TextBlock Text="{DynamicResource Str.BatchRename.EmptyTitle}" Foreground="{DynamicResource Brush.TextMuted}" />
+      </StackPanel>
+      <DataGrid IsVisible="{Binding HasItems}" ItemsSource="{Binding Items}" AutoGenerateColumns="False" IsReadOnly="True">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="{DynamicResource Str.Common.Name}" Binding="{Binding OriginalName}" Width="*" />
+          <DataGridTextColumn Header="{DynamicResource Str.BatchRename.Title}" Binding="{Binding NewName}" Width="*" />
+          <DataGridTemplateColumn Header="{DynamicResource Str.BatchRename.ConflictBadge}" Width="Auto">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="vm:RenamePreviewItemViewModel">
+                <Border Classes="badge error" IsVisible="{Binding HasConflict}">
+                  <TextBlock Text="{DynamicResource Str.BatchRename.ConflictBadge}" />
+                </Border>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Panel>
+  </DockPanel>
+</UserControl>
