@@ -56,7 +56,8 @@ public static class BatchRenameEngine
 
             string? directory = Path.GetDirectoryName(path);
             string newPath = directory is null ? newName : Path.Combine(directory, newName);
-            bool conflict = error is null && !seenNewPaths.Add(newPath);
+            bool isNewPath = seenNewPaths.Add(newPath);
+            bool conflict = error is null && !isNewPath;
 
             results.Add(new RenamePlanItem(path, originalName, newName, newPath, conflict, error));
             counter += options.CounterStep;
