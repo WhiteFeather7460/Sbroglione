@@ -38,7 +38,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 13. `[x]` **Ricerca duplicati con azioni sicure** — scansione per dimensione + hash parziale + hash completo (a cascata, veloce), raggruppamento duplicati e azioni: elimina, sposta, o sostituisci con hardlink per recuperare spazio senza perdere nulla. I dedup-finder decenti sono tutti a pagamento. *(M)*
 
-14. `[ ]` **Rinomina batch con regex e anteprima** — rinomina multipla con pattern regex/contatori/metadati data, anteprima live del risultato e undo completo dell'operazione. Feature storica premium di Directory Opus/Total Commander plugin. *(M)*
+14. `[x]` **Rinomina batch con regex e anteprima** — rinomina multipla con pattern regex/contatori/metadati data, anteprima live del risultato e undo completo dell'operazione. Feature storica premium di Directory Opus/Total Commander plugin. *(M)* *(implementata: nuova tab "Rinomina batch", `BatchRenameEngine` calcola l'anteprima pura da pattern find/replace letterale o regex + template con token `{name}`/`{ext}`/`{counter}`/`{date}`, `BatchRenameService` esegue via `FileSystemService.RenameAsync` e registra il batch in `RenameJournalStore` per un livello di undo)*
 
 15. `[x]` **Treemap occupazione disco integrata** — vista tipo WizTree/SpaceSniffer nel pannello: rettangoli proporzionali alla dimensione per capire subito cosa occupa spazio, con drill-down e azioni dirette (apri, elimina). *(A)*
 
