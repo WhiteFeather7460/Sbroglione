@@ -289,7 +289,8 @@ public static class FileCopyService
         bool skipUnchanged = false,
         Action<string>? onFileStarted = null,
         Action<string>? onFileCompleted = null,
-        ExtensionFilter? extensionFilter = null)
+        ExtensionFilter? extensionFilter = null,
+        bool deltaCopyEnabled = false)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -340,7 +341,7 @@ public static class FileCopyService
                 {
                     long newTotal = Interlocked.Add(ref copiedBytes, deltaBytes);
                     onProgress?.Invoke(new CopyProgress(newTotal, totalBytes, files.Count));
-                }, ct, bufferSize).ConfigureAwait(false);
+                }, ct, bufferSize, deltaCopyEnabled).ConfigureAwait(false);
                 onFileCompleted?.Invoke(sourceFile);
             }
             finally
@@ -377,7 +378,8 @@ public static class FileCopyService
         Action<string, string>? onFileStarted = null,
         Action<string, string>? onFileCompleted = null,
         Action<string, string, Exception>? onFileFailed = null,
-        ExtensionFilter? extensionFilter = null)
+        ExtensionFilter? extensionFilter = null,
+        bool deltaCopyEnabled = false)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
@@ -475,7 +477,7 @@ public static class FileCopyService
                         string root = rootByDestinationFile[destinationFile];
                         long newTotal = Interlocked.Add(ref counters[root].Value, deltaBytes);
                         onProgress?.Invoke(root, new CopyProgress(newTotal, totalBytes, files.Count));
-                    }, ct, bufferSize).ConfigureAwait(false);
+                    }, ct, bufferSize, deltaCopyEnabled).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
