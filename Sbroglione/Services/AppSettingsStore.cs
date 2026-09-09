@@ -28,6 +28,10 @@ public static class AppSettingsStore
     private const int MinThrottleMBps = 1;
     private const int MaxThrottleMBps = 1000;
 
+    /// <summary>Limiti di validazione per DeltaBlockSizeKB (1KB-32MB), mirror di quelli in SettingsViewModel.</summary>
+    private const int MinDeltaBlockSizeKB = 1;
+    private const int MaxDeltaBlockSizeKB = 32768;
+
     /// <summary>Serializza gli accessi concorrenti a <see cref="SaveCurrentAsync"/> per evitare scritture sovrapposte.</summary>
     private static readonly SemaphoreSlim SaveLock = new(1, 1);
 
@@ -130,6 +134,7 @@ public static class AppSettingsStore
         settings.ManualParallelism = Math.Clamp(settings.ManualParallelism, MinManualParallelism, MaxManualParallelism);
         settings.BufferSizeBytes = Math.Clamp(settings.BufferSizeBytes, MinBufferSizeBytes, MaxBufferSizeBytes);
         settings.ThrottleMBps = Math.Clamp(settings.ThrottleMBps, MinThrottleMBps, MaxThrottleMBps);
+        settings.DeltaBlockSizeKB = Math.Clamp(settings.DeltaBlockSizeKB, MinDeltaBlockSizeKB, MaxDeltaBlockSizeKB);
     }
 
     /// <summary>Salva le impostazioni creando la cartella se assente, con scrittura atomica (file temporaneo + move).</summary>

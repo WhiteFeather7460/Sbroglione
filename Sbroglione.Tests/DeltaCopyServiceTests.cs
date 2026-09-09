@@ -36,6 +36,19 @@ public sealed class DeltaCopyServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task TryDeltaCopyAsync_SourceAndDestSamePath_ReturnsFalseAndLeavesFileIntact()
+    {
+        string path = Path.Combine(_root, "same.bin");
+        byte[] content = { 1, 2, 3, 4, 5 };
+        await File.WriteAllBytesAsync(path, content);
+
+        bool result = await DeltaCopyService.TryDeltaCopyAsync(path, path, null, CancellationToken.None);
+
+        Assert.False(result);
+        Assert.Equal(content, await File.ReadAllBytesAsync(path));
+    }
+
+    [Fact]
     public async Task TryDeltaCopyAsync_SourceSmallerThanOneBlock_ReturnsFalse()
     {
         string sourcePath = Path.Combine(_root, "source.bin");
