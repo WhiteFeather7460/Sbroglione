@@ -54,10 +54,17 @@ public static class DeltaCopyApplier
                                 {
                                     int read = await oldDest.ReadAsync(
                                         buffer.AsMemory(totalRead, block.Length - totalRead), ct).ConfigureAwait(false);
-                                    if (read == 0) break;
+                                    if (read == 0)
+                                    {
+                                        throw new IOException(
+                                            $"Blocco {block.DestOffset}+{block.Length} non leggibile per intero da " +
+                                            $"'{oldDestPath}' (letti {totalRead} byte): la destinazione è cambiata " +
+                                            "dopo il calcolo della signature.");
+                                    }
                                     totalRead += read;
                                 }
 
+                                await IoThrottleService.WaitAsync(totalRead, ct).ConfigureAwait(false);
                                 await output.WriteAsync(buffer.AsMemory(0, totalRead), ct).ConfigureAwait(false);
                                 onBytesCopied?.Invoke(totalRead);
                                 break;
@@ -68,12 +75,21 @@ public static class DeltaCopyApplier
                 }
             }
 
+            if (!OperatingSystem.IsWindows() && File.Exists(finalDestPath))
+            {
+                File.SetUnixFileMode(tempPath, File.GetUnixFileMode(finalDestPath));
+            }
+
             File.Move(tempPath, finalDestPath, overwrite: true);
         }
         catch
         {
-            if (File.Exists(tempPath))
-                File.Delete(tempPath);
+            try
+            {
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+            }
+            catch { /* ignora: l'eccezione originale è più informativa */ }
             throw;
         }
     }
