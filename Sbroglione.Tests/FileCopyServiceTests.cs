@@ -458,4 +458,56 @@ public sealed class FileCopyServiceTests : IDisposable
         Assert.True(File.Exists(Path.Combine(destinationRoot, "a.jpg")));
         Assert.True(File.Exists(Path.Combine(destinationRoot, "b.txt")));
     }
+
+    [Fact]
+    public async Task CopyFileAsync_DeltaCopyEnabled_DestExists_ReconstructsExactContent()
+    {
+        string sourcePath = Path.Combine(_root, "source.bin");
+        string destPath = Path.Combine(_root, "dest.bin");
+        byte[] original = new byte[300 * 1024];
+        new Random(1).NextBytes(original);
+        byte[] modified = (byte[])original.Clone();
+        for (int i = 0; i < 500; i++) modified[i] = (byte)~modified[i];
+
+        await File.WriteAllBytesAsync(destPath, original);
+        await File.WriteAllBytesAsync(sourcePath, modified);
+
+        await FileCopyService.CopyFileAsync(sourcePath, destPath, null, CancellationToken.None, deltaCopyEnabled: true);
+
+        Assert.Equal(modified, await File.ReadAllBytesAsync(destPath));
+    }
+
+    [Fact]
+    public async Task CopyFileAsync_DeltaCopyEnabled_DestMissing_FallsBackToFullCopy()
+    {
+        string sourcePath = Path.Combine(_root, "source.bin");
+        string destPath = Path.Combine(_root, "dest.bin");
+        await File.WriteAllBytesAsync(sourcePath, new byte[300 * 1024]);
+
+        await FileCopyService.CopyFileAsync(sourcePath, destPath, null, CancellationToken.None, deltaCopyEnabled: true);
+
+        Assert.True(File.Exists(destPath));
+        Assert.Equal(await File.ReadAllBytesAsync(sourcePath), await File.ReadAllBytesAsync(destPath));
+    }
+
+    [Fact]
+    public async Task CopyFileToManyAsync_DeltaCopyEnabled_EachDestinationReconstructedIndependently()
+    {
+        string sourcePath = Path.Combine(_root, "source.bin");
+        byte[] source = new byte[300 * 1024];
+        new Random(2).NextBytes(source);
+        await File.WriteAllBytesAsync(sourcePath, source);
+
+        string dest1 = Path.Combine(_root, "d1.bin");
+        string dest2 = Path.Combine(_root, "d2.bin");
+        await File.WriteAllBytesAsync(dest1, source); // identico: tutto CopyBlock
+        await File.WriteAllBytesAsync(dest2, new byte[300 * 1024]); // tutto diverso: tutto Literal
+
+        var result = await FileCopyService.CopyFileToManyAsync(
+            sourcePath, new[] { dest1, dest2 }, null, CancellationToken.None, deltaCopyEnabled: true);
+
+        Assert.Equal(2, result.SucceededDestinations.Count);
+        Assert.Equal(source, await File.ReadAllBytesAsync(dest1));
+        Assert.Equal(source, await File.ReadAllBytesAsync(dest2));
+    }
 }

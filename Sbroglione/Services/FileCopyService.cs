@@ -48,8 +48,13 @@ public static class FileCopyService
         string destinationPath,
         Action<long>? onBytesCopied,
         CancellationToken ct,
-        int bufferSize = DefaultBufferSize)
+        int bufferSize = DefaultBufferSize,
+        bool deltaCopyEnabled = false)
     {
+        if (deltaCopyEnabled &&
+            await DeltaCopyService.TryDeltaCopyAsync(sourcePath, destinationPath, onBytesCopied, ct).ConfigureAwait(false))
+            return;
+
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
 
@@ -99,12 +104,74 @@ public static class FileCopyService
     /// <paramref name="onBytesCopied"/> riceve (percorso destinazione, byte scritti) per
     /// ogni blocco effettivamente scritto su quella destinazione.
     /// </summary>
-    public static async Task<CopyToManyResult> CopyFileToManyAsync(
+    public static Task<CopyToManyResult> CopyFileToManyAsync(
         string sourcePath,
         IReadOnlyList<string> destinationPaths,
         Action<string, long>? onBytesCopied,
         CancellationToken ct,
-        int bufferSize = DefaultBufferSize)
+        int bufferSize = DefaultBufferSize,
+        bool deltaCopyEnabled = false)
+    {
+        if (deltaCopyEnabled)
+            return CopyFileToManyWithDeltaAsync(sourcePath, destinationPaths, onBytesCopied, ct, bufferSize);
+
+        return CopyFileToManyWithFanOutAsync(sourcePath, destinationPaths, onBytesCopied, ct, bufferSize);
+    }
+
+    /// <summary>
+    /// Variante delta-copy di <see cref="CopyFileToManyAsync"/>: nessun fan-out condiviso,
+    /// ogni destinazione fa la propria scansione indipendente della sorgente (letture
+    /// ripetute accettate: ogni destinazione ha un contenuto "vecchio" diverso).
+    /// </summary>
+    private static async Task<CopyToManyResult> CopyFileToManyWithDeltaAsync(
+        string sourcePath,
+        IReadOnlyList<string> destinationPaths,
+        Action<string, long>? onBytesCopied,
+        CancellationToken ct,
+        int bufferSize)
+    {
+        if (destinationPaths.Count == 0)
+            return new CopyToManyResult(Array.Empty<string>(), new Dictionary<string, Exception>());
+
+        var failed = new ConcurrentDictionary<string, Exception>();
+
+        var tasks = destinationPaths.Select(destination => Task.Run(async () =>
+        {
+            try
+            {
+                bool delta = await DeltaCopyService.TryDeltaCopyAsync(
+                    sourcePath, destination, len => onBytesCopied?.Invoke(destination, len), ct).ConfigureAwait(false);
+                if (!delta)
+                {
+                    await CopyFileAsync(sourcePath, destination,
+                        len => onBytesCopied?.Invoke(destination, len), ct, bufferSize).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                failed[destination] = ex;
+            }
+        })).ToList();
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        var succeeded = destinationPaths.Where(d => !failed.ContainsKey(d)).ToList();
+        if (succeeded.Count == 0)
+            throw failed.Values.First();
+
+        DateTime sourceTime = File.GetLastWriteTimeUtc(sourcePath);
+        foreach (var destination in succeeded)
+            File.SetLastWriteTimeUtc(destination, sourceTime);
+
+        return new CopyToManyResult(succeeded, failed);
+    }
+
+    private static async Task<CopyToManyResult> CopyFileToManyWithFanOutAsync(
+        string sourcePath,
+        IReadOnlyList<string> destinationPaths,
+        Action<string, long>? onBytesCopied,
+        CancellationToken ct,
+        int bufferSize)
     {
         if (bufferSize <= 0)
             bufferSize = DefaultBufferSize;
