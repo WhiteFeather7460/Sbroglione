@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Sbroglione.Models;
 using Sbroglione.Services;
 
@@ -80,6 +81,39 @@ public sealed class DeltaCopyServiceTests : IDisposable
         Assert.True(result);
         Assert.Equal(modified, await File.ReadAllBytesAsync(destPath));
         Assert.Equal(modified.Length, reported);
+    }
+
+    [Fact]
+    public async Task TryDeltaCopyAsync_ApplyFailsAfterSignatureBuild_PropagatesException()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || Environment.UserName == "root")
+            return; // chmod-based denial non applicabile.
+
+        // La signature viene costruita con successo (BuildAsync legge solo destPath, che resta
+        // leggibile), ma ApplyAsync fallisce nel creare il file temporaneo perché la cartella di
+        // destinazione perde il permesso di scrittura DOPO che la signature è stata calcolata:
+        // questo simula "la destinazione è cambiata/non è più scrivibile dopo il signature-build"
+        // senza dover vincere una race condition, e verifica che l'eccezione si propaghi invece
+        // di essere inghiottita in un `false` (la regressione di dc2520e).
+        string destDir = Path.Combine(_root, "denied-dest-dir");
+        Directory.CreateDirectory(destDir);
+        string sourcePath = Path.Combine(_root, "source.bin");
+        string destPath = Path.Combine(destDir, "dest.bin");
+        var content = new byte[3000];
+        new Random(7).NextBytes(content);
+        await File.WriteAllBytesAsync(sourcePath, content);
+        await File.WriteAllBytesAsync(destPath, content);
+
+        File.SetUnixFileMode(destDir, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        try
+        {
+            await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
+                DeltaCopyService.TryDeltaCopyAsync(sourcePath, destPath, null, CancellationToken.None));
+        }
+        finally
+        {
+            File.SetUnixFileMode(destDir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
     }
 
     [Fact]
