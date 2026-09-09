@@ -79,4 +79,42 @@ public sealed class DeltaCopyApplierTests : IDisposable
 
         Assert.Single(Directory.GetFiles(_root)); // solo dest.bin originale, nessun .tmp orfano
     }
+
+    [Fact]
+    public async Task ApplyAsync_OldDestTruncatedAfterSignature_ThrowsAndCleansUpTempFile()
+    {
+        byte[] oldContent = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        string destPath = Path.Combine(_root, "dest.bin");
+        await File.WriteAllBytesAsync(destPath, oldContent);
+
+        // Signature calcolata quando il file aveva 10 byte: il blocco chiede 5 byte a offset 8,
+        // ma nel frattempo il file viene troncato a 9 byte (offset 8 legge un solo byte).
+        var instructions = new List<DeltaCopyInstruction> { new CopyBlockInstruction(DestOffset: 8, Length: 5) };
+        await File.WriteAllBytesAsync(destPath, oldContent[..9]);
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            DeltaCopyApplier.ApplyAsync(instructions, destPath, destPath, null, CancellationToken.None));
+
+        Assert.Single(Directory.GetFiles(_root)); // solo dest.bin, nessun .tmp orfano
+    }
+
+    [Fact]
+    public async Task ApplyAsync_PreservesUnixFileModeOfFinalDest()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        byte[] oldContent = { 1, 2, 3 };
+        string destPath = Path.Combine(_root, "dest.bin");
+        await File.WriteAllBytesAsync(destPath, oldContent);
+
+        const UnixFileMode expectedMode =
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+        File.SetUnixFileMode(destPath, expectedMode);
+
+        var instructions = new List<DeltaCopyInstruction> { new CopyBlockInstruction(0, 3) };
+        await DeltaCopyApplier.ApplyAsync(instructions, destPath, destPath, null, CancellationToken.None);
+
+        Assert.Equal(expectedMode, File.GetUnixFileMode(destPath));
+    }
 }

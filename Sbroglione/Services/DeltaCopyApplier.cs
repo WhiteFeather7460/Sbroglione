@@ -64,7 +64,8 @@ public static class DeltaCopyApplier
                                     totalRead += read;
                                 }
 
-                                await IoThrottleService.WaitAsync(totalRead, ct).ConfigureAwait(false);
+                                // CopyBlockInstruction legge dal vecchio dest (I/O locale), non throttlato:
+                                // solo i LiteralInstruction (dati nuovi dalla sorgente) passano da WaitAsync.
                                 await output.WriteAsync(buffer.AsMemory(0, totalRead), ct).ConfigureAwait(false);
                                 onBytesCopied?.Invoke(totalRead);
                                 break;
