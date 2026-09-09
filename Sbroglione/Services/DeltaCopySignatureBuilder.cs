@@ -21,6 +21,8 @@ public static class DeltaCopySignatureBuilder
 {
     public static async Task<DeltaSignature> BuildAsync(string destPath, int blockSizeBytes, CancellationToken ct)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(blockSizeBytes);
+
         var blocksByWeak = new Dictionary<uint, List<SignatureBlock>>();
 
         var stream = new FileStream(destPath, FileMode.Open, FileAccess.Read, FileShare.Read);

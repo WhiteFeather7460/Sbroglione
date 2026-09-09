@@ -48,10 +48,58 @@ public sealed class DeltaCopyScannerTests : IDisposable
         var instructions = await DeltaCopyScanner.ScanAsync(sourcePath, signature, blockSizeBytes: 10, CancellationToken.None);
 
         // Un byte letterale iniziale, poi i blocchi originali (shiftati di 1 nella sorgente
-        // ma identici nel contenuto) devono essere trovati come CopyBlockInstruction.
-        Assert.IsType<LiteralInstruction>(instructions[0]);
-        Assert.Single((instructions[0] as LiteralInstruction)!.Data);
-        Assert.Contains(instructions, i => i is CopyBlockInstruction);
+        // ma identici nel contenuto) devono essere trovati come CopyBlockInstruction, in ordine,
+        // senza perdite né duplicazioni.
+        byte[] reconstructed = Reconstruct(instructions, original);
+        Assert.Equal(shifted, reconstructed);
+        Assert.Equal(4, instructions.OfType<CopyBlockInstruction>().Count());
+        Assert.Equal(
+            new long[] { 0, 10, 20, 30 },
+            instructions.OfType<CopyBlockInstruction>().Select(b => b.DestOffset));
+    }
+
+    [Fact]
+    public async Task ScanAsync_Reconstruction_MatchesSourceForRandomizedEdits()
+    {
+        var rng = new Random(1234567);
+        for (int iteration = 0; iteration < 300; iteration++)
+        {
+            int blockSize = rng.Next(1, 13);
+            int destLen = rng.Next(0, 60);
+            byte[] destContent = new byte[destLen];
+            rng.NextBytes(destContent);
+
+            var source = new List<byte>(destContent);
+            int edits = rng.Next(0, 5);
+            for (int e = 0; e < edits; e++)
+            {
+                int op = rng.Next(3);
+                int pos = source.Count == 0 ? 0 : rng.Next(source.Count + 1);
+                switch (op)
+                {
+                    case 0 when source.Count > 0: // delete
+                        source.RemoveAt(rng.Next(source.Count));
+                        break;
+                    case 1: // insert
+                        source.Insert(pos, (byte)rng.Next(256));
+                        break;
+                    default: // replace
+                        if (source.Count > 0)
+                            source[rng.Next(source.Count)] = (byte)rng.Next(256);
+                        break;
+                }
+            }
+            byte[] sourceContent = source.ToArray();
+
+            string destPath = await WriteAsync($"fuzz-dest-{iteration}.bin", destContent);
+            string sourcePath = await WriteAsync($"fuzz-source-{iteration}.bin", sourceContent);
+
+            var signature = await DeltaCopySignatureBuilder.BuildAsync(destPath, blockSize, CancellationToken.None);
+            var instructions = await DeltaCopyScanner.ScanAsync(sourcePath, signature, blockSize, CancellationToken.None);
+
+            byte[] reconstructed = Reconstruct(instructions, destContent);
+            Assert.Equal(sourceContent, reconstructed);
+        }
     }
 
     [Fact]
@@ -102,6 +150,7 @@ public sealed class DeltaCopyScannerTests : IDisposable
         var signature = await DeltaCopySignatureBuilder.BuildAsync(destPath, blockSizeBytes: 10, CancellationToken.None);
         var instructions = await DeltaCopyScanner.ScanAsync(sourcePath, signature, blockSizeBytes: 10, CancellationToken.None);
 
+        Assert.All(instructions, i => Assert.IsType<LiteralInstruction>(i));
         byte[] reconstructed = Reconstruct(instructions, destContent);
         Assert.Equal(sourceContent, reconstructed);
     }

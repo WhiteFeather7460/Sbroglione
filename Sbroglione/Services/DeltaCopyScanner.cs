@@ -22,6 +22,8 @@ public static class DeltaCopyScanner
     public static async Task<IReadOnlyList<DeltaCopyInstruction>> ScanAsync(
         string sourcePath, DeltaSignature signature, int blockSizeBytes, CancellationToken ct)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(blockSizeBytes);
+
         var instructions = new List<DeltaCopyInstruction>();
         var literalBuffer = new List<byte>();
 
