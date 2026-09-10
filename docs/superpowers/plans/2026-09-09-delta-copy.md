@@ -1381,7 +1381,7 @@ git commit -m "feat: thread deltaCopyEnabled through directory copy methods"
 - Consumes: `AppSettingsStore.Current.DeltaBlockSizeKB` (Task 5).
 - Produces: nessuna nuova interfaccia consumata da altri task — è un endpoint UI.
 
-- [ ] **Step 1: Aggiungi le stringhe localizzate**
+- [x] **Step 1: Aggiungi le stringhe localizzate**
 
 In `Sbroglione/Services/Localization/StringsEn.cs`, accanto alle chiavi `Str.Settings.*` esistenti per il throttle:
 
@@ -1397,7 +1397,7 @@ In `Sbroglione/Services/Localization/StringsIt.cs`:
 
 (Cerca la chiave esatta `Str.Settings.Throttle` in entrambi i file per posizionare la nuova voce nello stesso blocco.)
 
-- [ ] **Step 2: Aggiungi la proprietà al ViewModel**
+- [x] **Step 2: Aggiungi la proprietà al ViewModel**
 
 In `Sbroglione/ViewModels/SettingsViewModel.cs`, accanto a `ThrottleMBps` (righe 118-129):
 
@@ -1419,7 +1419,7 @@ In `Sbroglione/ViewModels/SettingsViewModel.cs`, accanto a `ThrottleMBps` (righe
 
 (Verifica il nome esatto del metodo di salvataggio guardando come termina il setter di `ThrottleMBps` in questo stesso file — usa lo stesso.)
 
-- [ ] **Step 3: Aggiungi il controllo XAML**
+- [x] **Step 3: Aggiungi il controllo XAML**
 
 In `Sbroglione/Views/SettingsView.axaml`, subito dopo il blocco del throttle (righe 50-63):
 
@@ -1431,12 +1431,12 @@ In `Sbroglione/Views/SettingsView.axaml`, subito dopo il blocco del throttle (ri
             </Grid>
 ```
 
-- [ ] **Step 4: Verifica manuale**
+- [ ] **Step 4: Verifica manuale** (skipped: no display in this environment; build verified green)
 
 Run: `dotnet build Sbroglione.sln` — deve compilare senza errori.
 Avvia l'app (`dotnet run --project Sbroglione.Desktop`), vai in Impostazioni, verifica che il campo compaia, accetti solo interi ≥1, e che il valore persista dopo riavvio (legge/scrive `AppSettingsStore`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sbroglione/ViewModels/SettingsViewModel.cs Sbroglione/Views/SettingsView.axaml Sbroglione/Services/Localization/StringsEn.cs Sbroglione/Services/Localization/StringsIt.cs
@@ -1635,7 +1635,7 @@ In `IDEE.md`, sostituisci la riga 19:
 5. `[x]` **Delta-copy stile rsync** — se il file di destinazione esiste, copiare solo i blocchi cambiati (rolling checksum). Enorme risparmio su file grandi modificati poco (VM, database, video in editing). *(A)* *(implementata Fase 1: copia locale/locale, algoritmo rsync a due livelli weak+strong hash in `DeltaCopyScanner`, applicazione via temp-file+rename atomico in `DeltaCopyApplier`, opt-in per coppia (`DeltaCopyEnabled`), block size configurabile in Impostazioni. FTP/SFTP fuori scope: richiederebbe bypassare le API whole-file di FluentFTP/SSH.NET, nessuna primitiva a blocchi/offset esposta oggi — da valutare come voce separata)*
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add IDEE.md
