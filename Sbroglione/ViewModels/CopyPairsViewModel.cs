@@ -232,6 +232,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 DestinationPath = p.DestinationPath ?? string.Empty,
                 ExtraDestinations = p.ExtraDestinations.Select(e => e.Path).ToList(),
                 SkipUnchanged = p.SkipUnchanged,
+                DeltaCopyEnabled = p.DeltaCopyEnabled,
                 ExtensionFilterMode = p.ExtensionFilterMode,
                 ExtensionFilterText = p.ExtensionFilterText
             })
@@ -280,6 +281,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                 SourcePath = stored.SourcePath,
                 DestinationPath = stored.DestinationPath,
                 SkipUnchanged = stored.SkipUnchanged,
+                DeltaCopyEnabled = stored.DeltaCopyEnabled,
                 ExtensionFilterMode = stored.ExtensionFilterMode,
                 ExtensionFilterText = stored.ExtensionFilterText
             };
@@ -679,7 +681,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
                     PublishDestinationSpeed(pair, target, snapshot);
                 RecomputePairAggregate(pair);
             });
-        }, ct, AppSettingsStore.Current.BufferSizeBytes);
+        }, ct, AppSettingsStore.Current.BufferSizeBytes, deltaCopyEnabled: pair.DeltaCopyEnabled);
 
         foreach (var destinationFile in copyResult.SucceededDestinations)
         {
@@ -833,6 +835,7 @@ public class CopyPairsViewModel : ViewModelBase, IDisposable
             ct,
             bufferSize: AppSettingsStore.Current.BufferSizeBytes,
             skipUnchanged: pair.SkipUnchanged,
+            deltaCopyEnabled: pair.DeltaCopyEnabled,
             extensionFilter: pair.BuildExtensionFilter(),
             onFileStarted: (destination, sourceFile) =>
             {

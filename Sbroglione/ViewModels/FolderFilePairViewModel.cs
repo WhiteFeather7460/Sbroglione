@@ -336,6 +336,9 @@ public class FolderFilePairViewModel : ReactiveObject
     /// </summary>
     public bool SkipUnchanged { get; set; }
 
+    /// <summary>Se true, per i file già esistenti in destinazione copia solo i blocchi cambiati (rolling checksum).</summary>
+    public bool DeltaCopyEnabled { get; set; }
+
     /// <summary>Se true, prima di copiare svuota tutte le destinazioni (primaria + extra), previa conferma.</summary>
     public bool ClearDestinationBeforeCopy { get; set; }
 

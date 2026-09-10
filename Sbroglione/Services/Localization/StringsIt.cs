@@ -141,6 +141,7 @@ public static class StringsIt
         ["Str.CopyPairs.CopyingNowHeader"] = "In copia adesso",
         ["Str.CopyPairs.DestinationErrorBadge"] = "Errore",
         ["Str.CopyPairs.ClearDestination"] = "Svuota destinazione prima di copiare",
+        ["Str.CopyPairs.DeltaCopy"] = "Delta-copy (solo blocchi cambiati)",
         ["Str.CopyPairs.ClearDestinationTitle"] = "Svuotare le destinazioni?",
         ["Str.CopyPairs.ClearDestinationMessageFormat"] = "Tutto il contenuto delle seguenti cartelle verrà eliminato definitivamente prima della copia:\n{0}",
         ["Str.CopyPairs.ExtensionFilterLabel"] = "Filtro estensioni:",

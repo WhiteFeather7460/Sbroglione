@@ -137,6 +137,7 @@ public static class StringsEn
         ["Str.CopyPairs.CopyingNowHeader"] = "Copying now",
         ["Str.CopyPairs.DestinationErrorBadge"] = "Error",
         ["Str.CopyPairs.ClearDestination"] = "Clear destination before copying",
+        ["Str.CopyPairs.DeltaCopy"] = "Delta-copy (only changed blocks)",
         ["Str.CopyPairs.ClearDestinationTitle"] = "Clear destinations?",
         ["Str.CopyPairs.ClearDestinationMessageFormat"] = "All content of the following folders will be permanently deleted before copying:\n{0}",
         ["Str.CopyPairs.ExtensionFilterLabel"] = "Extension filter:",

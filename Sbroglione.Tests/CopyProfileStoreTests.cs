@@ -67,6 +67,30 @@ public sealed class CopyProfileStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveAsync_ThenLoadAsync_RoundTripsDeltaCopyEnabled()
+    {
+        var profile = new CopyProfile
+        {
+            Name = "Backup foto",
+            Pairs =
+            {
+                new CopyProfilePair
+                {
+                    SourcePath = "/dati/foto",
+                    DestinationPath = "/backup/foto",
+                    DeltaCopyEnabled = true
+                }
+            }
+        };
+
+        await CopyProfileStore.SaveAsync(new[] { profile });
+        List<CopyProfile> loaded = await CopyProfileStore.LoadAsync();
+
+        var pair = Assert.Single(Assert.Single(loaded).Pairs);
+        Assert.True(pair.DeltaCopyEnabled);
+    }
+
+    [Fact]
     public async Task LoadAsync_SortsByNameCaseInsensitive()
     {
         await CopyProfileStore.SaveAsync(new[]
