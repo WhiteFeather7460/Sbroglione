@@ -131,6 +131,21 @@ public class SettingsViewModel : ViewModelBase, IDisposable
         }
     }
 
+    public int DeltaBlockSizeKB
+    {
+        get => AppSettingsStore.Current.DeltaBlockSizeKB;
+        set
+        {
+            int clamped = Math.Max(1, value);
+            if (AppSettingsStore.Current.DeltaBlockSizeKB == clamped)
+                return;
+
+            AppSettingsStore.Current.DeltaBlockSizeKB = clamped;
+            this.RaisePropertyChanged();
+            SaveCurrent();
+        }
+    }
+
     public string ThemeVariant
     {
         get => AppSettingsStore.Current.ThemeVariant;

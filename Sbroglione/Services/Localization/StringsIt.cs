@@ -62,6 +62,7 @@ public static class StringsIt
         ["Str.Settings.BufferSize"] = "Dimensione buffer copia (KB)",
         ["Str.Settings.VerifyChecksum"] = "Verifica checksum dopo la copia",
         ["Str.Settings.BandwidthLimit"] = "Limite di banda (MB/s, 1-1000)",
+        ["Str.Settings.DeltaBlockSize"] = "Dimensione blocco delta-copy (KB)",
         ["Str.Settings.Appearance"] = "Aspetto",
         ["Str.Settings.ThemeSystem"] = "Sistema",
         ["Str.Settings.ThemeLight"] = "Chiaro",

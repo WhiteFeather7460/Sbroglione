@@ -58,6 +58,7 @@ public static class StringsEn
         ["Str.Settings.BufferSize"] = "Copy buffer size (KB)",
         ["Str.Settings.VerifyChecksum"] = "Verify checksum after copy",
         ["Str.Settings.BandwidthLimit"] = "Bandwidth limit (MB/s, 1-1000)",
+        ["Str.Settings.DeltaBlockSize"] = "Delta-copy block size (KB)",
         ["Str.Settings.Appearance"] = "Appearance",
         ["Str.Settings.ThemeSystem"] = "System",
         ["Str.Settings.ThemeLight"] = "Light",
