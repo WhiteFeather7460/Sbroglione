@@ -16,7 +16,7 @@ Legenda stato: `[ ]` proposta · `[~]` in lavorazione · `[x]` implementata
 
 4. `[x]` **Throttling I/O configurabile** — limite di banda (MB/s) per la copia, per non saturare dischi/rete mentre si lavora. Slider in Impostazioni + toggle rapido durante la copia. *(B)*
 
-5. `[ ]` **Delta-copy stile rsync** — se il file di destinazione esiste, copiare solo i blocchi cambiati (rolling checksum). Enorme risparmio su file grandi modificati poco (VM, database, video in editing). *(A)*
+5. `[x]` **Delta-copy stile rsync** — se il file di destinazione esiste, copiare solo i blocchi cambiati (rolling checksum). Enorme risparmio su file grandi modificati poco (VM, database, video in editing). *(A)* *(implementata Fase 1: copia locale/locale, algoritmo rsync a due livelli weak+strong hash in `DeltaCopyScanner`, applicazione via temp-file+rename atomico in `DeltaCopyApplier`, opt-in per coppia (`DeltaCopyEnabled`), block size configurabile in Impostazioni. FTP/SFTP fuori scope: richiederebbe bypassare le API whole-file di FluentFTP/SSH.NET, nessuna primitiva a blocchi/offset esposta oggi — da valutare come voce separata)*
 
 6. `[x]` **Dry-run / simulazione operazioni** — anteprima completa di cosa verrebbe copiato/sovrascritto/eliminato, con verifica spazio disponibile per destinazione, prima di lanciare il batch. Beyond Compare lo fa solo in versione Pro. *(B)*
 

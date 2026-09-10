@@ -1627,7 +1627,7 @@ git commit -m "feat: expose delta-copy toggle per copy pair with profile persist
 
 **Interfaces:** nessuna (documentazione).
 
-- [ ] **Step 1: Aggiorna la voce**
+- [x] **Step 1: Aggiorna la voce**
 
 In `IDEE.md`, sostituisci la riga 19:
 
