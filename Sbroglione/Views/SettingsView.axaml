@@ -61,6 +61,12 @@
               <NumericUpDown Grid.Column="1" Width="140" Minimum="1" Maximum="1000" Increment="5"
                              Value="{Binding ThrottleMBps}" />
             </Grid>
+
+            <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+              <TextBlock Grid.Column="0" Text="{DynamicResource Str.Settings.DeltaBlockSize}" VerticalAlignment="Center" />
+              <NumericUpDown Grid.Column="1" Minimum="1" Maximum="65536"
+                             Value="{Binding DeltaBlockSizeKB}" Width="120" />
+            </Grid>
           </StackPanel>
         </Border>
 

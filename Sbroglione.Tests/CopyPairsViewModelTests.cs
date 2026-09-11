@@ -673,6 +673,29 @@ public sealed class CopyPairsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveProfile_PersistsDeltaCopyEnabled()
+    {
+        InputDialogHelper.Override = (_, _, _) => Task.FromResult<string?>("Backup delta");
+
+        var vm = new CopyPairsViewModel();
+        await vm.ProfilesLoad;
+
+        var pair = new FolderFilePairViewModel
+        {
+            SourcePath = Path.Combine(_root, "src"),
+            DestinationPath = Path.Combine(_root, "dst"),
+            DeltaCopyEnabled = true
+        };
+        vm.PathPairs.Add(pair);
+
+        await vm.SaveProfileAsync();
+
+        var profile = Assert.Single(vm.Profiles);
+        var stored = Assert.Single(profile.Pairs);
+        Assert.True(stored.DeltaCopyEnabled);
+    }
+
+    [Fact]
     public async Task SaveProfile_PersistsExtensionFilter()
     {
         InputDialogHelper.Override = (_, _, _) => Task.FromResult<string?>("Filtrato");
@@ -788,6 +811,33 @@ public sealed class CopyPairsViewModelTests : IDisposable
         Assert.True(vm.PathPairs[0].SkipUnchanged);
         Assert.Equal("/extra1", Assert.Single(vm.PathPairs[0].ExtraDestinations).Path);
         Assert.Equal("/src2", vm.PathPairs[1].SourcePath);
+    }
+
+    [Fact]
+    public async Task ApplyProfile_RestoresDeltaCopyEnabled()
+    {
+        var vm = new CopyPairsViewModel();
+        await vm.ProfilesLoad;
+
+        var profile = new CopyProfile
+        {
+            Name = "Preset",
+            Pairs =
+            {
+                new CopyProfilePair
+                {
+                    SourcePath = "/src1",
+                    DestinationPath = "/dst1",
+                    DeltaCopyEnabled = true
+                }
+            }
+        };
+        vm.Profiles.Add(profile);
+        vm.SelectedProfile = profile;
+
+        vm.ApplyProfile();
+
+        Assert.True(vm.PathPairs[0].DeltaCopyEnabled);
     }
 
     [Fact]
