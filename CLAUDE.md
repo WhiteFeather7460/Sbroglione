@@ -31,9 +31,50 @@ Tests: `Sbroglione.Tests` (xunit) — run with `dotnet test`. No CI. `.editorcon
 
 ## Workflow
 
-For any non-trivial feature or change, always write an implementation plan first (superpowers writing-plans; plans live in `docs/superpowers/plans/`) and execute it with subagents (superpowers subagent-driven-development). After each completed task, mark it as done in the plan file before starting the next one.
+Standard flow for any implementation or code change: **analysis → plan → branch → implementation → test/verify → commit → push → pull request.** A task is not complete until its PR is opened.
 
-Each plan task must declare the most suitable model for its executing subagent (`haiku` for mechanical/boilerplate work, `sonnet` for standard implementation, `opus` for complex logic or security-sensitive code), and the dispatcher must pass that model to the Agent tool to save tokens.
+- Before writing a plan, read and understand the relevant existing code and how it fits the application's flow (layering, callers, side effects).
+- For any non-trivial feature or change, always write an implementation plan first (superpowers writing-plans; plans live in `docs/superpowers/plans/`) and execute it with subagents (superpowers subagent-driven-development). After each completed task, mark it as done in the plan file before starting the next one.
+- A plan must state: goal, approach, files/components involved, risks/impact, and verification/test strategy.
+- All implementation happens on a dedicated feature branch — never directly on `main`/`master` or other shared branches.
+
+### Model selection
+
+Evaluate task complexity per plan task and pick the cheapest model that fits — do not default to the most powerful one. Re-evaluate if complexity shifts mid-task.
+
+- `opus` — complex/architectural work, deep reasoning, hard debugging, changes with wide system impact.
+- `sonnet` — standard implementation: medium features, multi-file changes, APIs/services/integrations, non-trivial bug fixes.
+- `haiku` — mechanical/boilerplate work: docs, config, small fixes, simple tests.
+
+Each plan task must declare its model, and the dispatcher must pass it to the Agent tool.
+
+### Code simplicity
+
+Prefer the simplest solution that correctly solves the problem. Avoid over-engineering, premature abstraction, unneeded design patterns, and clever-but-opaque code. Reuse existing project patterns where appropriate. Keep functions single-purpose. Do not add complexity for hypothetical future problems.
+
+### Avoiding technical debt
+
+Before adding code, check: does an equivalent solution already exist, would this duplicate logic, is a new abstraction actually needed, does it add complexity, will it stay understandable and modifiable later. Do not leave undocumented workarounds, TODOs, duplicated logic, dead code, or temporary hacks. If technical debt is unavoidable to complete a task, state it explicitly in the PR description with the reason and what would be needed to remove it.
+
+### Documentation
+
+Document a function when its role isn't obvious, covering as relevant: why it exists, when/from where it's called, inputs/outputs, side effects, and which parts of the system it touches. No line-by-line "what it does" comments — document the *why* and the function's place in the application flow.
+
+### Scope
+
+Keep changes focused on the task. No unrelated refactors, except when needed to correctly complete the task, avoid a concrete problem, or preserve code quality/maintainability. Report unrelated issues you notice instead of fixing them inline.
+
+### Verification
+
+Verify every implementation before opening the PR: run tests, lint, type-check, build, or whatever else applies to the project. Do not declare a task complete without having verified the changed behavior — if some verification couldn't be run, say so explicitly.
+
+### Guiding principle
+
+Given equal results, always prefer the solution that is simplest, most readable, most easily verifiable, most consistent with existing code, and carries the least technical debt.
+
+## Communication style
+
+Use caveman mode (terse, compressed) for chat responses during development work. Code, commit messages, and PR descriptions are written normally.
 
 ## Git
 
